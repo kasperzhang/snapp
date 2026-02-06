@@ -246,3 +246,48 @@ CREATE TRIGGER update_bookmarks_updated_at
 CREATE TRIGGER update_folders_updated_at
   BEFORE UPDATE ON folders
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Site Analyses table (for web page scanning feature)
+CREATE TABLE site_analyses (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  bookmark_id UUID NOT NULL REFERENCES bookmarks(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  screenshot_url TEXT,
+  fonts JSONB,              -- [{family, weights, source, usage}]
+  colors JSONB,             -- [{hex, rgb, frequency, context}]
+  design_prompt TEXT,       -- Claude-generated replication guide
+  design_tokens JSONB,      -- {tailwind, cssVariables}
+  analysis_status TEXT DEFAULT 'pending',
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for site_analyses
+CREATE INDEX idx_site_analyses_bookmark_id ON site_analyses(bookmark_id);
+CREATE INDEX idx_site_analyses_user_id ON site_analyses(user_id);
+
+-- Enable RLS for site_analyses
+ALTER TABLE site_analyses ENABLE ROW LEVEL SECURITY;
+
+-- Site analyses policies
+CREATE POLICY "Users can view their own site analyses"
+  ON site_analyses FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create their own site analyses"
+  ON site_analyses FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own site analyses"
+  ON site_analyses FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own site analyses"
+  ON site_analyses FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Trigger for updated_at on site_analyses
+CREATE TRIGGER update_site_analyses_updated_at
+  BEFORE UPDATE ON site_analyses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

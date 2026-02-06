@@ -10,6 +10,7 @@ interface BookmarkGridProps {
   loading?: boolean;
   onEdit?: (bookmark: BookmarkWithRelations) => void;
   onDelete?: (bookmarkId: string) => void;
+  onAnalyze?: (bookmark: BookmarkWithRelations) => void;
   emptyMessage?: string;
 }
 
@@ -39,6 +40,7 @@ export function BookmarkGrid({
   loading,
   onEdit,
   onDelete,
+  onAnalyze,
   emptyMessage = "No bookmarks yet",
 }: BookmarkGridProps) {
   if (loading) {
@@ -70,6 +72,7 @@ export function BookmarkGrid({
           bookmark={bookmark}
           onEdit={() => onEdit?.(bookmark)}
           onDelete={() => onDelete?.(bookmark.id)}
+          onAnalyze={() => onAnalyze?.(bookmark)}
         />
       ))}
     </div>

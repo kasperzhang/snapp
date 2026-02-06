@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useBookmarks, useTags } from "@/hooks";
 import { BookmarkGrid, AddBookmarkDialog, EditBookmarkDialog } from "@/components/bookmark";
+import { SiteAnalysisDialog } from "@/components/analysis";
 import { SearchBar, TagFilter } from "@/components/search";
 import { Header } from "@/components/layout";
 import { BookmarkWithRelations } from "@/types";
@@ -14,6 +15,7 @@ export default function HomePage() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [userEmail, setUserEmail] = useState<string>();
   const [editingBookmark, setEditingBookmark] = useState<BookmarkWithRelations | null>(null);
+  const [analyzingBookmark, setAnalyzingBookmark] = useState<BookmarkWithRelations | null>(null);
   const addDialogTriggerRef = useRef<HTMLButtonElement>(null);
 
   const {
@@ -119,6 +121,7 @@ export default function HomePage() {
           loading={bookmarksLoading}
           onEdit={(bookmark) => setEditingBookmark(bookmark)}
           onDelete={handleDeleteBookmark}
+          onAnalyze={(bookmark) => setAnalyzingBookmark(bookmark)}
         />
       </main>
 
@@ -139,6 +142,13 @@ export default function HomePage() {
         onOpenChange={(open) => !open && setEditingBookmark(null)}
         onSubmit={handleUpdateBookmark}
         onCreateTag={(name) => createTag({ name })}
+      />
+
+      {/* Site Analysis Dialog */}
+      <SiteAnalysisDialog
+        bookmark={analyzingBookmark}
+        open={!!analyzingBookmark}
+        onOpenChange={(open) => !open && setAnalyzingBookmark(null)}
       />
     </div>
   );

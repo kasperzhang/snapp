@@ -66,3 +66,48 @@ export interface CreateTagInput {
   name: string;
   color?: string;
 }
+
+// Site Analysis Types
+export interface ExtractedFont {
+  family: string;
+  weights: string[];
+  source: "google" | "system" | "custom";
+  usage: "heading" | "body" | "code" | "other";
+}
+
+export interface ExtractedColor {
+  hex: string;
+  rgb: { r: number; g: number; b: number };
+  frequency: number;
+  context: "background" | "text" | "accent" | "border" | "other";
+}
+
+export interface DesignTokens {
+  tailwind: {
+    colors: Record<string, string>;
+    fontFamily: Record<string, string[]>;
+  };
+  cssVariables: Record<string, string>;
+  styleDict: Record<string, { value: string; type: string }>;
+}
+
+export interface SiteAnalysis {
+  id: string;
+  bookmark_id: string;
+  user_id: string;
+  screenshot_url: string | null;
+  fonts: ExtractedFont[] | null;
+  colors: ExtractedColor[] | null;
+  design_prompt: string | null;
+  design_tokens: DesignTokens | null;
+  analysis_status: "pending" | "scanning" | "completed" | "error";
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScanResult {
+  screenshot: Buffer | null;
+  fonts: ExtractedFont[];
+  colors: ExtractedColor[];
+}
