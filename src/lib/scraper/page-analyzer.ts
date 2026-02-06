@@ -298,14 +298,21 @@ export async function analyzePage(url: string): Promise<ScanResult> {
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     );
 
-    // Navigate to URL with timeout
+    // Navigate to URL - use domcontentloaded for faster loading, then wait for network
     await page.goto(url, {
-      waitUntil: "networkidle2",
-      timeout: 30000,
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
     });
 
+    // Try to wait for network idle, but don't fail if it times out
+    try {
+      await page.waitForNetworkIdle({ timeout: 10000 });
+    } catch {
+      // Network didn't fully settle, continue anyway
+    }
+
     // Wait a bit for any lazy-loaded content
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Take screenshot
     const screenshot = await page.screenshot({
