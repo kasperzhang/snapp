@@ -8,14 +8,37 @@ import { ExtractedFont, ExtractedColor, ScanResult } from "@/types";
 const CHROMIUM_EXECUTABLE_PATH = process.env.CHROMIUM_EXECUTABLE_PATH ||
   "https://github.com/niceprogrammer2022/niceprogrammer-chromium-113/releases/download/v0.0.1/chromium-v113.0.0-pack.tar";
 
-// System fonts to detect
+// CSS generic font keywords to SKIP (these are not actual font names)
+const CSS_GENERIC_KEYWORDS = [
+  "system-ui", "-apple-system", "BlinkMacSystemFont",
+  "ui-sans-serif", "ui-serif", "ui-monospace", "ui-rounded",
+  "sans-serif", "serif", "monospace", "cursive", "fantasy",
+  "emoji", "math", "fangsong", "inherit", "initial", "unset", "revert"
+];
+
+// Known system fonts (actual font names, not CSS keywords)
 const SYSTEM_FONTS = [
-  "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI",
-  "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans",
-  "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-  "Noto Color Emoji", "serif", "monospace", "cursive", "fantasy",
-  "Georgia", "Times New Roman", "Times", "Courier New", "Courier",
-  "Verdana", "Tahoma", "Trebuchet MS", "Impact", "Comic Sans MS"
+  // Windows
+  "Segoe UI", "Segoe UI Variable", "Tahoma", "Verdana", "Trebuchet MS",
+  "Lucida Grande", "Lucida Sans Unicode", "Palatino Linotype", "Book Antiqua",
+  // macOS/iOS
+  "SF Pro", "SF Pro Display", "SF Pro Text", "SF Mono", "New York",
+  "Helvetica Neue", "Helvetica", "Apple Color Emoji",
+  // Common system fonts
+  "Arial", "Arial Black", "Times New Roman", "Times", "Georgia",
+  "Courier New", "Courier", "Comic Sans MS", "Impact",
+  // Linux
+  "Ubuntu", "Cantarell", "Noto Sans", "Liberation Sans", "DejaVu Sans",
+  // Android
+  "Roboto", "Droid Sans"
+];
+
+// Known monospace fonts
+const MONOSPACE_FONTS = [
+  "JetBrains Mono", "Fira Code", "Source Code Pro", "Monaco", "Menlo",
+  "Consolas", "Liberation Mono", "Courier New", "Courier", "SF Mono",
+  "IBM Plex Mono", "Inconsolata", "Hack", "Ubuntu Mono", "Roboto Mono",
+  "Anonymous Pro", "Cascadia Code", "Cascadia Mono"
 ];
 
 
@@ -46,10 +69,14 @@ async function getBrowser(): Promise<Browser> {
   });
 }
 
-interface FontInfo {
+interface FontUsageData {
   family: string;
   weight: string;
+  fontSize: number;
   element: string;
+  isHeading: boolean;
+  isCode: boolean;
+  textLength: number;
 }
 
 interface ColorInfo {
@@ -58,116 +85,321 @@ interface ColorInfo {
   count: number;
 }
 
+interface GoogleFontInfo {
+  family: string;
+  weights: string[];
+}
+
 async function extractFontsFromPage(page: Page): Promise<ExtractedFont[]> {
-  const fontData = await page.evaluate(() => {
-    const fonts: FontInfo[] = [];
-    const elements = document.querySelectorAll("*");
+  // Step 1: Extract Google Fonts from link tags (both v1 and v2 API formats)
+  const googleFonts = await page.evaluate(() => {
+    const fonts: GoogleFontInfo[] = [];
 
-    elements.forEach((el) => {
-      const computedStyle = window.getComputedStyle(el);
-      const fontFamily = computedStyle.fontFamily;
-      const fontWeight = computedStyle.fontWeight;
-      const tagName = el.tagName.toLowerCase();
+    // Check link tags
+    const links = document.querySelectorAll('link[href*="fonts.googleapis.com"], link[href*="fonts.gstatic.com"]');
+    links.forEach((link) => {
+      const href = link.getAttribute("href") || "";
 
-      if (fontFamily) {
-        // Extract primary font family
-        const primaryFont = fontFamily.split(",")[0].trim().replace(/['"]/g, "");
-        fonts.push({
-          family: primaryFont,
-          weight: fontWeight,
-          element: tagName,
-        });
+      // Google Fonts API v2: family=Font+Name:wght@400;500;700
+      const v2Matches = href.matchAll(/family=([^:&]+)(?::wght@([^&]+))?/g);
+      for (const match of v2Matches) {
+        const family = decodeURIComponent(match[1].replace(/\+/g, " "));
+        const weights = match[2] ? match[2].split(";") : ["400"];
+        fonts.push({ family, weights });
+      }
+
+      // Google Fonts API v1: family=Font+Name:400,500,700
+      if (href.includes("family=") && !href.includes(":wght@")) {
+        const v1Match = href.match(/family=([^&]+)/);
+        if (v1Match) {
+          const parts = v1Match[1].split("|");
+          parts.forEach((part) => {
+            const [name, weightsStr] = part.split(":");
+            const family = decodeURIComponent(name.replace(/\+/g, " "));
+            const weights = weightsStr ? weightsStr.split(",") : ["400"];
+            // Filter out italic indicators
+            const cleanWeights = weights.map(w => w.replace(/i$/, "")).filter(w => /^\d+$/.test(w));
+            fonts.push({ family, weights: cleanWeights.length ? cleanWeights : ["400"] });
+          });
+        }
       }
     });
 
-    // Check for @font-face rules
-    const styleSheets = document.styleSheets;
-    for (let i = 0; i < styleSheets.length; i++) {
+    // Check @import rules in stylesheets
+    Array.from(document.styleSheets).forEach((sheet) => {
       try {
-        const rules = styleSheets[i].cssRules;
-        if (rules) {
-          for (let j = 0; j < rules.length; j++) {
-            const rule = rules[j];
-            if (rule instanceof CSSFontFaceRule) {
-              const family = rule.style.getPropertyValue("font-family").replace(/['"]/g, "");
-              const weight = rule.style.getPropertyValue("font-weight") || "400";
-              fonts.push({ family, weight, element: "@font-face" });
+        Array.from(sheet.cssRules || []).forEach((rule) => {
+          if (rule instanceof CSSImportRule && rule.href?.includes("fonts.googleapis.com")) {
+            const match = rule.href.match(/family=([^:&]+)(?::wght@([^&]+))?/);
+            if (match) {
+              const family = decodeURIComponent(match[1].replace(/\+/g, " "));
+              const weights = match[2] ? match[2].split(";") : ["400"];
+              fonts.push({ family, weights });
             }
           }
-        }
+        });
       } catch {
-        // CORS restrictions on external stylesheets
+        // CORS restriction
       }
-    }
+    });
 
     return fonts;
   });
 
-  // Check for Google Fonts links
-  const googleFontsUsed = await page.evaluate(() => {
-    const links = document.querySelectorAll('link[href*="fonts.googleapis.com"]');
-    const families: string[] = [];
-    links.forEach((link) => {
-      const href = link.getAttribute("href");
-      if (href) {
-        const match = href.match(/family=([^&]+)/);
-        if (match) {
-          families.push(...match[1].split("|").map((f) => f.split(":")[0].replace(/\+/g, " ")));
-        }
+  // Step 2: Extract @font-face declarations
+  const fontFaceDeclarations = await page.evaluate(() => {
+    const declarations: { family: string; weight: string; src: string }[] = [];
+
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        Array.from(sheet.cssRules || []).forEach((rule) => {
+          if (rule instanceof CSSFontFaceRule) {
+            const family = rule.style.getPropertyValue("font-family").replace(/['"]/g, "").trim();
+            const weight = rule.style.getPropertyValue("font-weight") || "400";
+            const src = rule.style.getPropertyValue("src") || "";
+            if (family) {
+              declarations.push({ family, weight, src });
+            }
+          }
+        });
+      } catch {
+        // CORS restriction
       }
     });
-    return families;
+
+    return declarations;
   });
 
-  // Aggregate and deduplicate fonts
-  const fontMap = new Map<string, { weights: Set<string>; usage: string; isGoogle: boolean }>();
+  // Step 3: Analyze actual font usage on the page
+  const fontUsageData = await page.evaluate((cssGenericKeywords: string[]) => {
+    const usageData: FontUsageData[] = [];
+    const processedElements = new Set<Element>();
 
-  fontData.forEach(({ family, weight, element }) => {
-    const existing = fontMap.get(family) || {
-      weights: new Set<string>(),
-      usage: "other",
-      isGoogle: googleFontsUsed.includes(family),
+    // Helper to check if font is a CSS generic keyword
+    const isGenericKeyword = (font: string) => {
+      return cssGenericKeywords.some(kw => kw.toLowerCase() === font.toLowerCase());
     };
-    existing.weights.add(weight);
 
-    // Determine usage based on element
-    if (["h1", "h2", "h3", "h4", "h5", "h6"].includes(element)) {
-      existing.usage = "heading";
-    } else if (["p", "span", "div", "li", "a"].includes(element) && existing.usage !== "heading") {
-      existing.usage = "body";
-    } else if (["code", "pre", "kbd"].includes(element)) {
-      existing.usage = "code";
+    // Helper to extract actual font from font-family stack
+    const extractRealFont = (fontFamily: string): string | null => {
+      const fonts = fontFamily.split(",").map(f => f.trim().replace(/['"]/g, ""));
+      for (const font of fonts) {
+        if (!isGenericKeyword(font) && font !== "inherit" && font !== "initial") {
+          return font;
+        }
+      }
+      return null;
+    };
+
+    // Process important text elements
+    const textSelectors = [
+      "h1", "h2", "h3", "h4", "h5", "h6",
+      "p", "span", "a", "li", "td", "th", "label",
+      "button", "input", "textarea",
+      "code", "pre", "kbd", "samp",
+      "blockquote", "figcaption", "cite",
+      "[class*='title']", "[class*='heading']", "[class*='text']",
+      "[class*='body']", "[class*='content']", "[class*='paragraph']"
+    ];
+
+    textSelectors.forEach((selector) => {
+      try {
+        document.querySelectorAll(selector).forEach((el) => {
+          if (processedElements.has(el)) return;
+
+          // Only process elements with actual text content
+          const text = el.textContent?.trim() || "";
+          if (text.length < 2) return;
+
+          processedElements.add(el);
+
+          const computedStyle = window.getComputedStyle(el);
+          const fontFamily = computedStyle.fontFamily;
+          const realFont = extractRealFont(fontFamily);
+
+          if (!realFont) return;
+
+          const weight = computedStyle.fontWeight;
+          const fontSize = parseFloat(computedStyle.fontSize);
+          const tagName = el.tagName.toLowerCase();
+          const isHeading = /^h[1-6]$/.test(tagName) || fontSize >= 24;
+          const isCode = ["code", "pre", "kbd", "samp"].includes(tagName) ||
+                        fontFamily.toLowerCase().includes("mono") ||
+                        computedStyle.fontFamily.toLowerCase().includes("code");
+
+          usageData.push({
+            family: realFont,
+            weight,
+            fontSize,
+            element: tagName,
+            isHeading,
+            isCode,
+            textLength: text.length,
+          });
+        });
+      } catch {
+        // Invalid selector
+      }
+    });
+
+    return usageData;
+  }, CSS_GENERIC_KEYWORDS);
+
+  // Step 4: Aggregate and analyze font data
+  const fontMap = new Map<string, {
+    weights: Set<string>;
+    usageScore: { heading: number; body: number; code: number };
+    isGoogle: boolean;
+    isFontFace: boolean;
+    totalTextLength: number;
+  }>();
+
+  // Build Google Fonts lookup
+  const googleFontNames = new Set(googleFonts.map(gf => gf.family.toLowerCase()));
+  const googleFontWeights = new Map<string, Set<string>>();
+  googleFonts.forEach(gf => {
+    const key = gf.family.toLowerCase();
+    if (!googleFontWeights.has(key)) {
+      googleFontWeights.set(key, new Set());
     }
-
-    fontMap.set(family, existing);
+    gf.weights.forEach(w => googleFontWeights.get(key)?.add(w));
   });
 
-  const result: ExtractedFont[] = [];
-  fontMap.forEach((data, family) => {
-    // Determine font source
-    let source: "google" | "system" | "custom" = "custom";
-    if (data.isGoogle || googleFontsUsed.includes(family)) {
-      source = "google";
-    } else if (SYSTEM_FONTS.some((sf) => sf.toLowerCase() === family.toLowerCase())) {
-      source = "system";
+  // Build font-face lookup
+  const fontFaceNames = new Set(fontFaceDeclarations.map(ff => ff.family.toLowerCase()));
+  const fontFaceWeights = new Map<string, Set<string>>();
+  fontFaceDeclarations.forEach(ff => {
+    const key = ff.family.toLowerCase();
+    if (!fontFaceWeights.has(key)) {
+      fontFaceWeights.set(key, new Set());
     }
+    fontFaceWeights.get(key)?.add(ff.weight);
+  });
+
+  // Process usage data
+  fontUsageData.forEach((usage) => {
+    const familyLower = usage.family.toLowerCase();
+    const existing = fontMap.get(familyLower) || {
+      weights: new Set<string>(),
+      usageScore: { heading: 0, body: 0, code: 0 },
+      isGoogle: googleFontNames.has(familyLower),
+      isFontFace: fontFaceNames.has(familyLower),
+      totalTextLength: 0,
+    };
+
+    existing.weights.add(usage.weight);
+    existing.totalTextLength += usage.textLength;
+
+    // Score usage based on context
+    if (usage.isCode) {
+      existing.usageScore.code += usage.textLength;
+    } else if (usage.isHeading) {
+      existing.usageScore.heading += usage.textLength;
+    } else {
+      existing.usageScore.body += usage.textLength;
+    }
+
+    fontMap.set(familyLower, existing);
+  });
+
+  // Add Google Font weights that might not be detected in usage
+  googleFonts.forEach(gf => {
+    const key = gf.family.toLowerCase();
+    const existing = fontMap.get(key);
+    if (existing) {
+      gf.weights.forEach(w => existing.weights.add(w));
+    }
+  });
+
+  // Step 5: Build final result
+  const result: ExtractedFont[] = [];
+
+  fontMap.forEach((data, familyLower) => {
+    // Find the proper-cased family name
+    let properFamily = familyLower;
+
+    // Check Google Fonts for proper casing
+    const googleMatch = googleFonts.find(gf => gf.family.toLowerCase() === familyLower);
+    if (googleMatch) {
+      properFamily = googleMatch.family;
+    }
+
+    // Check font-face for proper casing
+    const fontFaceMatch = fontFaceDeclarations.find(ff => ff.family.toLowerCase() === familyLower);
+    if (fontFaceMatch) {
+      properFamily = fontFaceMatch.family;
+    }
+
+    // Capitalize first letter of each word as fallback
+    if (properFamily === familyLower) {
+      properFamily = familyLower.split(" ").map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(" ");
+    }
+
+    // Determine source
+    let source: "google" | "system" | "custom" = "custom";
+    if (data.isGoogle) {
+      source = "google";
+    } else if (SYSTEM_FONTS.some(sf => sf.toLowerCase() === familyLower)) {
+      source = "system";
+    } else if (data.isFontFace) {
+      source = "custom";
+    }
+
+    // Determine primary usage
+    const { heading, body, code } = data.usageScore;
+    let usage: "heading" | "body" | "code" | "other" = "other";
+
+    // Check if it's a monospace font
+    if (MONOSPACE_FONTS.some(mf => mf.toLowerCase() === familyLower) || code > 0) {
+      usage = "code";
+    } else if (heading > body && heading > 0) {
+      usage = "heading";
+    } else if (body > 0) {
+      usage = "body";
+    }
+
+    // Sort and normalize weights
+    const weights = Array.from(data.weights)
+      .map(w => {
+        // Normalize weight values
+        const num = parseInt(w);
+        if (!isNaN(num)) return String(num);
+        // Convert named weights
+        const namedWeights: Record<string, string> = {
+          "normal": "400", "regular": "400", "bold": "700",
+          "light": "300", "medium": "500", "semibold": "600", "extrabold": "800"
+        };
+        return namedWeights[w.toLowerCase()] || "400";
+      })
+      .filter((w, i, arr) => arr.indexOf(w) === i) // dedupe
+      .sort((a, b) => parseInt(a) - parseInt(b));
 
     result.push({
-      family,
-      weights: Array.from(data.weights).sort(),
+      family: properFamily,
+      weights: weights.length > 0 ? weights : ["400"],
       source,
-      usage: data.usage as ExtractedFont["usage"],
+      usage,
     });
   });
 
-  // Sort by usage importance
+  // Sort by importance: heading > body > code > other, then by text length
   return result
-    .filter((f) => f.family && f.family !== "inherit")
     .sort((a, b) => {
       const order = { heading: 0, body: 1, code: 2, other: 3 };
-      return order[a.usage] - order[b.usage];
+      const orderDiff = order[a.usage] - order[b.usage];
+      if (orderDiff !== 0) return orderDiff;
+
+      // Secondary sort by whether it's a Google/custom font (more interesting)
+      if (a.source !== b.source) {
+        const sourceOrder = { google: 0, custom: 1, system: 2 };
+        return sourceOrder[a.source] - sourceOrder[b.source];
+      }
+
+      return 0;
     })
-    .slice(0, 10); // Limit to top 10 fonts
+    .slice(0, 10);
 }
 
 async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
@@ -268,19 +500,36 @@ async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
     });
   });
 
-  // Sort by frequency and limit
-  return result
-    .filter((c) => {
-      // Filter out pure white/black/transparent
-      const { r, g, b } = c.rgb;
-      return !(
-        (r === 255 && g === 255 && b === 255) ||
-        (r === 0 && g === 0 && b === 0) ||
-        (r === 0 && g === 0 && b === 0 && c.hex === "#000000")
-      );
-    })
-    .sort((a, b) => b.frequency - a.frequency)
-    .slice(0, 20); // Limit to top 20 colors
+  // Sort and organize colors
+  // Keep black and white but mark them appropriately
+  const sortedColors = result.sort((a, b) => b.frequency - a.frequency);
+
+  // Separate into categories for better organization
+  const categorized: ExtractedColor[] = [];
+  const seen = new Set<string>();
+
+  // Add most frequent colors by context
+  const contexts = ["background", "text", "accent", "border"];
+  contexts.forEach(ctx => {
+    sortedColors
+      .filter(c => c.context === ctx && !seen.has(c.hex))
+      .slice(0, 5)
+      .forEach(c => {
+        seen.add(c.hex);
+        categorized.push(c);
+      });
+  });
+
+  // Add any remaining important colors
+  sortedColors
+    .filter(c => !seen.has(c.hex))
+    .slice(0, 10)
+    .forEach(c => {
+      seen.add(c.hex);
+      categorized.push({ ...c, context: "other" });
+    });
+
+  return categorized.slice(0, 20);
 }
 
 export async function analyzePage(url: string): Promise<ScanResult> {
