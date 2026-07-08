@@ -5,6 +5,11 @@ import { ExtractedFont, ExtractedColor } from "@/types";
 
 const anthropic = new Anthropic();
 
+// Vercel function timeout. Generating the full design guide is a large,
+// non-streamed completion (~60-80s). 300 is the Vercel Pro ceiling; Hobby
+// clamps to 60s, so on Hobby this route needs streaming or a shorter prompt.
+export const maxDuration = 300;
+
 function buildPrompt(fonts: ExtractedFont[], colors: ExtractedColor[], url: string): string {
   const fontList = fonts
     .map((f) => `- ${f.family} (weights: ${f.weights.join(", ")}) - ${f.source} font, used for ${f.usage}`)
@@ -553,8 +558,9 @@ export async function POST(request: NextRequest) {
 
     // Call Claude API
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 8192,
+      model: "claude-sonnet-5",
+      max_tokens: 16000,
+      thinking: { type: "disabled" }, // keep latency low (Sonnet 5 runs adaptive thinking by default)
       messages: [
         {
           role: "user",

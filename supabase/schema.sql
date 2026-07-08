@@ -291,3 +291,26 @@ CREATE POLICY "Users can delete their own site analyses"
 CREATE TRIGGER update_site_analyses_updated_at
   BEFORE UPDATE ON site_analyses
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Screenshots storage bucket (for the site scan feature)
+-- Public read so getPublicUrl works; per-user write scoped to a {user_id}/ folder.
+-- Object path convention is `{user_id}/{analysis_id}.png` with upsert:true
+-- (see src/app/api/analysis/scan/route.ts), so both INSERT and UPDATE are needed.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('screenshots', 'screenshots', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Users insert own screenshots" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'screenshots' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users update own screenshots" ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (bucket_id = 'screenshots' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users delete own screenshots" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'screenshots' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Public read screenshots" ON storage.objects
+  FOR SELECT USING (bucket_id = 'screenshots');
