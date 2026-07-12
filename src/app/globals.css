@@ -12,9 +12,9 @@
   --accent-hover: #333333;
 
   /* Sidebar */
-  --sidebar: #F4F4F2;
-  --sidebar-border: #E4E4E0;
-  --sidebar-hover: #EBEBE8;
+  --sidebar: #EBEBEB;
+  --sidebar-border: #DEDEDE;
+  --sidebar-hover: #E0E0E0;
 
   --radius-card: 14px;
   --radius-button: 9999px;
