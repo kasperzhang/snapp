@@ -41,7 +41,7 @@ export function BookmarkCard({
       className={cn(
         "bookmark-card group overflow-hidden flex flex-col relative transition-transform duration-200 hover:-translate-y-0.5",
         selectable && "cursor-pointer",
-        selected && "ring-2 ring-[var(--accent)]"
+        selected && "-translate-y-0.5"
       )}
     >
       {/* Preview Area */}
@@ -184,17 +184,29 @@ export function BookmarkCard({
               onToggleSelect?.();
             }
           }}
-          className="absolute inset-0 z-10 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-inset"
+          className="absolute inset-0 z-10 rounded-[var(--radius-card)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-inset"
         >
+          {/* Crisp accent outline hugging the card when selected */}
           <span
             className={cn(
-              "absolute top-2 left-2 w-7 h-7 rounded-full border-2 flex items-center justify-center shadow-sm transition-colors",
+              "pointer-events-none absolute inset-0 rounded-[var(--radius-card)] border-2 transition-colors duration-150",
+              selected ? "border-[var(--accent)]" : "border-transparent"
+            )}
+          />
+          {/* Subtle tint so the whole tile reads as chosen */}
+          {selected && (
+            <span className="pointer-events-none absolute inset-0 rounded-[var(--radius-card)] bg-[var(--accent)]/[0.04]" />
+          )}
+          {/* Corner check badge — solid when selected, faint hint on hover */}
+          <span
+            className={cn(
+              "absolute top-2.5 right-2.5 flex items-center justify-center rounded-full w-6 h-6 transition-all duration-150",
               selected
-                ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--background)]"
-                : "bg-[var(--surface)]/90 border-[var(--border)] text-transparent"
+                ? "bg-[var(--accent)] text-white ring-2 ring-white shadow-md scale-100 opacity-100"
+                : "bg-white/80 backdrop-blur-sm border border-[var(--border)] text-[var(--text-muted)] scale-90 opacity-0 group-hover:opacity-100 group-hover:scale-100"
             )}
           >
-            <Check className="w-4 h-4" />
+            {selected && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
           </span>
         </div>
       )}
