@@ -10,8 +10,8 @@ import {
   ChevronDown,
   Plus,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
+  PanelLeft,
+  Settings,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useWorkbenches } from "@/hooks";
@@ -87,25 +87,36 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "sidebar-surface shrink-0 flex flex-col py-5 h-full overflow-x-hidden overflow-y-auto transition-[width,padding] duration-300 ease-in-out",
+        "shrink-0 bg-[var(--sidebar)] flex flex-col py-5 h-full overflow-x-hidden overflow-y-auto transition-[width,padding] duration-300 ease-in-out",
         collapsed ? "w-16 px-2" : "w-[196px] px-3"
       )}
     >
-      {/* Logo */}
+      {/* Logo + panel toggle (top-right) */}
       <div
         className={cn(
-          "flex items-center gap-2.5 mb-5 h-7",
-          collapsed ? "justify-center px-0" : "px-1"
+          "mb-5",
+          collapsed
+            ? "flex flex-col items-center gap-3"
+            : "flex items-center justify-between px-1 h-7"
         )}
       >
-        <div className="w-7 h-7 rounded-lg bg-[var(--foreground)] text-white flex items-center justify-center font-[family-name:var(--font-space-grotesk)] font-bold text-[15px] shrink-0">
-          s
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-[var(--foreground)] text-white flex items-center justify-center font-[family-name:var(--font-space-grotesk)] font-bold text-[15px] shrink-0">
+            s
+          </div>
+          {!collapsed && (
+            <span className="font-[family-name:var(--font-space-grotesk)] font-semibold text-lg tracking-tight text-[var(--foreground)] whitespace-nowrap">
+              snapp
+            </span>
+          )}
         </div>
-        {!collapsed && (
-          <span className="font-[family-name:var(--font-space-grotesk)] font-semibold text-lg tracking-tight text-[var(--foreground)] whitespace-nowrap">
-            snapp
-          </span>
-        )}
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="p-1.5 -mr-0.5 rounded-md text-[var(--text-muted)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-hover)] transition-colors shrink-0"
+        >
+          <PanelLeft className="w-[18px] h-[18px]" />
+        </button>
       </div>
 
       {/* Search */}
@@ -297,54 +308,60 @@ export function Sidebar({
 
       <div className="flex-1" />
 
-      {/* User footer */}
-      <div
-        className={cn(
-          "flex items-center gap-2.5 px-1 pt-2",
-          collapsed && "flex-col gap-3"
+      {/* User + settings footer */}
+      <div className="pt-2 mt-2 border-t border-[var(--sidebar-border)]">
+        {collapsed ? (
+          <div className="flex justify-center pt-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-8 h-8 rounded-full bg-[#dcdcd8] text-[#555] flex items-center justify-center text-[12px] font-semibold hover:ring-2 hover:ring-[var(--sidebar-hover)] transition-all">
+                  {(userEmail?.[0] || "K").toUpperCase()}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {userEmail && (
+                  <div className="px-2 py-1.5 text-sm text-[var(--text-secondary)] border-b border-[var(--border)] mb-1 truncate max-w-[200px]">
+                    {userEmail}
+                  </div>
+                )}
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 px-1 pt-1">
+            <div className="w-8 h-8 rounded-full bg-[#dcdcd8] text-[#555] flex items-center justify-center text-[12px] font-semibold shrink-0">
+              {(userEmail?.[0] || "K").toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[12.5px] font-medium text-[var(--foreground)] truncate">
+                {userEmail ? userEmail.split("@")[0] : "Account"}
+              </div>
+              <div className="text-[11px] text-[var(--text-muted)] truncate">
+                {userEmail || "Free"}
+              </div>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  title="Settings"
+                  className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--foreground)] hover:bg-[var(--sidebar-hover)] transition-colors shrink-0"
+                >
+                  <Settings className="w-[17px] h-[17px]" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className={cn(
-                "flex items-center gap-2.5 min-w-0 rounded-lg -mx-1 px-1 py-1 hover:bg-[var(--sidebar-hover)] transition-colors",
-                !collapsed && "flex-1"
-              )}
-            >
-              <div className="w-[26px] h-[26px] rounded-full bg-[#dcdcd8] text-[#555] flex items-center justify-center text-[11px] font-semibold shrink-0">
-                {(userEmail?.[0] || "K").toUpperCase()}
-              </div>
-              {!collapsed && (
-                <span className="flex-1 min-w-0 text-left text-[12.5px] text-[var(--text-secondary)] truncate">
-                  {userEmail ? userEmail.split("@")[0] : "Account"}
-                </span>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {userEmail && (
-              <div className="px-2 py-1.5 text-sm text-[var(--text-secondary)] border-b border-[var(--border)] mb-1 truncate max-w-[200px]">
-                {userEmail}
-              </div>
-            )}
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          title={collapsed ? "Expand" : "Collapse"}
-          className="p-1 text-[var(--text-muted)] hover:text-[var(--foreground)] transition-colors shrink-0"
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="w-4 h-4" />
-          ) : (
-            <PanelLeftClose className="w-3.5 h-3.5" />
-          )}
-        </button>
       </div>
     </aside>
   );
