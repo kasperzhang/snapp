@@ -154,7 +154,7 @@ export function Sidebar({
           LIBRARY
         </div>
       )}
-      <div className={cn("flex flex-col gap-0.5 mb-5", collapsed && "mt-1")}>
+      <div className={cn("flex flex-col gap-1.5 mb-5", collapsed && "mt-1")}>
         <Link
           href="/"
           className={navItem(bookmarksActive)}
