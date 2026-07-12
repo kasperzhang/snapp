@@ -12,6 +12,9 @@ interface BookmarkGridProps {
   onDelete?: (bookmarkId: string) => void;
   onAnalyze?: (bookmark: BookmarkWithRelations) => void;
   emptyMessage?: string;
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (bookmarkId: string) => void;
 }
 
 function BookmarkSkeleton() {
@@ -42,6 +45,9 @@ export function BookmarkGrid({
   onDelete,
   onAnalyze,
   emptyMessage = "No bookmarks yet",
+  selectable = false,
+  selectedIds,
+  onToggleSelect,
 }: BookmarkGridProps) {
   if (loading) {
     return (
@@ -73,6 +79,9 @@ export function BookmarkGrid({
           onEdit={() => onEdit?.(bookmark)}
           onDelete={() => onDelete?.(bookmark.id)}
           onAnalyze={() => onAnalyze?.(bookmark)}
+          selectable={selectable}
+          selected={selectedIds?.has(bookmark.id)}
+          onToggleSelect={() => onToggleSelect?.(bookmark.id)}
         />
       ))}
     </div>

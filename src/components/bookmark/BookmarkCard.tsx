@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check } from "lucide-react";
 import { BookmarkWithRelations } from "@/types";
 import { Card } from "@/components/ui/Card";
 import {
@@ -18,6 +18,9 @@ interface BookmarkCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onAnalyze?: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export function BookmarkCard({
@@ -25,12 +28,22 @@ export function BookmarkCard({
   onEdit,
   onDelete,
   onAnalyze,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: BookmarkCardProps) {
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
 
   return (
-    <Card hoverable className="bookmark-card group overflow-hidden flex flex-col">
+    <Card
+      hoverable
+      className={cn(
+        "bookmark-card group overflow-hidden flex flex-col relative transition-transform duration-200 hover:-translate-y-0.5",
+        selectable && "cursor-pointer",
+        selected && "ring-2 ring-[var(--accent)]"
+      )}
+    >
       {/* Preview Area */}
       <div className="relative aspect-[16/10] bg-[var(--border)] overflow-hidden">
         {!iframeError ? (
@@ -67,8 +80,8 @@ export function BookmarkCard({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-4xl font-bold text-[var(--text-secondary)]">
-              {bookmark.domain.charAt(0).toUpperCase()}
+            <span className="font-[family-name:var(--font-space-grotesk)] font-bold text-3xl tracking-tight text-[var(--text-secondary)] truncate max-w-full px-4">
+              {bookmark.domain.split(".")[0]}
             </span>
           </div>
         )}
@@ -79,25 +92,29 @@ export function BookmarkCard({
         onClick={onAnalyze}
         className="p-4 flex flex-col gap-2 text-left w-full cursor-pointer hover:bg-[var(--border-light)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-inset"
       >
-        <div className="flex items-start gap-3">
-          {/* Favicon */}
-          {bookmark.favicon_url && (
-            <img
-              src={bookmark.favicon_url}
-              alt=""
-              className="w-5 h-5 rounded flex-shrink-0 mt-0.5"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-          )}
+        <div className="flex items-center gap-3">
+          {/* Favicon tile */}
+          <div className="w-[26px] h-[26px] rounded-[7px] bg-[#f0f0ee] border border-[var(--border)] flex items-center justify-center text-[11px] font-semibold text-[var(--foreground)] flex-shrink-0 overflow-hidden">
+            {bookmark.favicon_url ? (
+              <img
+                src={bookmark.favicon_url}
+                alt=""
+                className="w-4 h-4"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : (
+              bookmark.domain.charAt(0).toUpperCase()
+            )}
+          </div>
 
           {/* Title and Domain */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-[var(--foreground)] truncate">
+            <h3 className="text-[13.5px] font-medium text-[var(--foreground)] truncate">
               {bookmark.title}
             </h3>
-            <span className="text-sm text-[var(--text-secondary)] truncate block">
+            <span className="text-xs text-[#9a9a9a] truncate block mt-0.5">
               {bookmark.domain}
             </span>
           </div>
@@ -153,6 +170,34 @@ export function BookmarkCard({
           </DropdownMenu>
         </div>
       </button>
+
+      {/* Selection overlay (workbench compose mode) */}
+      {selectable && (
+        <div
+          role="checkbox"
+          aria-checked={selected}
+          tabIndex={0}
+          onClick={onToggleSelect}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onToggleSelect?.();
+            }
+          }}
+          className="absolute inset-0 z-10 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-inset"
+        >
+          <span
+            className={cn(
+              "absolute top-2 left-2 w-7 h-7 rounded-full border-2 flex items-center justify-center shadow-sm transition-colors",
+              selected
+                ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--background)]"
+                : "bg-[var(--surface)]/90 border-[var(--border)] text-transparent"
+            )}
+          >
+            <Check className="w-4 h-4" />
+          </span>
+        </div>
+      )}
     </Card>
   );
 }

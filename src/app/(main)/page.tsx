@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus } from "lucide-react";
 import { useBookmarks, useTags } from "@/hooks";
 import { BookmarkGrid, AddBookmarkDialog, EditBookmarkDialog } from "@/components/bookmark";
 import { SiteAnalysisDialog } from "@/components/analysis";
-import { SearchBar, TagFilter } from "@/components/search";
-import { Header } from "@/components/layout";
+import { NameWorkbenchDialog } from "@/components/workbench";
+import { Sidebar, ContentPanel } from "@/components/layout";
+import { Button } from "@/components/ui/Button";
 import { BookmarkWithRelations } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
 export default function HomePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -17,6 +22,17 @@ export default function HomePage() {
   const [editingBookmark, setEditingBookmark] = useState<BookmarkWithRelations | null>(null);
   const [analyzingBookmark, setAnalyzingBookmark] = useState<BookmarkWithRelations | null>(null);
   const addDialogTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Workbench compose (select) mode
+  const [composeActive, setComposeActive] = useState(
+    searchParams.get("compose") === "1"
+  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [nameOpen, setNameOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("compose")) router.replace("/");
+  }, [searchParams, router]);
 
   const {
     bookmarks,
@@ -30,22 +46,16 @@ export default function HomePage() {
     tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
   });
 
-  const { tags, createTag, updateTag, deleteTag } = useTags();
+  const { tags, createTag } = useTags();
 
-  // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Get user email
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserEmail(user?.email);
-    });
+    supabase.auth.getUser().then(({ data: { user } }) => setUserEmail(user?.email));
   }, []);
 
   const handleAddBookmark = async (data: {
@@ -65,9 +75,7 @@ export default function HomePage() {
     description?: string;
     tag_ids: string[];
   }) => {
-    if (editingBookmark) {
-      await updateBookmark(editingBookmark.id, data);
-    }
+    if (editingBookmark) await updateBookmark(editingBookmark.id, data);
   };
 
   const handleDeleteBookmark = async (bookmarkId: string) => {
@@ -76,54 +84,135 @@ export default function HomePage() {
     }
   };
 
-  const handleAddClick = () => {
-    addDialogTriggerRef.current?.click();
+  const handleAddClick = () => addDialogTriggerRef.current?.click();
+
+  // ── Tag filter ──
+  const toggleTag = (id: string) =>
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  const clearTags = () => setSelectedTagIds([]);
+
+  // ── Compose ──
+  const startCompose = () => {
+    setSelectedIds(new Set());
+    setComposeActive(true);
+  };
+  const cancelCompose = () => {
+    setComposeActive(false);
+    setSelectedIds(new Set());
+  };
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const confirmCompose = () => {
+    if (selectedIds.size > 0) setNameOpen(true);
+  };
+  const createWorkbench = async (name: string) => {
+    const res = await fetch("/api/workbenches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, bookmark_ids: Array.from(selectedIds) }),
+    });
+    if (!res.ok) {
+      const e = await res.json();
+      throw new Error(e.error || "Failed to create workbench");
+    }
+    const wb = await res.json();
+    router.push(`/workbench/${wb.id}`);
   };
 
+  const title =
+    selectedTagIds.length > 0
+      ? tags
+          .filter((t) => selectedTagIds.includes(t.id))
+          .map((t) => t.name)
+          .join(", ")
+      : "All";
+
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <Header
+    <div className="flex h-screen overflow-hidden bg-[var(--sidebar)]">
+      <Sidebar
         userEmail={userEmail}
         search={search}
         onSearchChange={setSearch}
-        onAddClick={handleAddClick}
+        tags={tags}
+        bookmarks={bookmarks}
+        selectedTagIds={selectedTagIds}
+        onToggleTag={toggleTag}
+        onClearTags={clearTags}
+        onNewWorkbench={startCompose}
       />
 
-      <main className="max-w-[1400px] mx-auto px-6 md:px-12 py-8 md:py-12">
-        {/* Mobile Search */}
-        <div className="md:hidden mb-6">
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            className="w-full"
-          />
-        </div>
-
-        {/* Tag Filter */}
-        {tags.length > 0 && (
-          <div className="mb-8">
-            <TagFilter
-              tags={tags}
-              selectedIds={selectedTagIds}
-              onChange={setSelectedTagIds}
-              onCreateTag={async (name) => {
-                await createTag({ name });
-              }}
-              onUpdateTag={updateTag}
-              onDeleteTag={deleteTag}
-            />
+      <ContentPanel>
+        <div className="flex flex-col min-h-full">
+        {/* Content header */}
+        {composeActive ? (
+          <div className="flex items-center justify-between px-6 md:px-10 pt-7">
+            <div className="text-[15px] text-[var(--foreground)]">
+              Select sites for your workbench
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={cancelCompose}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={confirmCompose}
+                disabled={selectedIds.size === 0}
+              >
+                Confirm
+                {selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between px-6 md:px-10 pt-7">
+            <div>
+              <h1 className="text-[26px] font-semibold tracking-tight text-[var(--foreground)]">
+                {title}
+              </h1>
+              <p className="text-[13px] text-[#8a8a8a] mt-1">
+                {bookmarks.length}{" "}
+                {bookmarks.length === 1 ? "bookmark" : "bookmarks"}
+              </p>
+            </div>
+            <Button size="sm" onClick={handleAddClick}>
+              <Plus className="w-4 h-4" />
+              Add
+            </Button>
           </div>
         )}
 
-        {/* Bookmarks Grid */}
-        <BookmarkGrid
-          bookmarks={bookmarks}
-          loading={bookmarksLoading}
-          onEdit={(bookmark) => setEditingBookmark(bookmark)}
-          onDelete={handleDeleteBookmark}
-          onAnalyze={(bookmark) => setAnalyzingBookmark(bookmark)}
-        />
-      </main>
+        {/* Compose hint */}
+        {composeActive && (
+          <div className="px-6 md:px-10 pt-4 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)] text-white text-xs font-semibold">
+              {selectedIds.size}
+            </span>
+            Tap sites to add them to your new workbench, then press Confirm.
+          </div>
+        )}
+
+        {/* Grid */}
+        <main className="flex-1 px-6 md:px-10 py-7">
+          <BookmarkGrid
+            bookmarks={bookmarks}
+            loading={bookmarksLoading}
+            onEdit={(bookmark) => setEditingBookmark(bookmark)}
+            onDelete={handleDeleteBookmark}
+            onAnalyze={(bookmark) => setAnalyzingBookmark(bookmark)}
+            selectable={composeActive}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+          />
+        </main>
+        </div>
+      </ContentPanel>
 
       {/* Hidden Add Bookmark Dialog Trigger */}
       <AddBookmarkDialog
@@ -134,7 +223,6 @@ export default function HomePage() {
         trigger={<button ref={addDialogTriggerRef} className="hidden" />}
       />
 
-      {/* Edit Bookmark Dialog */}
       <EditBookmarkDialog
         bookmark={editingBookmark}
         tags={tags}
@@ -144,11 +232,17 @@ export default function HomePage() {
         onCreateTag={(name) => createTag({ name })}
       />
 
-      {/* Site Analysis Dialog */}
       <SiteAnalysisDialog
         bookmark={analyzingBookmark}
         open={!!analyzingBookmark}
         onOpenChange={(open) => !open && setAnalyzingBookmark(null)}
+      />
+
+      <NameWorkbenchDialog
+        open={nameOpen}
+        onOpenChange={setNameOpen}
+        count={selectedIds.size}
+        onConfirm={createWorkbench}
       />
     </div>
   );

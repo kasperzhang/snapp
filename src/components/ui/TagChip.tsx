@@ -15,6 +15,7 @@ interface TagChipProps {
 
 export function TagChip({
   name,
+  color,
   selected = false,
   removable = false,
   onClick,
@@ -22,22 +23,28 @@ export function TagChip({
   size = "md",
 }: TagChipProps) {
   const sizes = {
-    sm: "h-8 text-sm px-3",
-    md: "h-9 text-base px-4",
+    sm: "h-8 text-[13px] px-3",
+    md: "h-9 text-sm px-3.5",
   };
 
   return (
     <span
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full font-medium transition-all duration-150",
+        "inline-flex items-center gap-2 rounded-full font-medium transition-all duration-150 select-none",
         sizes[size],
         onClick && "cursor-pointer",
         selected
-          ? "bg-[var(--foreground)] text-[var(--background)]"
-          : "text-[var(--text-secondary)] hover:bg-[var(--border)]"
+          ? "bg-[var(--foreground)] text-[var(--background)] border border-[var(--foreground)]"
+          : "bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:border-[#c9c9c4] hover:text-[var(--foreground)]"
       )}
     >
+      {color && (
+        <span
+          className="w-1.5 h-1.5 rounded-full shrink-0"
+          style={{ background: selected ? "var(--background)" : color }}
+        />
+      )}
       {name}
       {removable && onRemove && (
         <button

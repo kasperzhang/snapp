@@ -178,8 +178,8 @@ export function AddBookmarkDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={loading || fetchingMetadata}
-              rows={2}
-              className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+              rows={3}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
             />
           </div>
 
@@ -218,6 +218,8 @@ export function AddBookmarkDialog({
                 variant="secondary"
                 onClick={handleCreateTag}
                 disabled={!newTagName.trim()}
+                aria-label="Add tag"
+                className="w-10 px-0 shrink-0"
               >
                 <Plus className="w-4 h-4" />
               </Button>

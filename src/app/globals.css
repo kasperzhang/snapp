@@ -1,21 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #171717;
+  --background: #FBFBFA;
+  --foreground: #141414;
   --surface: #FFFFFF;
-  --border: #E5E5E5;
-  --border-light: #F5F5F5;
-  --text-secondary: #737373;
-  --accent: #000000;
-  --accent-hover: #404040;
+  --border: #E4E4E0;
+  --border-light: #EBEBE8;
+  --text-secondary: #6F6F6B;
+  --text-muted: #A8A8A3;
+  --accent: #141414;
+  --accent-hover: #333333;
 
-  --radius-card: 8px;
+  /* Sidebar */
+  --sidebar: #F4F4F2;
+  --sidebar-border: #E4E4E0;
+  --sidebar-hover: #EBEBE8;
+
+  --radius-card: 14px;
   --radius-button: 9999px;
   --radius-chip: 9999px;
 
   --shadow-card: 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-card-hover: 0 12px 32px rgba(0,0,0,0.07);
 }
 
 @theme inline {
@@ -25,24 +31,18 @@
   --color-border: var(--border);
   --color-border-light: var(--border-light);
   --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-hover: var(--sidebar-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-space-grotesk);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0A0A0A;
-    --foreground: #FAFAFA;
-    --surface: #141414;
-    --border: #2A2A2A;
-    --border-light: #1A1A1A;
-    --text-secondary: #8A8A8A;
-    --accent: #FFFFFF;
-    --accent-hover: #E0E0E0;
-  }
-}
+/* Redesign is a single warm light theme (per the Snapp Workbench design). */
 
 * {
   box-sizing: border-box;

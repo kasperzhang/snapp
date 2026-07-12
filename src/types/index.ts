@@ -111,3 +111,67 @@ export interface ScanResult {
   fonts: ExtractedFont[];
   colors: ExtractedColor[];
 }
+
+// Workbench Types
+export type DesignAspect =
+  | "typography"
+  | "colors"
+  | "background"
+  | "layout"
+  | "spacing"
+  | "components"
+  | "animation"
+  | "imagery"
+  | "vibe";
+
+export const DESIGN_ASPECTS: { id: DesignAspect; label: string }[] = [
+  { id: "typography", label: "Typography" },
+  { id: "colors", label: "Colors" },
+  { id: "background", label: "Background" },
+  { id: "layout", label: "Layout" },
+  { id: "spacing", label: "Spacing" },
+  { id: "components", label: "Components" },
+  { id: "animation", label: "Animation" },
+  { id: "imagery", label: "Imagery" },
+  { id: "vibe", label: "Vibe" },
+];
+
+export interface WorkbenchItemSelection {
+  aspects: DesignAspect[];
+  fonts: string[]; // picked font families
+  colors: string[]; // picked hex values
+  comment: string;
+}
+
+export interface Workbench {
+  id: string;
+  user_id: string;
+  name: string;
+  own_additions: string | null;
+  design_guide: string | null;
+  guide_status: "idle" | "generating" | "completed" | "error";
+  created_at: string;
+  updated_at: string;
+  item_count?: number;
+}
+
+export interface WorkbenchItem {
+  id: string;
+  workbench_id: string;
+  bookmark_id: string;
+  analysis_id: string | null;
+  selection: WorkbenchItemSelection;
+  position: number;
+  created_at: string;
+  bookmark?: Bookmark;
+  analysis?: SiteAnalysis | null;
+}
+
+export interface WorkbenchWithItems extends Workbench {
+  items: WorkbenchItem[];
+}
+
+export interface CreateWorkbenchInput {
+  name: string;
+  bookmark_ids?: string[];
+}

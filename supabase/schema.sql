@@ -314,3 +314,92 @@ CREATE POLICY "Users delete own screenshots" ON storage.objects
 
 CREATE POLICY "Public read screenshots" ON storage.objects
   FOR SELECT USING (bucket_id = 'screenshots');
+
+-- ============================================================================
+-- Workbench feature: compose a combined design guide from multiple ref sites
+-- ============================================================================
+
+-- A workbench = one saved composition (the "folder" of reference sites)
+CREATE TABLE workbenches (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  own_additions TEXT,                  -- "add something new from myself"
+  design_guide TEXT,                   -- Claude-generated combined guide
+  guide_status TEXT DEFAULT 'idle',    -- idle | generating | completed | error
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Sources within a workbench (which sites, what to borrow from each)
+CREATE TABLE workbench_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workbench_id UUID NOT NULL REFERENCES workbenches(id) ON DELETE CASCADE,
+  bookmark_id UUID NOT NULL REFERENCES bookmarks(id) ON DELETE CASCADE,
+  analysis_id UUID REFERENCES site_analyses(id) ON DELETE SET NULL,
+  selection JSONB DEFAULT '{}'::jsonb,  -- {aspects:[], fonts:[], colors:[], comment:""}
+  position INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_workbenches_user_id ON workbenches(user_id);
+CREATE INDEX idx_workbench_items_workbench_id ON workbench_items(workbench_id);
+CREATE INDEX idx_workbench_items_bookmark_id ON workbench_items(bookmark_id);
+
+-- Enable RLS
+ALTER TABLE workbenches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workbench_items ENABLE ROW LEVEL SECURITY;
+
+-- Workbenches policies
+CREATE POLICY "Users can view their own workbenches"
+  ON workbenches FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create their own workbenches"
+  ON workbenches FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own workbenches"
+  ON workbenches FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own workbenches"
+  ON workbenches FOR DELETE USING (auth.uid() = user_id);
+
+-- Workbench_items policies (scoped via the parent workbench's owner)
+CREATE POLICY "Users can view their own workbench items"
+  ON workbench_items FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM workbenches
+      WHERE workbenches.id = workbench_items.workbench_id
+      AND workbenches.user_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can add items to their workbenches"
+  ON workbench_items FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM workbenches
+      WHERE workbenches.id = workbench_items.workbench_id
+      AND workbenches.user_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can update items in their workbenches"
+  ON workbench_items FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM workbenches
+      WHERE workbenches.id = workbench_items.workbench_id
+      AND workbenches.user_id = auth.uid()
+    )
+  );
+CREATE POLICY "Users can remove items from their workbenches"
+  ON workbench_items FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM workbenches
+      WHERE workbenches.id = workbench_items.workbench_id
+      AND workbenches.user_id = auth.uid()
+    )
+  );
+
+-- updated_at trigger
+CREATE TRIGGER update_workbenches_updated_at
+  BEFORE UPDATE ON workbenches
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

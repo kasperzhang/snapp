@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Globe } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -98,17 +99,30 @@ export function EditBookmarkDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Bookmark</DialogTitle>
+          <DialogTitle>Edit bookmark</DialogTitle>
+          <DialogDescription>
+            Update the details and tags for this saved site.
+          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-5">
           {/* URL (read-only) */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[var(--foreground)]">
+            <label className="text-[13px] font-medium text-[var(--foreground)]">
               URL
             </label>
-            <div className="h-10 px-3 flex items-center rounded-[var(--radius-button)] bg-[var(--border)] text-[var(--text-secondary)] text-sm truncate">
-              {bookmark.url}
+            <div className="h-10 pl-2.5 pr-3 flex items-center gap-2.5 rounded-[10px] bg-[var(--sidebar)] border border-[var(--border)] text-[var(--text-secondary)] text-sm">
+              {bookmark.favicon_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={bookmark.favicon_url}
+                  alt=""
+                  className="w-4 h-4 rounded shrink-0"
+                />
+              ) : (
+                <Globe className="w-4 h-4 shrink-0 text-[var(--text-muted)]" />
+              )}
+              <span className="truncate">{bookmark.url}</span>
             </div>
           </div>
 
@@ -123,39 +137,44 @@ export function EditBookmarkDialog({
 
           {/* Description Input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-[var(--foreground)]">
-              Description (optional)
+            <label className="text-[13px] font-medium text-[var(--foreground)]">
+              Description{" "}
+              <span className="text-[var(--text-muted)] font-normal">
+                (optional)
+              </span>
             </label>
             <textarea
-              placeholder="Add a description..."
+              placeholder="Add a description…"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={loading}
-              rows={2}
-              className="w-full px-3 py-2 rounded-[var(--radius-button)] bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--text-secondary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
+              rows={3}
+              className="w-full px-3 py-2.5 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
             />
           </div>
 
           {/* Tags */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-[var(--foreground)]">
+          <div className="flex flex-col gap-2.5">
+            <label className="text-[13px] font-medium text-[var(--foreground)]">
               Tags
             </label>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <TagChip
-                  key={tag.id}
-                  name={tag.name}
-                  color={tag.color}
-                  selected={selectedTags.includes(tag.id)}
-                  onClick={() => toggleTag(tag.id)}
-                  size="sm"
-                />
-              ))}
-            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <TagChip
+                    key={tag.id}
+                    name={tag.name}
+                    color={tag.color}
+                    selected={selectedTags.includes(tag.id)}
+                    onClick={() => toggleTag(tag.id)}
+                    size="sm"
+                  />
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
-                placeholder="New tag"
+                placeholder="Create a new tag"
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
                 onKeyDown={(e) => {
@@ -171,6 +190,8 @@ export function EditBookmarkDialog({
                 variant="secondary"
                 onClick={handleCreateTag}
                 disabled={!newTagName.trim()}
+                aria-label="Add tag"
+                className="w-10 px-0 shrink-0"
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -181,18 +202,24 @@ export function EditBookmarkDialog({
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!title || loading} loading={loading}>
-              Save Changes
-            </Button>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border-light)] -mx-6 px-6 mt-1">
+            <div className="flex gap-2 pt-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onOpenChange(false)}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!title || loading}
+                loading={loading}
+              >
+                Save changes
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
