@@ -88,7 +88,7 @@ export function Sidebar({
     <aside
       className={cn(
         "shrink-0 bg-[var(--sidebar)] flex flex-col py-5 h-full overflow-x-hidden overflow-y-auto transition-[width,padding] duration-300 ease-in-out",
-        collapsed ? "w-16 px-2" : "w-[236px] px-3"
+        collapsed ? "w-16 px-2" : "w-[196px] px-3"
       )}
     >
       {/* Logo */}
