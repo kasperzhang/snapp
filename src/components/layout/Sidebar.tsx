@@ -87,7 +87,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "shrink-0 bg-[var(--sidebar)] flex flex-col py-5 h-full overflow-x-hidden overflow-y-auto transition-[width,padding] duration-300 ease-in-out",
+        "matte-texture shrink-0 bg-[var(--sidebar)] flex flex-col py-5 h-full overflow-x-hidden overflow-y-auto transition-[width,padding] duration-300 ease-in-out",
         collapsed ? "w-16 px-2" : "w-[196px] px-3"
       )}
     >
