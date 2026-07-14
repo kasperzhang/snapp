@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check, Link2, Plus } from "lucide-react";
 import { BookmarkWithRelations, DESIGN_ASPECTS, DesignAspect } from "@/types";
 import { Card } from "@/components/ui/Card";
@@ -22,14 +22,16 @@ interface BookmarkCardProps {
   selected?: boolean;
   onToggleSelect?: () => void;
   // Compose mode: aspects tagged to borrow from this site, shown as chips
-  // pinned to the selected card.
+  // pinned to the selected card, plus an optional free-text note.
   aspects?: DesignAspect[];
   onToggleAspect?: (aspect: DesignAspect) => void;
+  comment?: string;
+  onCommentChange?: (comment: string) => void;
 }
 
-const ASPECT_LABEL = Object.fromEntries(
-  DESIGN_ASPECTS.map((a) => [a.id, a.label])
-) as Record<DesignAspect, string>;
+const ASPECT_META = Object.fromEntries(
+  DESIGN_ASPECTS.map((a) => [a.id, a])
+) as Record<DesignAspect, (typeof DESIGN_ASPECTS)[number]>;
 
 export function BookmarkCard({
   bookmark,
@@ -41,21 +43,45 @@ export function BookmarkCard({
   onToggleSelect,
   aspects = [],
   onToggleAspect,
+  comment = "",
+  onCommentChange,
 }: BookmarkCardProps) {
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
+  const [borrowOpen, setBorrowOpen] = useState(false);
+  const borrowRef = useRef<HTMLDivElement>(null);
+
+  // Dismiss the borrow popover on outside click / Escape.
+  useEffect(() => {
+    if (!borrowOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!borrowRef.current?.contains(e.target as Node)) setBorrowOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setBorrowOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [borrowOpen]);
 
   return (
     <Card
       hoverable
       className={cn(
-        "bookmark-card group overflow-hidden flex flex-col relative transition-transform duration-200 hover:-translate-y-0.5",
+        "bookmark-card group flex flex-col relative transition-transform duration-200 hover:-translate-y-0.5",
+        // Compose mode lets chips/check overhang the edges; otherwise the
+        // card clips its children to the rounded corners as before.
+        selectable ? "overflow-visible" : "overflow-hidden",
         selectable && "cursor-pointer",
         selected && "-translate-y-0.5"
       )}
     >
       {/* Preview Area */}
-      <div className="relative aspect-[16/10] bg-[var(--border)] overflow-hidden">
+      <div className="relative aspect-[16/10] bg-[var(--border)] overflow-hidden rounded-t-[var(--radius-card)]">
         {!iframeError ? (
           <>
             {iframeLoading && (
@@ -100,7 +126,7 @@ export function BookmarkCard({
       {/* Content - Clickable to open analysis */}
       <button
         onClick={onAnalyze}
-        className="p-4 flex flex-col gap-2 text-left w-full cursor-pointer hover:bg-[var(--border-light)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-inset"
+        className="p-4 flex flex-col gap-2 text-left w-full cursor-pointer rounded-b-[var(--radius-card)] hover:bg-[var(--border-light)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-inset"
       >
         <div className="flex items-center gap-3">
           {/* Favicon tile */}
@@ -216,23 +242,26 @@ export function BookmarkCard({
           {selected && (
             <span className="pointer-events-none absolute inset-0 rounded-[var(--radius-card)] bg-[var(--accent)]/[0.04]" />
           )}
-          {/* Corner check badge — solid when selected, faint hint on hover */}
+          {/* Corner check badge — overlaps the top-left corner like the
+              landing mockup; faint hint on hover before selection */}
           <span
             className={cn(
-              "absolute top-2.5 right-2.5 flex items-center justify-center rounded-full w-6 h-6 transition-all duration-150",
+              "absolute -top-2 -left-2 z-20 flex items-center justify-center rounded-full w-6 h-6 transition-all duration-150",
               selected
-                ? "bg-[var(--accent)] text-white ring-2 ring-white shadow-md scale-100 opacity-100"
-                : "bg-white/80 backdrop-blur-sm border border-[var(--border)] text-[var(--text-muted)] scale-90 opacity-0 group-hover:opacity-100 group-hover:scale-100"
+                ? "bg-[var(--accent)] text-white ring-2 ring-[var(--background)] shadow-md scale-100 opacity-100"
+                : "bg-white/90 backdrop-blur-sm border border-[var(--border)] text-[var(--text-muted)] scale-90 opacity-0 group-hover:opacity-100 group-hover:scale-100"
             )}
           >
             {selected && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
           </span>
 
-          {/* Borrow chips — what to take from this site. Click a chip to
-              remove it; the trailing pill opens the full aspect menu. */}
+          {/* Borrow chips — pinned overlapping the card's top edge, mockup
+              style. Click a chip to remove it; the trailing pill (or the ✎
+              note pill) opens the aspect + note menu. */}
           {selected && onToggleAspect && (
             <div
-              className="absolute top-2.5 left-2.5 right-10 z-20 flex flex-wrap gap-1.5"
+              ref={borrowRef}
+              className="absolute -top-[13px] left-7 right-2 z-20 flex flex-wrap justify-end gap-1.5"
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
@@ -241,46 +270,102 @@ export function BookmarkCard({
                   key={a}
                   onClick={() => onToggleAspect(a)}
                   title="Stop borrowing this"
-                  className="inline-flex items-center gap-1 rounded-full bg-[var(--foreground)] px-2.5 py-1 text-[11px] font-medium text-[var(--background)] shadow-md transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--foreground)] px-2.5 py-1 text-[11px] font-medium text-[var(--background)] shadow-md transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
                 >
-                  {ASPECT_LABEL[a]}
+                  <i
+                    className="h-1.5 w-1.5 rounded-full not-italic"
+                    style={{
+                      background:
+                        ASPECT_META[a].hue === "#221C15"
+                          ? "#FBFAF7"
+                          : ASPECT_META[a].hue,
+                    }}
+                  />
+                  {ASPECT_META[a].label}
                 </button>
               ))}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--foreground)] shadow-sm backdrop-blur-sm transition-colors hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                    <Plus className="w-3 h-3" />
-                    Borrow
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
-                  {DESIGN_ASPECTS.map((a) => {
-                    const on = aspects.includes(a.id);
-                    return (
-                      <DropdownMenuItem
-                        key={a.id}
-                        // Keep the menu open so several aspects can be tagged
-                        // in one visit.
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={() => onToggleAspect(a.id)}
-                        className={cn(on && "font-medium")}
-                      >
-                        <span
+              {/* Note indicator (tooltip shows the note) */}
+              {comment.trim() && !borrowOpen && (
+                <button
+                  title={comment}
+                  onClick={() => setBorrowOpen(true)}
+                  className="inline-flex items-center rounded-full border border-[var(--brand)] bg-[var(--brand-tint)] px-2 py-1 text-[11px] font-medium text-[var(--accent)] shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                >
+                  ✎
+                </button>
+              )}
+              <button
+                onClick={() => setBorrowOpen((v) => !v)}
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--foreground)] shadow-sm backdrop-blur-sm transition-colors hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+              >
+                <Plus className="w-3 h-3" />
+                Borrow
+              </button>
+
+              {/* Borrow popover — a form (checklist + note), so it's a
+                  hand-rolled popover rather than a Radix menu: menus dismiss
+                  on any non-item interaction, which kills the textarea. */}
+              {borrowOpen && (
+                <div className="absolute right-0 top-full z-30 mt-2 w-60 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+                  <div className="max-h-56 overflow-y-auto p-1.5">
+                    {DESIGN_ASPECTS.map((a) => {
+                      const on = aspects.includes(a.id);
+                      return (
+                        <button
+                          key={a.id}
+                          onClick={() => onToggleAspect(a.id)}
                           className={cn(
-                            "mr-2 flex h-4 w-4 items-center justify-center rounded border",
+                            "flex w-full items-center rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors hover:bg-[var(--border-light)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
                             on
-                              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                              : "border-[var(--border)]"
+                              ? "font-medium text-[var(--foreground)]"
+                              : "text-[var(--text-secondary)]"
                           )}
                         >
-                          {on && <Check className="h-3 w-3" strokeWidth={3} />}
-                        </span>
-                        {a.label}
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                          <span
+                            className={cn(
+                              "mr-2 flex h-4 w-4 items-center justify-center rounded border",
+                              on
+                                ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                                : "border-[var(--border)]"
+                            )}
+                          >
+                            {on && (
+                              <Check className="h-3 w-3" strokeWidth={3} />
+                            )}
+                          </span>
+                          <i
+                            className="mr-1.5 h-1.5 w-1.5 rounded-full not-italic"
+                            style={{ background: a.hue }}
+                          />
+                          {a.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {onCommentChange && (
+                    <div className="border-t border-[var(--border)] px-2.5 pb-2 pt-2">
+                      <p className="mb-1.5 text-[11px] font-medium text-[var(--text-muted)]">
+                        Note for this site
+                      </p>
+                      <textarea
+                        value={comment}
+                        onChange={(e) => onCommentChange(e.target.value)}
+                        placeholder="e.g. love the slow fade-in on scroll"
+                        rows={2}
+                        className="w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                      />
+                    </div>
+                  )}
+                  <div className="flex justify-end border-t border-[var(--border)] px-2.5 py-1.5">
+                    <button
+                      onClick={() => setBorrowOpen(false)}
+                      className="rounded-full px-3 py-1 text-[12px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--brand-tint)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

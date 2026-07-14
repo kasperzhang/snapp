@@ -116,35 +116,49 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, bookmark_ids, items } = body;
+    const { name, bookmark_ids, items, own_additions } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
+    // The designer's own prompt, captured at compose time.
+    const ownAdditions =
+      typeof own_additions === "string"
+        ? own_additions.trim().slice(0, 2000)
+        : "";
+
     // Normalize the two accepted shapes into one list of sources.
-    // `items` carries per-source aspects tagged during compose; `bookmark_ids`
-    // is the plain legacy shape.
-    const sources: { bookmark_id: string; aspects: string[] }[] = Array.isArray(
-      items
-    )
+    // `items` carries per-source aspects + note tagged during compose;
+    // `bookmark_ids` is the plain legacy shape.
+    const sources: {
+      bookmark_id: string;
+      aspects: string[];
+      comment: string;
+    }[] = Array.isArray(items)
       ? items
           .filter(
             (i: { bookmark_id?: unknown }) => typeof i?.bookmark_id === "string"
           )
-          .map((i: { bookmark_id: string; aspects?: unknown }) => ({
-            bookmark_id: i.bookmark_id,
-            aspects: Array.isArray(i.aspects)
-              ? i.aspects.filter(
-                  (a: unknown): a is string =>
-                    typeof a === "string" && VALID_ASPECTS.has(a)
-                )
-              : [],
-          }))
+          .map(
+            (i: { bookmark_id: string; aspects?: unknown; comment?: unknown }) => ({
+              bookmark_id: i.bookmark_id,
+              aspects: Array.isArray(i.aspects)
+                ? i.aspects.filter(
+                    (a: unknown): a is string =>
+                      typeof a === "string" && VALID_ASPECTS.has(a)
+                  )
+                : [],
+              comment:
+                typeof i.comment === "string"
+                  ? i.comment.trim().slice(0, 500)
+                  : "",
+            })
+          )
       : Array.isArray(bookmark_ids)
         ? bookmark_ids
             .filter((id: unknown): id is string => typeof id === "string")
-            .map((id: string) => ({ bookmark_id: id, aspects: [] }))
+            .map((id: string) => ({ bookmark_id: id, aspects: [], comment: "" }))
         : [];
 
     const { data: workbench, error } = await supabase
@@ -152,6 +166,7 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         name,
+        ...(ownAdditions ? { own_additions: ownAdditions } : {}),
       })
       .select()
       .single();
@@ -190,7 +205,11 @@ export async function POST(request: NextRequest) {
           workbench_id: workbench.id,
           bookmark_id: source.bookmark_id,
           analysis_id: analysisId,
-          selection: { ...DEFAULT_SELECTION, aspects: source.aspects },
+          selection: {
+            ...DEFAULT_SELECTION,
+            aspects: source.aspects,
+            comment: source.comment,
+          },
           position: position++,
         });
       }

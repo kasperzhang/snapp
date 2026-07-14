@@ -17,6 +17,8 @@ interface BookmarkGridProps {
   onToggleSelect?: (bookmarkId: string) => void;
   aspectsById?: Record<string, DesignAspect[]>;
   onToggleAspect?: (bookmarkId: string, aspect: DesignAspect) => void;
+  commentsById?: Record<string, string>;
+  onCommentChange?: (bookmarkId: string, comment: string) => void;
 }
 
 function BookmarkSkeleton() {
@@ -52,6 +54,8 @@ export function BookmarkGrid({
   onToggleSelect,
   aspectsById,
   onToggleAspect,
+  commentsById,
+  onCommentChange,
 }: BookmarkGridProps) {
   if (loading) {
     return (
@@ -90,6 +94,12 @@ export function BookmarkGrid({
           onToggleAspect={
             onToggleAspect
               ? (aspect) => onToggleAspect(bookmark.id, aspect)
+              : undefined
+          }
+          comment={commentsById?.[bookmark.id]}
+          onCommentChange={
+            onCommentChange
+              ? (comment) => onCommentChange(bookmark.id, comment)
               : undefined
           }
         />

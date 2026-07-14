@@ -33,6 +33,12 @@ export default function HomePage() {
   const [aspectsById, setAspectsById] = useState<
     Record<string, DesignAspect[]>
   >({});
+  const [commentsById, setCommentsById] = useState<Record<string, string>>({});
+  const [ownNotes, setOwnNotes] = useState("");
+  // The mix name shown in the compose bar: live-suggested from the selected
+  // domains until the user edits it.
+  const [mixName, setMixName] = useState("");
+  const nameTouched = useRef(false);
   const [creatingMix, setCreatingMix] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
   // The generate-in-place rail — set right after a mix is created.
@@ -103,6 +109,10 @@ export default function HomePage() {
   const startCompose = () => {
     setSelectedIds(new Set());
     setAspectsById({});
+    setCommentsById({});
+    setOwnNotes("");
+    setMixName("");
+    nameTouched.current = false;
     setComposeError(null);
     setComposeActive(true);
   };
@@ -110,6 +120,10 @@ export default function HomePage() {
     setComposeActive(false);
     setSelectedIds(new Set());
     setAspectsById({});
+    setCommentsById({});
+    setOwnNotes("");
+    setMixName("");
+    nameTouched.current = false;
     setComposeError(null);
   };
   const toggleSelect = (id: string) =>
@@ -117,8 +131,9 @@ export default function HomePage() {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-        // Deselecting a card drops its tagged aspects too.
+        // Deselecting a card drops its tagged aspects and note too.
         setAspectsById(({ [id]: _dropped, ...rest }) => rest);
+        setCommentsById(({ [id]: _dropped, ...rest }) => rest);
       } else {
         next.add(id);
       }
@@ -134,6 +149,13 @@ export default function HomePage() {
           : [...current, aspect],
       };
     });
+  const changeComment = (bookmarkId: string, comment: string) =>
+    setCommentsById((prev) => ({ ...prev, [bookmarkId]: comment }));
+
+  const aspectCount = Object.values(aspectsById).reduce(
+    (n, arr) => n + arr.length,
+    0
+  );
 
   // Default mix name from its source domains: "stripe × linear +1".
   const suggestMixName = () => {
@@ -145,6 +167,7 @@ export default function HomePage() {
     const head = unique.slice(0, 2).join(" × ");
     return unique.length > 2 ? `${head} +${unique.length - 2}` : head;
   };
+  const displayMixName = nameTouched.current ? mixName : suggestMixName();
 
   // Create the mix and open the brief rail — no page jump.
   const generateMix = async () => {
@@ -156,10 +179,12 @@ export default function HomePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: suggestMixName(),
+          name: displayMixName.trim() || suggestMixName(),
+          own_additions: ownNotes,
           items: Array.from(selectedIds).map((id) => ({
             bookmark_id: id,
             aspects: aspectsById[id] ?? [],
+            comment: commentsById[id] ?? "",
           })),
         }),
       });
@@ -204,11 +229,31 @@ export default function HomePage() {
         <div className="flex flex-col min-h-full">
         {/* Content header */}
         {composeActive ? (
-          <div className="flex items-center justify-between px-6 md:px-10 pt-7">
-            <div className="text-[15px] text-[var(--foreground)]">
-              Compose a mix
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="px-6 md:px-10 pt-7">
+            {/* Compose bar — mirrors the landing mockup: MIX badge, editable
+                name, live counts, ink Generate */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-[#DECDB4] bg-gradient-to-r from-[#F8F2E7] to-[#FDFBF6] py-2.5 pl-4 pr-2.5">
+              <span className="rounded-md border border-[var(--brand)] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--brand)]">
+                Mix
+              </span>
+              <input
+                value={displayMixName}
+                onChange={(e) => {
+                  nameTouched.current = true;
+                  setMixName(e.target.value);
+                }}
+                title="Name your mix"
+                className="w-[150px] min-w-0 truncate border-none bg-transparent text-[14px] font-medium text-[var(--foreground)] focus:outline-none focus:ring-0 sm:w-[190px]"
+              />
+              <span className="hidden text-[13px] text-[var(--text-secondary)] sm:inline">
+                <b className="font-semibold text-[var(--foreground)]">
+                  {selectedIds.size}{" "}
+                  {selectedIds.size === 1 ? "source" : "sources"}
+                </b>
+                {" · "}
+                {aspectCount} {aspectCount === 1 ? "aspect" : "aspects"} tagged
+              </span>
+              <span className="flex-1" />
               <Button variant="ghost" size="sm" onClick={cancelCompose}>
                 Cancel
               </Button>
@@ -217,12 +262,21 @@ export default function HomePage() {
                 onClick={generateMix}
                 loading={creatingMix}
                 disabled={selectedIds.size === 0 || creatingMix}
+                className="bg-[var(--foreground)] hover:bg-black"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 Generate brief
-                {selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
               </Button>
             </div>
+
+            {/* The designer's own prompt — everything the sources can't say */}
+            <textarea
+              value={ownNotes}
+              onChange={(e) => setOwnNotes(e.target.value)}
+              placeholder="Your own notes — anything the sources can't say: a brand color, a mood, a constraint…"
+              rows={2}
+              className="mt-3 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            />
           </div>
         ) : (
           <div className="flex items-center justify-between px-6 md:px-10 pt-7">
@@ -244,14 +298,12 @@ export default function HomePage() {
 
         {/* Compose hint */}
         {composeActive && (
-          <div className="px-6 md:px-10 pt-4 flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)] text-white text-xs font-semibold">
-              {selectedIds.size}
-            </span>
-            Tap sites to add them, then tag what each one should lend — type,
-            color, motion…
+          <div className="px-6 md:px-10 pt-3 text-[13px] text-[var(--text-muted)]">
+            Tap sites to add them · use{" "}
+            <b className="font-medium text-[var(--text-secondary)]">+ Borrow</b>{" "}
+            on a selected card to tag aspects or leave a note
             {composeError && (
-              <span className="text-red-500">{composeError}</span>
+              <span className="ml-2 text-red-500">{composeError}</span>
             )}
           </div>
         )}
@@ -269,6 +321,8 @@ export default function HomePage() {
             onToggleSelect={toggleSelect}
             aspectsById={aspectsById}
             onToggleAspect={toggleAspect}
+            commentsById={commentsById}
+            onCommentChange={changeComment}
           />
         </main>
         </div>

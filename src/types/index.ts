@@ -127,19 +127,21 @@ export type DesignAspect =
   | "iconography"
   | "vibe";
 
-export const DESIGN_ASPECTS: { id: DesignAspect; label: string }[] = [
-  { id: "typography", label: "Typography" },
-  { id: "colors", label: "Colors" },
-  { id: "background", label: "Background" },
-  { id: "layout", label: "Layout" },
-  { id: "spacing", label: "Spacing" },
-  { id: "components", label: "Components" },
-  { id: "depth", label: "Depth & Shape" },
-  { id: "animation", label: "Animation" },
-  { id: "motion", label: "Motion & Scroll" },
-  { id: "imagery", label: "Imagery" },
-  { id: "iconography", label: "Iconography" },
-  { id: "vibe", label: "Vibe" },
+// Each aspect carries a hue so chips/dots read consistently everywhere
+// (compose chips, borrow menu, marketing).
+export const DESIGN_ASPECTS: { id: DesignAspect; label: string; hue: string }[] = [
+  { id: "typography", label: "Typography", hue: "#221C15" },
+  { id: "colors", label: "Colors", hue: "#C25E6A" },
+  { id: "background", label: "Background", hue: "#D9962F" },
+  { id: "layout", label: "Layout", hue: "#4C6B9A" },
+  { id: "spacing", label: "Spacing", hue: "#8A8578" },
+  { id: "components", label: "Components", hue: "#77609C" },
+  { id: "depth", label: "Depth & Shape", hue: "#48887B" },
+  { id: "animation", label: "Animation", hue: "#D9962F" },
+  { id: "motion", label: "Motion & Scroll", hue: "#4C6B9A" },
+  { id: "imagery", label: "Imagery", hue: "#C25E6A" },
+  { id: "iconography", label: "Iconography", hue: "#77609C" },
+  { id: "vibe", label: "Vibe", hue: "#48887B" },
 ];
 
 export interface WorkbenchItemSelection {
@@ -180,7 +182,9 @@ export interface WorkbenchWithItems extends Workbench {
 export interface CreateWorkbenchInput {
   name: string;
   bookmark_ids?: string[];
-  // Richer alternative to bookmark_ids: sources with the aspects to borrow,
-  // tagged during compose on the bookmarks grid.
-  items?: { bookmark_id: string; aspects?: DesignAspect[] }[];
+  // Richer alternative to bookmark_ids: sources with the aspects to borrow
+  // and an optional free-text note, tagged during compose on the grid.
+  items?: { bookmark_id: string; aspects?: DesignAspect[]; comment?: string }[];
+  // The designer's own prompt, captured at compose time.
+  own_additions?: string;
 }
