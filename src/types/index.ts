@@ -120,8 +120,11 @@ export type DesignAspect =
   | "layout"
   | "spacing"
   | "components"
+  | "depth"
   | "animation"
+  | "motion"
   | "imagery"
+  | "iconography"
   | "vibe";
 
 export const DESIGN_ASPECTS: { id: DesignAspect; label: string }[] = [
@@ -131,8 +134,11 @@ export const DESIGN_ASPECTS: { id: DesignAspect; label: string }[] = [
   { id: "layout", label: "Layout" },
   { id: "spacing", label: "Spacing" },
   { id: "components", label: "Components" },
+  { id: "depth", label: "Depth & Shape" },
   { id: "animation", label: "Animation" },
+  { id: "motion", label: "Motion & Scroll" },
   { id: "imagery", label: "Imagery" },
+  { id: "iconography", label: "Iconography" },
   { id: "vibe", label: "Vibe" },
 ];
 
