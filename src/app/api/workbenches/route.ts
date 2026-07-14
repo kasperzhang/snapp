@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DESIGN_ASPECTS } from "@/types";
 
 const DEFAULT_SELECTION = { aspects: [], fonts: [], colors: [], comment: "" };
+const VALID_ASPECTS = new Set(DESIGN_ASPECTS.map((a) => a.id as string));
 
 // Ensure a site_analyses row exists for a bookmark (fetch-or-create), return its id.
 async function ensureAnalysis(
@@ -114,11 +116,36 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, bookmark_ids } = body;
+    const { name, bookmark_ids, items } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
+
+    // Normalize the two accepted shapes into one list of sources.
+    // `items` carries per-source aspects tagged during compose; `bookmark_ids`
+    // is the plain legacy shape.
+    const sources: { bookmark_id: string; aspects: string[] }[] = Array.isArray(
+      items
+    )
+      ? items
+          .filter(
+            (i: { bookmark_id?: unknown }) => typeof i?.bookmark_id === "string"
+          )
+          .map((i: { bookmark_id: string; aspects?: unknown }) => ({
+            bookmark_id: i.bookmark_id,
+            aspects: Array.isArray(i.aspects)
+              ? i.aspects.filter(
+                  (a: unknown): a is string =>
+                    typeof a === "string" && VALID_ASPECTS.has(a)
+                )
+              : [],
+          }))
+      : Array.isArray(bookmark_ids)
+        ? bookmark_ids
+            .filter((id: unknown): id is string => typeof id === "string")
+            .map((id: string) => ({ bookmark_id: id, aspects: [] }))
+        : [];
 
     const { data: workbench, error } = await supabase
       .from("workbenches")
@@ -138,25 +165,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Attach selected bookmarks as items, ensuring an analysis row for each
-    if (Array.isArray(bookmark_ids) && bookmark_ids.length > 0) {
+    if (sources.length > 0) {
       // Only keep bookmarks the user owns
       const { data: owned } = await supabase
         .from("bookmarks")
         .select("id")
         .eq("user_id", user.id)
-        .in("id", bookmark_ids);
+        .in(
+          "id",
+          sources.map((s) => s.bookmark_id)
+        );
 
       const ownedIds = new Set((owned || []).map((b: { id: string }) => b.id));
 
       let position = 0;
-      for (const bookmarkId of bookmark_ids) {
-        if (!ownedIds.has(bookmarkId)) continue;
-        const analysisId = await ensureAnalysis(supabase, bookmarkId, user.id);
+      for (const source of sources) {
+        if (!ownedIds.has(source.bookmark_id)) continue;
+        const analysisId = await ensureAnalysis(
+          supabase,
+          source.bookmark_id,
+          user.id
+        );
         await supabase.from("workbench_items").insert({
           workbench_id: workbench.id,
-          bookmark_id: bookmarkId,
+          bookmark_id: source.bookmark_id,
           analysis_id: analysisId,
-          selection: DEFAULT_SELECTION,
+          selection: { ...DEFAULT_SELECTION, aspects: source.aspects },
           position: position++,
         });
       }

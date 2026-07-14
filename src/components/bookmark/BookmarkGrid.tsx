@@ -1,6 +1,6 @@
 "use client";
 
-import { BookmarkWithRelations } from "@/types";
+import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { BookmarkCard } from "./BookmarkCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Bookmark } from "lucide-react";
@@ -15,6 +15,8 @@ interface BookmarkGridProps {
   selectable?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (bookmarkId: string) => void;
+  aspectsById?: Record<string, DesignAspect[]>;
+  onToggleAspect?: (bookmarkId: string, aspect: DesignAspect) => void;
 }
 
 function BookmarkSkeleton() {
@@ -48,6 +50,8 @@ export function BookmarkGrid({
   selectable = false,
   selectedIds,
   onToggleSelect,
+  aspectsById,
+  onToggleAspect,
 }: BookmarkGridProps) {
   if (loading) {
     return (
@@ -82,6 +86,12 @@ export function BookmarkGrid({
           selectable={selectable}
           selected={selectedIds?.has(bookmark.id)}
           onToggleSelect={() => onToggleSelect?.(bookmark.id)}
+          aspects={aspectsById?.[bookmark.id]}
+          onToggleAspect={
+            onToggleAspect
+              ? (aspect) => onToggleAspect(bookmark.id, aspect)
+              : undefined
+          }
         />
       ))}
     </div>

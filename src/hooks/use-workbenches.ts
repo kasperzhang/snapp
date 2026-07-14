@@ -9,6 +9,12 @@ import {
   WorkbenchWithItems,
 } from "@/types";
 
+// Fired whenever a mix is created/deleted anywhere in the app so every
+// mounted useWorkbenches instance (e.g. the sidebar list) stays in sync.
+const MIXES_CHANGED = "snapp:mixes-changed";
+export const announceMixesChanged = () =>
+  window.dispatchEvent(new Event(MIXES_CHANGED));
+
 // ── Library: saved workbenches ─────────────────────────────────────────────
 export function useWorkbenches() {
   const [workbenches, setWorkbenches] = useState<Workbench[]>([]);
@@ -31,6 +37,8 @@ export function useWorkbenches() {
 
   useEffect(() => {
     refresh();
+    window.addEventListener(MIXES_CHANGED, refresh);
+    return () => window.removeEventListener(MIXES_CHANGED, refresh);
   }, [refresh]);
 
   const createWorkbench = async (input: CreateWorkbenchInput) => {
@@ -45,9 +53,13 @@ export function useWorkbenches() {
     }
     const wb = await res.json();
     setWorkbenches((prev) => [
-      { ...wb, item_count: input.bookmark_ids?.length ?? 0 },
+      {
+        ...wb,
+        item_count: (input.items ?? input.bookmark_ids ?? []).length,
+      },
       ...prev,
     ]);
+    announceMixesChanged();
     return wb as Workbench;
   };
 
@@ -59,6 +71,7 @@ export function useWorkbenches() {
     });
     if (!res.ok) throw new Error("Failed to delete mix");
     setWorkbenches((prev) => prev.filter((w) => w.id !== id));
+    announceMixesChanged();
   };
 
   return {
@@ -241,7 +254,10 @@ export function useWorkbench(id: string | null) {
     if (!res.ok) {
       const e = await res.json();
       setWorkbench((prev) => (prev ? { ...prev, guide_status: "error" } : prev));
-      throw new Error(e.error || "Failed to generate guide");
+      // Carry the HTTP status so callers can react to 402 (plan limit).
+      throw Object.assign(new Error(e.error || "Failed to generate brief"), {
+        status: res.status,
+      });
     }
     const updated = await res.json();
     setWorkbench((prev) => (prev ? { ...prev, ...updated } : prev));

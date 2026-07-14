@@ -180,4 +180,7 @@ export interface WorkbenchWithItems extends Workbench {
 export interface CreateWorkbenchInput {
   name: string;
   bookmark_ids?: string[];
+  // Richer alternative to bookmark_ids: sources with the aspects to borrow,
+  // tagged during compose on the bookmarks grid.
+  items?: { bookmark_id: string; aspects?: DesignAspect[] }[];
 }

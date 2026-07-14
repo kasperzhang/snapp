@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check, Link2 } from "lucide-react";
-import { BookmarkWithRelations } from "@/types";
+import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check, Link2, Plus } from "lucide-react";
+import { BookmarkWithRelations, DESIGN_ASPECTS, DesignAspect } from "@/types";
 import { Card } from "@/components/ui/Card";
 import {
   DropdownMenu,
@@ -21,7 +21,15 @@ interface BookmarkCardProps {
   selectable?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  // Compose mode: aspects tagged to borrow from this site, shown as chips
+  // pinned to the selected card.
+  aspects?: DesignAspect[];
+  onToggleAspect?: (aspect: DesignAspect) => void;
 }
+
+const ASPECT_LABEL = Object.fromEntries(
+  DESIGN_ASPECTS.map((a) => [a.id, a.label])
+) as Record<DesignAspect, string>;
 
 export function BookmarkCard({
   bookmark,
@@ -31,6 +39,8 @@ export function BookmarkCard({
   selectable = false,
   selected = false,
   onToggleSelect,
+  aspects = [],
+  onToggleAspect,
 }: BookmarkCardProps) {
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
@@ -217,6 +227,62 @@ export function BookmarkCard({
           >
             {selected && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
           </span>
+
+          {/* Borrow chips — what to take from this site. Click a chip to
+              remove it; the trailing pill opens the full aspect menu. */}
+          {selected && onToggleAspect && (
+            <div
+              className="absolute top-2.5 left-2.5 right-10 z-20 flex flex-wrap gap-1.5"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              {aspects.map((a) => (
+                <button
+                  key={a}
+                  onClick={() => onToggleAspect(a)}
+                  title="Stop borrowing this"
+                  className="inline-flex items-center gap-1 rounded-full bg-[var(--foreground)] px-2.5 py-1 text-[11px] font-medium text-[var(--background)] shadow-md transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-1"
+                >
+                  {ASPECT_LABEL[a]}
+                </button>
+              ))}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--foreground)] shadow-sm backdrop-blur-sm transition-colors hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                    <Plus className="w-3 h-3" />
+                    Borrow
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-72 overflow-y-auto">
+                  {DESIGN_ASPECTS.map((a) => {
+                    const on = aspects.includes(a.id);
+                    return (
+                      <DropdownMenuItem
+                        key={a.id}
+                        // Keep the menu open so several aspects can be tagged
+                        // in one visit.
+                        onSelect={(e) => e.preventDefault()}
+                        onClick={() => onToggleAspect(a.id)}
+                        className={cn(on && "font-medium")}
+                      >
+                        <span
+                          className={cn(
+                            "mr-2 flex h-4 w-4 items-center justify-center rounded border",
+                            on
+                              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                              : "border-[var(--border)]"
+                          )}
+                        >
+                          {on && <Check className="h-3 w-3" strokeWidth={3} />}
+                        </span>
+                        {a.label}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
       )}
     </Card>

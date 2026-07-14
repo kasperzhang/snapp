@@ -2,15 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
-import { useBookmarks, useTags } from "@/hooks";
+import { Plus, Sparkles } from "lucide-react";
+import { useBookmarks, useTags, announceMixesChanged } from "@/hooks";
 import { BookmarkGrid, AddBookmarkDialog, EditBookmarkDialog } from "@/components/bookmark";
 import { SiteAnalysisDialog } from "@/components/analysis";
-import { NameWorkbenchDialog } from "@/components/workbench";
+import { MixPanel } from "@/components/workbench";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { BookmarkWithRelations } from "@/types";
+import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
 export default function HomePage() {
@@ -25,12 +25,18 @@ export default function HomePage() {
   const [deletingBookmark, setDeletingBookmark] = useState<BookmarkWithRelations | null>(null);
   const addDialogTriggerRef = useRef<HTMLButtonElement>(null);
 
-  // Workbench compose (select) mode
+  // Mix compose (select + tag) mode
   const [composeActive, setComposeActive] = useState(
     searchParams.get("compose") === "1"
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [nameOpen, setNameOpen] = useState(false);
+  const [aspectsById, setAspectsById] = useState<
+    Record<string, DesignAspect[]>
+  >({});
+  const [creatingMix, setCreatingMix] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
+  // The generate-in-place rail — set right after a mix is created.
+  const [panelMixId, setPanelMixId] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get("compose")) router.replace("/app");
@@ -96,34 +102,80 @@ export default function HomePage() {
   // ── Compose ──
   const startCompose = () => {
     setSelectedIds(new Set());
+    setAspectsById({});
+    setComposeError(null);
     setComposeActive(true);
   };
   const cancelCompose = () => {
     setComposeActive(false);
     setSelectedIds(new Set());
+    setAspectsById({});
+    setComposeError(null);
   };
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        // Deselecting a card drops its tagged aspects too.
+        setAspectsById(({ [id]: _dropped, ...rest }) => rest);
+      } else {
+        next.add(id);
+      }
       return next;
     });
-  const confirmCompose = () => {
-    if (selectedIds.size > 0) setNameOpen(true);
-  };
-  const createWorkbench = async (name: string) => {
-    const res = await fetch("/api/workbenches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, bookmark_ids: Array.from(selectedIds) }),
+  const toggleAspect = (bookmarkId: string, aspect: DesignAspect) =>
+    setAspectsById((prev) => {
+      const current = prev[bookmarkId] ?? [];
+      return {
+        ...prev,
+        [bookmarkId]: current.includes(aspect)
+          ? current.filter((a) => a !== aspect)
+          : [...current, aspect],
+      };
     });
-    if (!res.ok) {
-      const e = await res.json();
-      throw new Error(e.error || "Failed to create mix");
+
+  // Default mix name from its source domains: "stripe × linear +1".
+  const suggestMixName = () => {
+    const names = Array.from(selectedIds)
+      .map((id) => bookmarks.find((b) => b.id === id)?.domain?.split(".")[0])
+      .filter((n): n is string => !!n);
+    const unique = [...new Set(names)];
+    if (unique.length === 0) return "New mix";
+    const head = unique.slice(0, 2).join(" × ");
+    return unique.length > 2 ? `${head} +${unique.length - 2}` : head;
+  };
+
+  // Create the mix and open the brief rail — no page jump.
+  const generateMix = async () => {
+    if (selectedIds.size === 0 || creatingMix) return;
+    setCreatingMix(true);
+    setComposeError(null);
+    try {
+      const res = await fetch("/api/workbenches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: suggestMixName(),
+          items: Array.from(selectedIds).map((id) => ({
+            bookmark_id: id,
+            aspects: aspectsById[id] ?? [],
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.error || "Failed to create mix");
+      }
+      const wb = await res.json();
+      announceMixesChanged();
+      setPanelMixId(wb.id);
+      cancelCompose();
+    } catch (e) {
+      setComposeError(e instanceof Error ? e.message : "Failed to create mix");
+    } finally {
+      setCreatingMix(false);
     }
-    const wb = await res.json();
-    router.push(`/mix/${wb.id}`);
   };
 
   const title =
@@ -154,7 +206,7 @@ export default function HomePage() {
         {composeActive ? (
           <div className="flex items-center justify-between px-6 md:px-10 pt-7">
             <div className="text-[15px] text-[var(--foreground)]">
-              Select sites for your mix
+              Compose a mix
             </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={cancelCompose}>
@@ -162,10 +214,12 @@ export default function HomePage() {
               </Button>
               <Button
                 size="sm"
-                onClick={confirmCompose}
-                disabled={selectedIds.size === 0}
+                onClick={generateMix}
+                loading={creatingMix}
+                disabled={selectedIds.size === 0 || creatingMix}
               >
-                Confirm
+                <Sparkles className="w-3.5 h-3.5" />
+                Generate brief
                 {selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
               </Button>
             </div>
@@ -194,7 +248,11 @@ export default function HomePage() {
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)] text-white text-xs font-semibold">
               {selectedIds.size}
             </span>
-            Tap sites to add them to your new mix, then press Confirm.
+            Tap sites to add them, then tag what each one should lend — type,
+            color, motion…
+            {composeError && (
+              <span className="text-red-500">{composeError}</span>
+            )}
           </div>
         )}
 
@@ -209,10 +267,20 @@ export default function HomePage() {
             selectable={composeActive}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
+            aspectsById={aspectsById}
+            onToggleAspect={toggleAspect}
           />
         </main>
         </div>
       </ContentPanel>
+
+      {/* The brief rail — generate and iterate without leaving the library */}
+      {panelMixId && (
+        <MixPanel
+          workbenchId={panelMixId}
+          onClose={() => setPanelMixId(null)}
+        />
+      )}
 
       {/* Hidden Add Bookmark Dialog Trigger */}
       <AddBookmarkDialog
@@ -252,12 +320,6 @@ export default function HomePage() {
         }}
       />
 
-      <NameWorkbenchDialog
-        open={nameOpen}
-        onOpenChange={setNameOpen}
-        count={selectedIds.size}
-        onConfirm={createWorkbench}
-      />
     </div>
   );
 }
