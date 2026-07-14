@@ -5,8 +5,15 @@ import Color from "color";
 import namer from "color-namer";
 import { ExtractedFont, ExtractedColor, ScanResult } from "@/types";
 
-const CHROMIUM_EXECUTABLE_PATH = process.env.CHROMIUM_EXECUTABLE_PATH ||
-  "https://github.com/niceprogrammer2022/niceprogrammer-chromium-113/releases/download/v0.0.1/chromium-v113.0.0-pack.tar";
+// Production Chromium binary for @sparticuz/chromium-min. Defaults to the
+// OFFICIAL Sparticuz release matching the installed `@sparticuz/chromium-min`
+// major (v143) — NOT a random third-party repo — to avoid supply-chain risk and
+// version mismatch. Override with CHROMIUM_EXECUTABLE_PATH (e.g. a self-hosted
+// copy) if you prefer to serve the pack yourself. Keep this URL's version in
+// sync with the package version in package.json.
+const CHROMIUM_EXECUTABLE_PATH =
+  process.env.CHROMIUM_EXECUTABLE_PATH ||
+  "https://github.com/Sparticuz/chromium/releases/download/v143.0.4/chromium-v143.0.4-pack.x64.tar";
 
 // CSS generic font keywords to SKIP (these are not actual font names)
 const CSS_GENERIC_KEYWORDS = [

@@ -2,8 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { ExtractedFont, ExtractedColor } from "@/types";
+import {
+  checkUsageLimit,
+  recordUsage,
+  estimateCostCents,
+  totalInputTokens,
+} from "@/lib/billing/limits";
+import { rateLimit } from "@/lib/ratelimit";
 
 const anthropic = new Anthropic();
+const MODEL = "claude-sonnet-5";
 
 // Vercel function timeout. Generating the full design guide is a large,
 // non-streamed completion (~60-80s). 300 is the Vercel Pro ceiling; Hobby
@@ -549,6 +557,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Rate limit: guard against runaway generate loops.
+    if (!rateLimit(`analysis:${user.id}`, 10, 60_000).success) {
+      return NextResponse.json(
+        { error: "Too many generations, please wait a moment." },
+        { status: 429 }
+      );
+    }
+
+    // Monthly plan cap.
+    const limit = await checkUsageLimit(supabase, user.id, "analysis");
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: `You've reached your monthly analysis limit (${limit.used}/${limit.limit}). Upgrade to keep going.`,
+          code: "limit_reached",
+        },
+        { status: 402 }
+      );
+    }
+
     const url = (analysis.bookmark as { url: string })?.url || "the website";
     const prompt = buildPrompt(
       analysis.fonts as ExtractedFont[],
@@ -556,15 +584,22 @@ export async function POST(request: NextRequest) {
       url
     );
 
-    // Call Claude API
+    // Call Claude API. The large, mostly-static prompt prefix is marked for
+    // prompt caching so repeated analyses only pay full input price once.
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-5",
+      model: MODEL,
       max_tokens: 16000,
       thinking: { type: "disabled" }, // keep latency low (Sonnet 5 runs adaptive thinking by default)
       messages: [
         {
           role: "user",
-          content: prompt,
+          content: [
+            {
+              type: "text",
+              text: prompt,
+              cache_control: { type: "ephemeral" },
+            },
+          ],
         },
       ],
     });
@@ -574,6 +609,16 @@ export async function POST(request: NextRequest) {
       .filter((block) => block.type === "text")
       .map((block) => (block as { type: "text"; text: string }).text)
       .join("\n");
+
+    // Meter the successful generation with real token counts + est. cost.
+    await recordUsage(supabase, {
+      userId: user.id,
+      kind: "analysis",
+      tokensIn: totalInputTokens(message.usage),
+      tokensOut: message.usage?.output_tokens ?? 0,
+      costCents: estimateCostCents(MODEL, message.usage),
+      metadata: { analysis_id },
+    });
 
     // Update analysis with generated prompt
     const { data: updatedAnalysis, error: updateError } = await supabase

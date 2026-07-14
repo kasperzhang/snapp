@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scrapeMetadata } from "@/lib/metadata/scraper";
 import { createClient } from "@/lib/supabase/server";
+import { assertPublicHttpUrl, SsrfError } from "@/lib/security/ssrf";
+import { rateLimit } from "@/lib/ratelimit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,11 +21,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    // Validate URL
+    if (!rateLimit(`metadata:${user.id}`, 30, 60_000).success) {
+      return NextResponse.json(
+        { error: "Too many requests, slow down a moment." },
+        { status: 429 }
+      );
+    }
+
+    // Validate URL + SSRF guard (blocks private/loopback/metadata hosts).
     try {
-      new URL(url);
-    } catch {
-      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+      await assertPublicHttpUrl(url);
+    } catch (e) {
+      if (e instanceof SsrfError) {
+        return NextResponse.json({ error: e.message }, { status: 400 });
+      }
+      throw e;
     }
 
     const metadata = await scrapeMetadata(url);

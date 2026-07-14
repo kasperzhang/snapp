@@ -403,3 +403,34 @@ CREATE POLICY "Users can remove items from their workbenches"
 CREATE TRIGGER update_workbenches_updated_at
   BEFORE UPDATE ON workbenches
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- USAGE METERING (Phase 0 guardrails)
+-- One immutable row per billable action (AI guide, single-site analysis, scan).
+-- Powers monthly plan limits and, later, usage-based billing. Written via the
+-- user's own session, so RLS `auth.uid() = user_id` holds on INSERT.
+-- ============================================================================
+
+CREATE TABLE usage_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('guide', 'analysis', 'scan')),
+  tokens_in INT DEFAULT 0,
+  tokens_out INT DEFAULT 0,
+  cost_cents NUMERIC(12, 4) DEFAULT 0,   -- estimated USD cents for this action
+  metadata JSONB DEFAULT '{}'::jsonb,    -- e.g. { url, model, workbench_id }
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_usage_events_user_id ON usage_events(user_id);
+-- Monthly limit checks filter by (user_id, kind, created_at)
+CREATE INDEX idx_usage_events_user_kind_created
+  ON usage_events(user_id, kind, created_at);
+
+ALTER TABLE usage_events ENABLE ROW LEVEL SECURITY;
+
+-- Read your own usage; record your own usage. Immutable: no UPDATE/DELETE.
+CREATE POLICY "Users can view their own usage"
+  ON usage_events FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can record their own usage"
+  ON usage_events FOR INSERT WITH CHECK (auth.uid() = user_id);

@@ -8,8 +8,17 @@ import {
   ExtractedFont,
   WorkbenchItemSelection,
 } from "@/types";
+import { MAX_GUIDE_SOURCES } from "@/lib/billing/plans";
+import {
+  checkUsageLimit,
+  recordUsage,
+  estimateCostCents,
+  totalInputTokens,
+} from "@/lib/billing/limits";
+import { rateLimit } from "@/lib/ratelimit";
 
 const anthropic = new Anthropic();
+const MODEL = "claude-sonnet-5";
 
 export const maxDuration = 300; // Vercel function timeout (vision + long output)
 
@@ -196,6 +205,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Rate limit: guard against runaway generate loops.
+    if (!rateLimit(`guide:${user.id}`, 5, 60_000).success) {
+      return NextResponse.json(
+        { error: "Too many generations, please wait a moment." },
+        { status: 429 }
+      );
+    }
+
+    // Monthly plan cap.
+    const limit = await checkUsageLimit(supabase, user.id, "guide");
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: `You've reached your monthly design-guide limit (${limit.used}/${limit.limit}). Upgrade to keep going.`,
+          code: "limit_reached",
+        },
+        { status: 402 }
+      );
+    }
+
+    // Cap the number of screenshots sent to the model to bound per-call cost.
+    const sources = ready.slice(0, MAX_GUIDE_SOURCES);
+
     await supabase
       .from("workbenches")
       .update({ guide_status: "generating" })
@@ -203,7 +235,7 @@ export async function POST(request: NextRequest) {
 
     // Build an interleaved content array: lead text, then per-source text + screenshot
     const content: Anthropic.ContentBlockParam[] = [{ type: "text", text: LEAD }];
-    for (const item of ready) {
+    for (const item of sources) {
       content.push({ type: "text", text: sourceText(item) });
       content.push({
         type: "image",
@@ -224,7 +256,7 @@ export async function POST(request: NextRequest) {
     let designGuide = "";
     try {
       const message = await anthropic.messages.create({
-        model: "claude-sonnet-5",
+        model: MODEL,
         max_tokens: 16000,
         thinking: { type: "disabled" },
         messages: [{ role: "user", content }],
@@ -233,6 +265,16 @@ export async function POST(request: NextRequest) {
         .filter((b) => b.type === "text")
         .map((b) => (b as { type: "text"; text: string }).text)
         .join("\n");
+
+      // Meter the successful generation with real token counts + est. cost.
+      await recordUsage(supabase, {
+        userId: user.id,
+        kind: "guide",
+        tokensIn: totalInputTokens(message.usage),
+        tokensOut: message.usage?.output_tokens ?? 0,
+        costCents: estimateCostCents(MODEL, message.usage),
+        metadata: { workbench_id, sources: sources.length },
+      });
     } catch (err) {
       console.error("Error generating combined guide:", err);
       await supabase

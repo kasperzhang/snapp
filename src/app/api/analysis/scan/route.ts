@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { analyzePage, generateDesignTokens } from "@/lib/scraper/page-analyzer";
+import { assertPublicHttpUrl, SsrfError } from "@/lib/security/ssrf";
+import { rateLimit } from "@/lib/ratelimit";
+import { checkUsageLimit, recordUsage } from "@/lib/billing/limits";
 
 export const maxDuration = 60; // Vercel function timeout
 
@@ -34,6 +37,36 @@ export async function POST(request: NextRequest) {
 
     if (analysisError || !analysis || analysis.user_id !== user.id) {
       return NextResponse.json({ error: "Analysis not found" }, { status: 404 });
+    }
+
+    // Rate limit: guard against runaway scan loops from one user.
+    if (!rateLimit(`scan:${user.id}`, 10, 60_000).success) {
+      return NextResponse.json(
+        { error: "Too many scans, slow down a moment." },
+        { status: 429 }
+      );
+    }
+
+    // Monthly plan cap.
+    const limit = await checkUsageLimit(supabase, user.id, "scan");
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: `You've reached your monthly scan limit (${limit.used}/${limit.limit}). Upgrade to keep going.`,
+          code: "limit_reached",
+        },
+        { status: 402 }
+      );
+    }
+
+    // SSRF guard: only allow scanning public http(s) URLs.
+    try {
+      await assertPublicHttpUrl(url);
+    } catch (e) {
+      if (e instanceof SsrfError) {
+        return NextResponse.json({ error: e.message }, { status: 400 });
+      }
+      throw e;
     }
 
     // Update status to scanning
@@ -86,6 +119,13 @@ export async function POST(request: NextRequest) {
       if (updateError) {
         throw new Error("Failed to update analysis results");
       }
+
+      // Meter the successful scan (infra cost, no tokens).
+      await recordUsage(supabase, {
+        userId: user.id,
+        kind: "scan",
+        metadata: { url },
+      });
 
       return NextResponse.json(updatedAnalysis);
     } catch (scanError) {
