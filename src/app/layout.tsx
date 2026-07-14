@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import {
+  Bricolage_Grotesque,
   Geist,
   Geist_Mono,
   Playpen_Sans_Hebrew,
@@ -27,10 +28,15 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
 });
 
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: "snapp — turn the sites you love into one design system",
+  title: "snapp — bookmarks that brief your coding agent",
   description:
-    "Save the sites that inspire you, pick what to borrow from each — type, color, motion, layout — and snapp fuses them into a single, buildable design guide.",
+    "Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design brief your coding agent can actually follow.",
 };
 
 export default function RootLayout({
@@ -41,7 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${playpen.variable} ${spaceGrotesk.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playpen.variable} ${spaceGrotesk.variable} ${bricolage.variable} antialiased`}
       >
         {children}
       </body>
