@@ -434,3 +434,32 @@ CREATE POLICY "Users can view their own usage"
   ON usage_events FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can record their own usage"
   ON usage_events FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ============================================================================
+-- BILLING (Phase 1) — one subscription row per user.
+-- Written ONLY by the Stripe webhook (service role), never by the client, so
+-- there are no INSERT/UPDATE policies. Users may read their own row.
+-- ============================================================================
+
+CREATE TABLE subscriptions (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  stripe_customer_id TEXT UNIQUE,
+  stripe_subscription_id TEXT UNIQUE,
+  plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
+  status TEXT NOT NULL DEFAULT 'inactive',  -- Stripe subscription status
+  current_period_end TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_subscriptions_stripe_customer_id
+  ON subscriptions(stripe_customer_id);
+
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own subscription"
+  ON subscriptions FOR SELECT USING (auth.uid() = user_id);
+
+CREATE TRIGGER update_subscriptions_updated_at
+  BEFORE UPDATE ON subscriptions
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
