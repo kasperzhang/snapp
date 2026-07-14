@@ -28,8 +28,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Snapp - Bookmark Manager for Designers",
-  description: "A minimalist bookmark manager for web designers, UI/UX designers, and indie developers.",
+  title: "snapp — turn the sites you love into one design system",
+  description:
+    "Save the sites that inspire you, pick what to borrow from each — type, color, motion, layout — and snapp fuses them into a single, buildable design guide.",
 };
 
 export default function RootLayout({

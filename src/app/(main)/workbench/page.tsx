@@ -22,7 +22,7 @@ export default function WorkbenchLibraryPage() {
   }, []);
 
   // New workbench = the visual compose flow on the Bookmarks page
-  const startCompose = () => router.push("/?compose=1");
+  const startCompose = () => router.push("/app?compose=1");
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--sidebar)]">

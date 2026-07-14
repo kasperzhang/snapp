@@ -11,6 +11,11 @@
   --accent: #141414;
   --accent-hover: #333333;
 
+  /* Brand accent — warm mocha */
+  --brand: #8D6F4C;
+  --brand-hover: #79603F;
+  --brand-tint: #F1EBE2;
+
   /* Sidebar */
   --sidebar: #EBEBEB;
   --sidebar-border: #DEDEDE;
@@ -34,6 +39,8 @@
   --color-text-muted: var(--text-muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
   --color-sidebar: var(--sidebar);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-hover: var(--sidebar-hover);
@@ -53,19 +60,6 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
-}
-
-/* Arc-style soft grey gradient mesh + matte grain over the --sidebar color */
-.sidebar-surface {
-  background-color: var(--sidebar);
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.05'/%3E%3C/svg%3E"),
-    radial-gradient(90% 70% at 6% -5%, #F5F5F5 0%, rgba(245, 245, 245, 0) 60%),
-    radial-gradient(85% 65% at 102% 6%, #E2E2E2 0%, rgba(226, 226, 226, 0) 55%),
-    radial-gradient(120% 85% at 50% 108%, #DCDCDC 0%, rgba(220, 220, 220, 0) 65%),
-    radial-gradient(70% 55% at -5% 100%, #EFEFEF 0%, rgba(239, 239, 239, 0) 60%);
-  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-size: 160px 160px, cover, cover, cover, cover;
 }
 
 /* Custom scrollbar */

@@ -36,24 +36,24 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes
-  const isAuthPage =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup");
-  const isCallback = request.nextUrl.pathname.startsWith("/callback");
-  const isApiRoute = request.nextUrl.pathname.startsWith("/api");
+  const path = request.nextUrl.pathname;
+  const isAuthPage = path.startsWith("/login") || path.startsWith("/signup");
+  const isCallback = path.startsWith("/callback");
+  const isApiRoute = path.startsWith("/api");
+  // Public marketing surface — viewable signed-out or signed-in.
+  const isMarketing = path === "/";
 
-  if (!user && !isAuthPage && !isCallback && !isApiRoute) {
-    // Redirect unauthenticated users to login page
+  if (!user && !isAuthPage && !isCallback && !isApiRoute && !isMarketing) {
+    // Send signed-out users hitting the app to login.
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
   if (user && isAuthPage) {
-    // Redirect authenticated users away from auth pages
+    // Signed-in users don't need the auth pages — drop them into the app.
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/app";
     return NextResponse.redirect(url);
   }
 

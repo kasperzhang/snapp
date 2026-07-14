@@ -33,7 +33,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch {
       setError("An unexpected error occurred");

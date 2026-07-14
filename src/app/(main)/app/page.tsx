@@ -31,7 +31,7 @@ export default function HomePage() {
   const [nameOpen, setNameOpen] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("compose")) router.replace("/");
+    if (searchParams.get("compose")) router.replace("/app");
   }, [searchParams, router]);
 
   const {
