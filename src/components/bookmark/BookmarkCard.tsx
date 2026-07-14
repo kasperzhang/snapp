@@ -80,7 +80,7 @@ export function BookmarkCard({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-[family-name:var(--font-space-grotesk)] font-bold text-3xl tracking-tight text-[var(--text-secondary)] truncate max-w-full px-4">
+            <span className="font-[family-name:var(--font-display)] font-bold text-3xl tracking-tight text-[var(--text-secondary)] truncate max-w-full px-4">
               {bookmark.domain.split(".")[0]}
             </span>
           </div>
@@ -94,7 +94,7 @@ export function BookmarkCard({
       >
         <div className="flex items-center gap-3">
           {/* Favicon tile */}
-          <div className="w-[26px] h-[26px] rounded-[7px] bg-[#f0f0ee] border border-[var(--border)] flex items-center justify-center text-[11px] font-semibold text-[var(--foreground)] flex-shrink-0 overflow-hidden">
+          <div className="w-[26px] h-[26px] rounded-[7px] bg-[var(--border-light)] border border-[var(--border)] flex items-center justify-center text-[11px] font-semibold text-[var(--foreground)] flex-shrink-0 overflow-hidden">
             {bookmark.favicon_url ? (
               <img
                 src={bookmark.favicon_url}
@@ -114,7 +114,7 @@ export function BookmarkCard({
             <h3 className="text-[13.5px] font-medium text-[var(--foreground)] truncate">
               {bookmark.title}
             </h3>
-            <span className="text-xs text-[#9a9a9a] truncate block mt-0.5">
+            <span className="text-xs text-[var(--text-muted)] truncate block mt-0.5">
               {bookmark.domain}
             </span>
           </div>

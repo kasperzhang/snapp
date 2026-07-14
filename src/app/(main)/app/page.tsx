@@ -154,7 +154,7 @@ export default function HomePage() {
         {composeActive ? (
           <div className="flex items-center justify-between px-6 md:px-10 pt-7">
             <div className="text-[15px] text-[var(--foreground)]">
-              Select sites for your workbench
+              Select sites for your mix
             </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" onClick={cancelCompose}>
@@ -176,7 +176,7 @@ export default function HomePage() {
               <h1 className="text-[26px] font-semibold tracking-tight text-[var(--foreground)]">
                 {title}
               </h1>
-              <p className="text-[13px] text-[#8a8a8a] mt-1">
+              <p className="text-[13px] text-[var(--text-muted)] mt-1">
                 {bookmarks.length}{" "}
                 {bookmarks.length === 1 ? "bookmark" : "bookmarks"}
               </p>
@@ -194,7 +194,7 @@ export default function HomePage() {
             <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)] text-white text-xs font-semibold">
               {selectedIds.size}
             </span>
-            Tap sites to add them to your new workbench, then press Confirm.
+            Tap sites to add them to your new mix, then press Confirm.
           </div>
         )}
 

@@ -36,7 +36,7 @@ export function TagChip({
         onClick && "cursor-pointer",
         selected
           ? "bg-[var(--foreground)] text-[var(--background)] border border-[var(--foreground)]"
-          : "bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:border-[#c9c9c4] hover:text-[var(--foreground)]"
+          : "bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--text-muted)] hover:text-[var(--foreground)]"
       )}
     >
       {color && (

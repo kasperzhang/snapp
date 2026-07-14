@@ -120,7 +120,7 @@ export function Sidebar({
     cn(
       "group flex items-center w-full h-10 rounded-[10px] overflow-hidden text-[13.5px] transition-colors duration-200 cursor-pointer",
       active
-        ? "bg-white text-[var(--foreground)] font-medium border border-[var(--foreground)] shadow-sm"
+        ? "bg-[var(--brand-tint)] text-[var(--foreground)] font-medium border border-transparent"
         : "text-[var(--text-secondary)] border border-transparent hover:bg-[var(--sidebar-hover)] hover:text-[var(--foreground)]"
     );
 
@@ -145,7 +145,7 @@ export function Sidebar({
             title="Open sidebar"
             className="group/logo relative w-7 h-7 rounded-lg shrink-0"
           >
-            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[var(--foreground)] text-white font-[family-name:var(--font-space-grotesk)] font-bold text-[15px] transition-opacity duration-150 group-hover/logo:opacity-0">
+            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[var(--brand)] text-white font-[family-name:var(--font-display)] font-bold text-[15px] transition-opacity duration-150 group-hover/logo:opacity-0">
               s
             </span>
             <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[var(--sidebar-hover)] text-[var(--foreground)] opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100">
@@ -155,10 +155,10 @@ export function Sidebar({
         ) : (
           <>
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-[var(--foreground)] text-white flex items-center justify-center font-[family-name:var(--font-space-grotesk)] font-bold text-[15px] shrink-0">
+              <div className="w-7 h-7 rounded-lg bg-[var(--brand)] text-white flex items-center justify-center font-[family-name:var(--font-display)] font-bold text-[15px] shrink-0">
                 s
               </div>
-              <span className="font-[family-name:var(--font-space-grotesk)] font-semibold text-lg tracking-tight text-[var(--foreground)] whitespace-nowrap">
+              <span className="font-[family-name:var(--font-display)] font-semibold text-lg tracking-tight text-[var(--foreground)] whitespace-nowrap">
                 snapp
               </span>
             </div>
@@ -194,7 +194,7 @@ export function Sidebar({
               else router.push("/app");
             }}
             title={collapsed ? "Search" : undefined}
-            className="mb-5 flex items-center w-full h-10 bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-[10px] overflow-hidden text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:border-[#c9c9c4] transition-colors duration-200"
+            className="mb-5 flex items-center w-full h-10 bg-white border border-[var(--border)] text-[var(--text-secondary)] rounded-[10px] overflow-hidden text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:border-[var(--text-muted)] transition-colors duration-200"
           >
             <span className={iconWrap}>
               <Search className="w-[15px] h-[15px]" />
@@ -208,7 +208,7 @@ export function Sidebar({
               <span className="flex-1 text-left truncate">
                 {search ? search : "Search"}
               </span>
-              <span className="font-[family-name:var(--font-space-grotesk)] text-[11px] text-[var(--text-muted)] border border-[var(--border)] rounded px-1.5 shrink-0">
+              <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)] border border-[var(--border)] rounded px-1.5 shrink-0">
                 ⌘K
               </span>
             </span>
@@ -218,7 +218,7 @@ export function Sidebar({
         {/* LIBRARY */}
         <div
           className={cn(
-            "font-[family-name:var(--font-space-grotesk)] text-[10px] tracking-[0.12em] text-[var(--text-muted)] px-2 overflow-hidden transition-all duration-300 ease-in-out",
+            "font-[family-name:var(--font-display)] text-[10px] tracking-[0.12em] text-[var(--text-muted)] px-2 overflow-hidden transition-all duration-300 ease-in-out",
             collapsed ? "max-h-0 opacity-0" : "max-h-8 opacity-100 pb-2 pt-1"
           )}
         >
@@ -296,7 +296,7 @@ export function Sidebar({
                     >
                       <span className="flex-1 truncate">{w.name}</span>
                       {w.item_count != null && (
-                        <span className="font-[family-name:var(--font-space-grotesk)] text-[11px] text-[var(--text-muted)]">
+                        <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)]">
                           {w.item_count}
                         </span>
                       )}
@@ -320,7 +320,7 @@ export function Sidebar({
           {tags && tags.length > 0 && (
             <>
               <div className="flex items-center justify-between px-2 pb-2">
-                <span className="font-[family-name:var(--font-space-grotesk)] text-[10px] tracking-[0.12em] text-[var(--text-muted)]">
+                <span className="font-[family-name:var(--font-display)] text-[10px] tracking-[0.12em] text-[var(--text-muted)]">
                   TABS
                 </span>
               </div>
@@ -336,7 +336,7 @@ export function Sidebar({
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--foreground)] mx-1" />
                   <span className="flex-1 text-left">All</span>
-                  <span className="font-[family-name:var(--font-space-grotesk)] text-[11px] text-[var(--text-muted)]">
+                  <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)]">
                     {bookmarks?.length ?? 0}
                   </span>
                 </button>
@@ -363,7 +363,7 @@ export function Sidebar({
                         }}
                       />
                       <span className="flex-1 text-left truncate">{t.name}</span>
-                      <span className="font-[family-name:var(--font-space-grotesk)] text-[11px] text-[var(--text-muted)]">
+                      <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)]">
                         {count}
                       </span>
                     </button>
@@ -392,7 +392,7 @@ export function Sidebar({
                   collapsed ? "gap-0" : "flex-1 -mx-1 gap-2.5"
                 )}
               >
-                <div className="w-[26px] h-[26px] rounded-full bg-[#dcdcd8] text-[#555] flex items-center justify-center text-[11px] font-semibold shrink-0">
+                <div className="w-[26px] h-[26px] rounded-full bg-[var(--foreground)] text-[var(--background)] flex items-center justify-center text-[11px] font-semibold shrink-0">
                   {(userEmail?.[0] || "K").toUpperCase()}
                 </div>
                 <span
@@ -418,9 +418,9 @@ export function Sidebar({
                   <div className="flex items-center gap-1.5 text-[11px] mb-1">
                     <span
                       className={cn(
-                        "font-[family-name:var(--font-space-grotesk)] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded",
+                        "font-[family-name:var(--font-display)] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded",
                         billing.plan === "pro"
-                          ? "bg-[var(--foreground)] text-[var(--background)]"
+                          ? "bg-[var(--brand)] text-white"
                           : "bg-[var(--border)] text-[var(--text-secondary)]"
                       )}
                     >
