@@ -14,7 +14,7 @@ export function WorkbenchCard({ workbench, onDelete }: WorkbenchCardProps) {
   const count = workbench.item_count ?? 0;
   return (
     <Card hoverable className="relative group">
-      <Link href={`/workbench/${workbench.id}`} className="block p-5">
+      <Link href={`/mix/${workbench.id}`} className="block p-5">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-[var(--radius-card)] bg-[var(--border)] flex items-center justify-center flex-shrink-0">
             <Layers className="w-4.5 h-4.5 text-[var(--foreground)]" />
@@ -39,7 +39,7 @@ export function WorkbenchCard({ workbench, onDelete }: WorkbenchCardProps) {
         <button
           onClick={() => onDelete(workbench.id)}
           className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-[var(--border)] text-[var(--text-secondary)]"
-          title="Delete workbench"
+          title="Delete mix"
         >
           <Trash2 className="w-4 h-4" />
         </button>

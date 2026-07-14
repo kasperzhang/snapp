@@ -20,10 +20,10 @@ export function useWorkbenches() {
       setLoading(true);
       setError(null);
       const res = await fetch("/api/workbenches");
-      if (!res.ok) throw new Error("Failed to load workbenches");
+      if (!res.ok) throw new Error("Failed to load mixes");
       setWorkbenches(await res.json());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load workbenches");
+      setError(err instanceof Error ? err.message : "Failed to load mixes");
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ export function useWorkbenches() {
     });
     if (!res.ok) {
       const e = await res.json();
-      throw new Error(e.error || "Failed to create workbench");
+      throw new Error(e.error || "Failed to create mix");
     }
     const wb = await res.json();
     setWorkbenches((prev) => [
@@ -57,7 +57,7 @@ export function useWorkbenches() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
-    if (!res.ok) throw new Error("Failed to delete workbench");
+    if (!res.ok) throw new Error("Failed to delete mix");
     setWorkbenches((prev) => prev.filter((w) => w.id !== id));
   };
 
@@ -83,10 +83,10 @@ export function useWorkbench(id: string | null) {
       setLoading(true);
       setError(null);
       const res = await fetch(`/api/workbenches?id=${id}`);
-      if (!res.ok) throw new Error("Failed to load workbench");
+      if (!res.ok) throw new Error("Failed to load mix");
       setWorkbench(await res.json());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load workbench");
+      setError(err instanceof Error ? err.message : "Failed to load mix");
     } finally {
       setLoading(false);
     }

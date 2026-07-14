@@ -120,10 +120,10 @@ export default function HomePage() {
     });
     if (!res.ok) {
       const e = await res.json();
-      throw new Error(e.error || "Failed to create workbench");
+      throw new Error(e.error || "Failed to create mix");
     }
     const wb = await res.json();
-    router.push(`/workbench/${wb.id}`);
+    router.push(`/mix/${wb.id}`);
   };
 
   const title =

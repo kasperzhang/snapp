@@ -65,7 +65,7 @@ export default function WorkbenchEditorPage() {
     try {
       await generate();
     } catch (e) {
-      setGenError(e instanceof Error ? e.message : "Failed to generate guide");
+      setGenError(e instanceof Error ? e.message : "Failed to generate brief");
     }
   };
 
@@ -75,7 +75,7 @@ export default function WorkbenchEditorPage() {
       <ContentPanel>
         <main className="max-w-[1200px] mx-auto px-6 md:px-10 py-8 md:py-10">
         <Link
-          href="/workbench"
+          href="/mix"
           className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--foreground)] mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -85,7 +85,7 @@ export default function WorkbenchEditorPage() {
         {loading ? (
           <p className="text-[var(--text-secondary)]">Loading…</p>
         ) : !workbench ? (
-          <p className="text-[var(--text-secondary)]">Workbench not found.</p>
+          <p className="text-[var(--text-secondary)]">Mix not found.</p>
         ) : (
           <>
             <input
@@ -99,7 +99,7 @@ export default function WorkbenchEditorPage() {
             />
             <p className="text-[var(--text-secondary)] mb-8">
               Mark what to borrow from each site, add your own notes, then
-              generate a combined design guide.
+              generate one design brief.
             </p>
 
             {/* Sources */}
@@ -148,7 +148,7 @@ export default function WorkbenchEditorPage() {
                 disabled={!canGenerate || generating}
               >
                 <Sparkles className="w-4 h-4" />
-                {workbench.design_guide ? "Regenerate guide" : "Generate guide"}
+                {workbench.design_guide ? "Regenerate brief" : "Generate brief"}
               </Button>
               {!allResolved && items.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
@@ -168,7 +168,7 @@ export default function WorkbenchEditorPage() {
             {/* Guide */}
             {generating && !workbench.design_guide && (
               <p className="text-sm text-[var(--text-secondary)]">
-                Generating your combined design guide — this can take a minute…
+                Generating your design brief — this can take a minute…
               </p>
             )}
             {workbench.design_guide && (

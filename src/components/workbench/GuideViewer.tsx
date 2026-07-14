@@ -32,7 +32,7 @@ export function GuideViewer({ guide, name }: GuideViewerProps) {
     <div className="rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
         <h3 className="text-sm font-semibold text-[var(--foreground)]">
-          Combined design guide
+          Design brief
         </h3>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" onClick={handleCopy}>

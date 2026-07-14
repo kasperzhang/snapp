@@ -21,7 +21,7 @@ export default function WorkbenchLibraryPage() {
     });
   }, []);
 
-  // New workbench = the visual compose flow on the Bookmarks page
+  // New mix = the visual compose flow on the Bookmarks page
   const startCompose = () => router.push("/app?compose=1");
 
   return (
@@ -32,7 +32,7 @@ export default function WorkbenchLibraryPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-semibold text-[var(--foreground)]">
-              Saved workbenches
+              Your mixes
             </h1>
             <p className="text-[var(--text-secondary)] mt-1">
               Your saved compositions.
@@ -40,7 +40,7 @@ export default function WorkbenchLibraryPage() {
           </div>
           <Button size="sm" onClick={startCompose}>
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New workbench</span>
+            <span className="hidden sm:inline">New mix</span>
           </Button>
         </div>
 
@@ -50,11 +50,11 @@ export default function WorkbenchLibraryPage() {
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Layers className="w-8 h-8 text-[var(--text-secondary)] mb-4" />
             <p className="text-[var(--text-secondary)] mb-4">
-              No workbenches yet. Pick some sites to start composing.
+              No mixes yet. Pick some sites to start mixing.
             </p>
             <Button onClick={startCompose}>
               <Plus className="w-4 h-4" />
-              New workbench
+              New mix
             </Button>
           </div>
         ) : (

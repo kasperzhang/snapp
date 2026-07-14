@@ -41,7 +41,7 @@ export function NameWorkbenchDialog({
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setError("Give your workbench a name");
+      setError("Give your mix a name");
       return;
     }
     setSubmitting(true);
@@ -49,7 +49,7 @@ export function NameWorkbenchDialog({
     try {
       await onConfirm(name.trim());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create workbench");
+      setError(e instanceof Error ? e.message : "Failed to create mix");
       setSubmitting(false);
     }
   };
@@ -58,7 +58,7 @@ export function NameWorkbenchDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Name your workbench</DialogTitle>
+          <DialogTitle>Name your mix</DialogTitle>
           <DialogDescription>
             Composing from {count} {count === 1 ? "site" : "sites"}.
           </DialogDescription>

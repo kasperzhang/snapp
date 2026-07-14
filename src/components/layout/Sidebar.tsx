@@ -59,7 +59,7 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [wbExpanded, setWbExpanded] = useState(
-    pathname.startsWith("/workbench")
+    pathname.startsWith("/mix")
   );
 
   type Billing = {
@@ -101,7 +101,7 @@ export function Sidebar({
   };
 
   const bookmarksActive = pathname === "/app";
-  const wbActive = pathname.startsWith("/workbench");
+  const wbActive = pathname.startsWith("/mix");
 
   // Fixed-width icon tile: keeps every icon on the same vertical axis so they
   // never shift horizontally as the rail collapses — only labels fade.
@@ -238,9 +238,9 @@ export function Sidebar({
 
           <button
             className={navItem(wbActive)}
-            title={collapsed ? "Workbench" : undefined}
+            title={collapsed ? "Mixes" : undefined}
             onClick={() => {
-              if (collapsed) router.push("/workbench");
+              if (collapsed) router.push("/mix");
               else setWbExpanded((v) => !v);
             }}
           >
@@ -254,7 +254,7 @@ export function Sidebar({
               )}
             >
               <span className="flex-1 text-left whitespace-nowrap">
-                Workbench
+                Mixes
               </span>
               <ChevronDown
                 className={cn(
@@ -279,14 +279,14 @@ export function Sidebar({
                   className="flex items-center gap-2 ml-2 px-2.5 py-[7px] rounded-lg text-[13px] text-[var(--foreground)] font-medium hover:bg-[var(--sidebar-hover)] transition-colors whitespace-nowrap"
                 >
                   <Plus className="w-3.5 h-3.5 shrink-0" />
-                  <span>New workbench</span>
+                  <span>New mix</span>
                 </button>
                 {workbenches.map((w) => {
-                  const active = pathname === `/workbench/${w.id}`;
+                  const active = pathname === `/mix/${w.id}`;
                   return (
                     <Link
                       key={w.id}
-                      href={`/workbench/${w.id}`}
+                      href={`/mix/${w.id}`}
                       className={cn(
                         "flex items-center gap-2 ml-2 px-2.5 py-[7px] rounded-lg text-[13px] transition-colors",
                         active
@@ -427,7 +427,7 @@ export function Sidebar({
                       {billing.plan}
                     </span>
                     <span className="text-[var(--text-muted)]">
-                      {billing.usage.guide.used}/{billing.usage.guide.limit} guides
+                      {billing.usage.guide.used}/{billing.usage.guide.limit} briefs
                       this month
                     </span>
                   </div>

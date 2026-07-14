@@ -62,7 +62,7 @@ export function Header({
         <div className="flex items-center gap-4 min-w-0">
           {logo}
           <span className="text-sm text-[var(--text-secondary)] hidden sm:inline">
-            Select sites for your workbench
+            Select sites for your mix
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -95,29 +95,29 @@ export function Header({
       <div className="flex items-center gap-8">
         {logo}
         <nav className="hidden md:flex items-center gap-1">
-          <Link href="/" className={navItem(pathname === "/")}>
+          <Link href="/app" className={navItem(pathname === "/app")}>
             Bookmarks
           </Link>
-          {/* Workbench = compose trigger. On the Bookmarks page it toggles
+          {/* New mix = compose trigger. On the Bookmarks page it toggles
               select-mode; elsewhere it navigates home into select-mode. */}
           {compose ? (
             <button className={navItem(false)} onClick={compose.onStart}>
-              Workbench
+              New mix
             </button>
           ) : (
-            <Link href="/?compose=1" className={navItem(false)}>
-              Workbench
+            <Link href="/app?compose=1" className={navItem(false)}>
+              New mix
             </Link>
           )}
           <Link
-            href="/workbench"
+            href="/mix"
             className={cn(
-              navItem(pathname.startsWith("/workbench")),
+              navItem(pathname.startsWith("/mix")),
               "inline-flex items-center gap-1.5"
             )}
           >
             <Layers className="w-3.5 h-3.5" />
-            Saved
+            Mixes
           </Link>
         </nav>
         {onSearchChange && (
