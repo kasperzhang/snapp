@@ -30,9 +30,18 @@ export function PreviewPanel({
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
 
+  // A fresh scan just produced a screenshot — show it (many sites block the
+  // live iframe anyway). State-during-render, per React's derived-state docs.
+  const [prevScreenshotUrl, setPrevScreenshotUrl] = useState(screenshotUrl);
+  if (screenshotUrl !== prevScreenshotUrl) {
+    setPrevScreenshotUrl(screenshotUrl);
+    if (screenshotUrl) setViewMode("screenshot");
+  }
+
   return (
     <div className="h-full flex flex-col">
-      {/* View Toggle */}
+      {/* View toggle + scan action. Scanning is metered, so the button is only
+          prominent (primary) until the first scan has completed. */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex gap-1 p-0.5 bg-[var(--border)] rounded-lg">
           <button
@@ -62,6 +71,21 @@ export function PreviewPanel({
             Screenshot
           </button>
         </div>
+
+        <Button
+          onClick={onScan}
+          loading={scanning}
+          disabled={scanning}
+          size="sm"
+          variant={analysisStatus === "completed" ? "secondary" : "primary"}
+        >
+          {!scanning && <RefreshCw className="w-3.5 h-3.5" />}
+          {scanning
+            ? "Scanning…"
+            : analysisStatus === "completed"
+              ? "Re-scan"
+              : "Scan page"}
+        </Button>
       </div>
 
       {/* Preview Area */}
@@ -79,7 +103,7 @@ export function PreviewPanel({
                 <p className="text-sm text-[var(--text-secondary)] mb-4">
                   This site cannot be displayed in an iframe.
                   <br />
-                  Use &quot;Scan Page&quot; to capture a screenshot.
+                  Use Scan page to capture a screenshot.
                 </p>
               </div>
             ) : (
@@ -112,34 +136,17 @@ export function PreviewPanel({
             <p className="text-sm text-[var(--text-secondary)]">
               No screenshot available.
               <br />
-              Click &quot;Scan Page&quot; to capture one.
+              Use Scan page above to capture one.
             </p>
           </div>
         )}
       </div>
 
-      {/* Scan Button */}
-      <div className="mt-4">
-        {errorMessage && (
-          <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-sm text-red-500">{errorMessage}</p>
-          </div>
-        )}
-
-        <Button
-          onClick={onScan}
-          loading={scanning}
-          disabled={scanning}
-          className="w-full"
-        >
-          <RefreshCw className={cn("w-4 h-4", scanning && "animate-spin")} />
-          {scanning
-            ? "Scanning..."
-            : analysisStatus === "completed"
-              ? "Re-scan Page"
-              : "Scan Page"}
-        </Button>
-      </div>
+      {errorMessage && (
+        <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p className="text-sm text-red-500">{errorMessage}</p>
+        </div>
+      )}
     </div>
   );
 }

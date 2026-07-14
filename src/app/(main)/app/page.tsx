@@ -9,6 +9,7 @@ import { SiteAnalysisDialog } from "@/components/analysis";
 import { NameWorkbenchDialog } from "@/components/workbench";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BookmarkWithRelations } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [userEmail, setUserEmail] = useState<string>();
   const [editingBookmark, setEditingBookmark] = useState<BookmarkWithRelations | null>(null);
   const [analyzingBookmark, setAnalyzingBookmark] = useState<BookmarkWithRelations | null>(null);
+  const [deletingBookmark, setDeletingBookmark] = useState<BookmarkWithRelations | null>(null);
   const addDialogTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Workbench compose (select) mode
@@ -78,10 +80,8 @@ export default function HomePage() {
     if (editingBookmark) await updateBookmark(editingBookmark.id, data);
   };
 
-  const handleDeleteBookmark = async (bookmarkId: string) => {
-    if (confirm("Are you sure you want to delete this bookmark?")) {
-      await deleteBookmark(bookmarkId);
-    }
+  const handleDeleteBookmark = (bookmarkId: string) => {
+    setDeletingBookmark(bookmarks.find((b) => b.id === bookmarkId) ?? null);
   };
 
   const handleAddClick = () => addDialogTriggerRef.current?.click();
@@ -236,6 +236,20 @@ export default function HomePage() {
         bookmark={analyzingBookmark}
         open={!!analyzingBookmark}
         onOpenChange={(open) => !open && setAnalyzingBookmark(null)}
+      />
+
+      <ConfirmDialog
+        open={!!deletingBookmark}
+        onOpenChange={(open) => !open && setDeletingBookmark(null)}
+        title="Delete bookmark?"
+        description={
+          deletingBookmark
+            ? `"${deletingBookmark.title}" will be removed from your library. This can't be undone.`
+            : ""
+        }
+        onConfirm={async () => {
+          if (deletingBookmark) await deleteBookmark(deletingBookmark.id);
+        }}
       />
 
       <NameWorkbenchDialog

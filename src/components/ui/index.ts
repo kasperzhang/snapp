@@ -28,3 +28,4 @@ export {
   DropdownMenuRadioGroup,
 } from "./DropdownMenu";
 export { Skeleton } from "./Skeleton";
+export { ConfirmDialog } from "./ConfirmDialog";

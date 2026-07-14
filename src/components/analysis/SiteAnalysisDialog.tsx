@@ -151,6 +151,16 @@ export function SiteAnalysisDialog({
               />
             )}
             <DialogTitle className="truncate">{bookmark.title}</DialogTitle>
+            {bookmark.domain && (
+              <a
+                href={bookmark.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-[13px] text-[var(--text-muted)] hover:text-[var(--accent)] hover:underline transition-colors"
+              >
+                {bookmark.domain} ↗
+              </a>
+            )}
           </div>
           <DialogDescription className="sr-only">
             Analyze design elements from {bookmark.domain}

@@ -25,27 +25,32 @@ function ColorSwatch({ color }: ColorSwatchProps) {
   const isLight = (color.rgb.r + color.rgb.g + color.rgb.b) / 3 > 128;
 
   return (
-    <button
-      onClick={handleCopy}
-      className={cn(
-        "group relative w-10 h-10 rounded-lg border border-[var(--border)] transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
-      )}
-      style={{ backgroundColor: color.hex }}
-      title={`${color.hex} - Click to copy`}
-    >
-      <span
+    <div className="flex flex-col items-center gap-1">
+      <button
+        onClick={handleCopy}
         className={cn(
-          "absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
-          isLight ? "text-black" : "text-white"
+          "group relative w-10 h-10 rounded-lg border border-[var(--border)] transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
         )}
+        style={{ backgroundColor: color.hex }}
+        title="Copy hex"
       >
-        {copied ? (
-          <Check className="w-4 h-4" />
-        ) : (
-          <Copy className="w-4 h-4" />
-        )}
+        <span
+          className={cn(
+            "absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
+            isLight ? "text-black" : "text-white"
+          )}
+        >
+          {copied ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Copy className="w-4 h-4" />
+          )}
+        </span>
+      </button>
+      <span className="font-mono text-[9.5px] leading-none text-[var(--text-muted)]">
+        {copied ? "copied" : color.hex.toUpperCase()}
       </span>
-    </button>
+    </div>
   );
 }
 
@@ -77,13 +82,18 @@ export function ColorPalette({ colors }: ColorPaletteProps) {
         const contextColors = groupedColors[context];
         if (!contextColors || contextColors.length === 0) return null;
 
+        // Scans often report the same hex several times per context.
+        const unique = [
+          ...new Map(contextColors.map((c) => [c.hex.toLowerCase(), c])).values(),
+        ].slice(0, 6);
+
         return (
           <div key={context}>
-            <p className="text-xs text-[var(--text-secondary)] mb-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)] mb-2">
               {contextLabels[context]}
             </p>
-            <div className="flex flex-wrap gap-2">
-              {contextColors.slice(0, 6).map((color, index) => (
+            <div className="flex flex-wrap gap-2.5">
+              {unique.map((color, index) => (
                 <ColorSwatch key={`${color.hex}-${index}`} color={color} />
               ))}
             </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check, Link2 } from "lucide-react";
 import { BookmarkWithRelations } from "@/types";
 import { Card } from "@/components/ui/Card";
 import {
@@ -144,7 +144,16 @@ export function BookmarkCard({
                 }}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
-                Visit Site
+                Visit site
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(bookmark.url);
+                }}
+              >
+                <Link2 className="w-4 h-4 mr-2" />
+                Copy link
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {

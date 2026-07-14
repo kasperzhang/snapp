@@ -134,17 +134,17 @@ export function AddBookmarkDialog({
         {trigger || (
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Add Bookmark
+            Add bookmark
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Bookmark</DialogTitle>
+          <DialogTitle>Add bookmark</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* URL Input */}
+          {/* URL Input — Enter fetches page info instead of submitting */}
           <div className="relative">
             <Input
               label="URL"
@@ -152,20 +152,42 @@ export function AddBookmarkDialog({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onBlur={handleUrlBlur}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (e.target as HTMLInputElement).blur();
+                }
+              }}
               disabled={loading}
             />
             {fetchingMetadata && (
               <Loader2 className="absolute right-3 top-9 w-4 h-4 animate-spin text-[var(--text-secondary)]" />
+            )}
+            {!fetchingMetadata && metadata?.domain && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                {metadata.favicon_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={metadata.favicon_url}
+                    alt=""
+                    className="w-3.5 h-3.5 rounded-[4px]"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                )}
+                Found {metadata.domain}
+              </p>
             )}
           </div>
 
           {/* Title Input */}
           <Input
             label="Title"
-            placeholder="Page title"
+            placeholder={fetchingMetadata ? "Fetching page info…" : "Page title"}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            disabled={loading || fetchingMetadata}
+            disabled={loading}
           />
 
           {/* Description Input */}
@@ -177,7 +199,7 @@ export function AddBookmarkDialog({
               placeholder="Add a description..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              disabled={loading || fetchingMetadata}
+              disabled={loading}
               rows={3}
               className="w-full px-3 py-2.5 rounded-[10px] bg-[var(--surface)] border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none"
             />
@@ -257,7 +279,7 @@ export function AddBookmarkDialog({
               disabled={!url || !title || loading || fetchingMetadata}
               loading={loading}
             >
-              Add Bookmark
+              Add bookmark
             </Button>
           </div>
         </form>

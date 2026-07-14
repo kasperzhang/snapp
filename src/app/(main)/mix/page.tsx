@@ -7,12 +7,15 @@ import { createClient } from "@/lib/supabase/client";
 import { useWorkbenches } from "@/hooks";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { WorkbenchCard } from "@/components/workbench";
 
 export default function WorkbenchLibraryPage() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string>();
   const { workbenches, loading, deleteWorkbench } = useWorkbenches();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleting = workbenches.find((w) => w.id === deletingId);
 
   useEffect(() => {
     const supabase = createClient();
@@ -63,12 +66,26 @@ export default function WorkbenchLibraryPage() {
               <WorkbenchCard
                 key={w.id}
                 workbench={w}
-                onDelete={deleteWorkbench}
+                onDelete={setDeletingId}
               />
             ))}
           </div>
         )}
         </main>
+
+        <ConfirmDialog
+          open={!!deletingId}
+          onOpenChange={(open) => !open && setDeletingId(null)}
+          title="Delete mix?"
+          description={
+            deleting
+              ? `"${deleting.name}" and its brief will be deleted. Your bookmarks stay in the library.`
+              : ""
+          }
+          onConfirm={async () => {
+            if (deletingId) await deleteWorkbench(deletingId);
+          }}
+        />
       </ContentPanel>
     </div>
   );

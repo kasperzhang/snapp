@@ -11,14 +11,16 @@ interface FontListProps {
 export function FontList({ fonts }: FontListProps) {
   const sourceLabels: Record<string, string> = {
     google: "Google Fonts",
-    system: "System Font",
-    custom: "Custom Font",
+    system: "System",
+    custom: "Custom",
   };
 
-  const sourceColors: Record<string, string> = {
-    google: "text-blue-500",
-    system: "text-green-500",
-    custom: "text-purple-500",
+  // Custom fonts are the interesting find — they get the brand tint; the rest
+  // stay neutral so the panel doesn't read as a traffic light.
+  const sourceStyles: Record<string, string> = {
+    google: "bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)]",
+    system: "bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)]",
+    custom: "bg-[var(--brand-tint)] border border-transparent text-[var(--accent)]",
   };
 
   return (
@@ -33,14 +35,18 @@ export function FontList({ fonts }: FontListProps) {
             <div className="flex items-center gap-2">
               <span
                 className="font-medium text-[var(--foreground)] truncate"
-                style={{ fontFamily: font.family }}
+                style={{
+                  // Try the real font if the visitor has it; otherwise fall
+                  // back to the UI sans instead of the browser's serif.
+                  fontFamily: `"${font.family}", var(--font-geist-sans), sans-serif`,
+                }}
               >
                 {font.family}
               </span>
               <span
                 className={cn(
-                  "text-xs px-1.5 py-0.5 rounded-full bg-[var(--surface)] border border-[var(--border)]",
-                  sourceColors[font.source]
+                  "text-xs px-1.5 py-0.5 rounded-full",
+                  sourceStyles[font.source]
                 )}
               >
                 {sourceLabels[font.source]}

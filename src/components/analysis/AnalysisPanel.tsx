@@ -37,7 +37,9 @@ function CollapsibleSection({
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-full py-3 text-left"
       >
-        <h3 className="text-sm font-medium text-[var(--foreground)]">{title}</h3>
+        <h3 className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+          {title}
+        </h3>
         {isOpen ? (
           <ChevronUp className="w-4 h-4 text-[var(--text-secondary)]" />
         ) : (
@@ -90,7 +92,7 @@ export function AnalysisPanel({
       </CollapsibleSection>
 
       {/* AI Design Prompt Section */}
-      <CollapsibleSection title="AI Design Prompt" defaultOpen={!!designPrompt}>
+      <CollapsibleSection title="Design prompt" defaultOpen={!!designPrompt}>
         {designPrompt ? (
           <div className="prose prose-sm max-w-none">
             <div className="p-3 bg-[var(--border)] rounded-lg text-sm text-[var(--foreground)] whitespace-pre-wrap max-h-64 overflow-y-auto">
