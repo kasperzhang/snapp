@@ -269,13 +269,16 @@ export default function HomePage() {
               </Button>
             </div>
 
-            {/* The designer's own prompt — everything the sources can't say */}
+            {/* The big picture — direction for the whole mix, not one site */}
+            <p className="mb-1.5 mt-3.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+              Mix notes
+            </p>
             <textarea
               value={ownNotes}
               onChange={(e) => setOwnNotes(e.target.value)}
-              placeholder="Your own notes — anything the sources can't say: a brand color, a mood, a constraint…"
+              placeholder="Overall direction — what you're building, who it's for, the mood, any brand rules. This shapes the whole brief."
               rows={2}
-              className="mt-3 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>
         ) : (
@@ -299,9 +302,11 @@ export default function HomePage() {
         {/* Compose hint */}
         {composeActive && (
           <div className="px-6 md:px-10 pt-3 text-[13px] text-[var(--text-muted)]">
-            Tap sites to add them · use{" "}
+            Tap sites to add them ·{" "}
             <b className="font-medium text-[var(--text-secondary)]">+ Borrow</b>{" "}
-            on a selected card to tag aspects or leave a note
+            tags aspects ·{" "}
+            <b className="font-medium text-[var(--text-secondary)]">+ Note</b>{" "}
+            says what tags can&apos;t
             {composeError && (
               <span className="ml-2 text-red-500">{composeError}</span>
             )}

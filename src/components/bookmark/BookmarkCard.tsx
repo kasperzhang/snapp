@@ -48,17 +48,18 @@ export function BookmarkCard({
 }: BookmarkCardProps) {
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(true);
-  const [borrowOpen, setBorrowOpen] = useState(false);
+  // Which compose popover is open: the aspect checklist or the note editor.
+  const [openPanel, setOpenPanel] = useState<"borrow" | "note" | null>(null);
   const borrowRef = useRef<HTMLDivElement>(null);
 
-  // Dismiss the borrow popover on outside click / Escape.
+  // Dismiss the open popover on outside click / Escape.
   useEffect(() => {
-    if (!borrowOpen) return;
+    if (!openPanel) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (!borrowRef.current?.contains(e.target as Node)) setBorrowOpen(false);
+      if (!borrowRef.current?.contains(e.target as Node)) setOpenPanel(null);
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setBorrowOpen(false);
+      if (e.key === "Escape") setOpenPanel(null);
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -66,7 +67,7 @@ export function BookmarkCard({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [borrowOpen]);
+  }, [openPanel]);
 
   return (
     <Card
@@ -284,28 +285,42 @@ export function BookmarkCard({
                   {ASPECT_META[a].label}
                 </button>
               ))}
-              {/* Note indicator (tooltip shows the note) */}
-              {comment.trim() && !borrowOpen && (
-                <button
-                  title={comment}
-                  onClick={() => setBorrowOpen(true)}
-                  className="inline-flex items-center rounded-full border border-[var(--brand)] bg-[var(--brand-tint)] px-2 py-1 text-[11px] font-medium text-[var(--accent)] shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                >
-                  ✎
-                </button>
-              )}
               <button
-                onClick={() => setBorrowOpen((v) => !v)}
+                onClick={() =>
+                  setOpenPanel((v) => (v === "borrow" ? null : "borrow"))
+                }
                 className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-white/90 px-2.5 py-1 text-[11px] font-medium text-[var(--foreground)] shadow-sm backdrop-blur-sm transition-colors hover:border-[var(--accent)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
                 <Plus className="w-3 h-3" />
                 Borrow
               </button>
+              {onCommentChange && (
+                <button
+                  onClick={() =>
+                    setOpenPanel((v) => (v === "note" ? null : "note"))
+                  }
+                  title={comment.trim() || undefined}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+                    comment.trim()
+                      ? "border border-[var(--brand)] bg-[var(--brand-tint)] text-[var(--accent)]"
+                      : "border border-[var(--border)] bg-white/90 text-[var(--foreground)] hover:border-[var(--accent)]"
+                  )}
+                >
+                  {comment.trim() ? (
+                    "✎ Note"
+                  ) : (
+                    <>
+                      <Plus className="w-3 h-3" />
+                      Note
+                    </>
+                  )}
+                </button>
+              )}
 
-              {/* Borrow popover — a form (checklist + note), so it's a
-                  hand-rolled popover rather than a Radix menu: menus dismiss
-                  on any non-item interaction, which kills the textarea. */}
-              {borrowOpen && (
+              {/* Hand-rolled popovers (not Radix menus: menus dismiss on any
+                  non-item interaction, which kills form fields). */}
+              {openPanel === "borrow" && (
                 <div className="absolute right-0 top-full z-30 mt-2 w-60 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
                   <div className="max-h-56 overflow-y-auto p-1.5">
                     {DESIGN_ASPECTS.map((a) => {
@@ -342,23 +357,35 @@ export function BookmarkCard({
                       );
                     })}
                   </div>
-                  {onCommentChange && (
-                    <div className="border-t border-[var(--border)] px-2.5 pb-2 pt-2">
-                      <p className="mb-1.5 text-[11px] font-medium text-[var(--text-muted)]">
-                        Note for this site
-                      </p>
-                      <textarea
-                        value={comment}
-                        onChange={(e) => onCommentChange(e.target.value)}
-                        placeholder="e.g. love the slow fade-in on scroll"
-                        rows={2}
-                        className="w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                      />
-                    </div>
-                  )}
                   <div className="flex justify-end border-t border-[var(--border)] px-2.5 py-1.5">
                     <button
-                      onClick={() => setBorrowOpen(false)}
+                      onClick={() => setOpenPanel(null)}
+                      className="rounded-full px-3 py-1 text-[12px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--brand-tint)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {openPanel === "note" && onCommentChange && (
+                <div className="absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+                  <div className="px-2.5 pb-1 pt-2">
+                    <p className="mb-1.5 text-[11px] font-medium text-[var(--text-muted)]">
+                      Note for this site
+                    </p>
+                    <textarea
+                      autoFocus
+                      value={comment}
+                      onChange={(e) => onCommentChange(e.target.value)}
+                      placeholder="e.g. love the slow fade-in on scroll"
+                      rows={3}
+                      className="w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--background)] px-2.5 py-1.5 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    />
+                  </div>
+                  <div className="flex justify-end border-t border-[var(--border)] px-2.5 py-1.5">
+                    <button
+                      onClick={() => setOpenPanel(null)}
                       className="rounded-full px-3 py-1 text-[12px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--brand-tint)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
                     >
                       Done

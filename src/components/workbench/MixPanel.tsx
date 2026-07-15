@@ -201,7 +201,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
                   if (v !== (workbench.own_additions ?? ""))
                     patchWorkbench({ own_additions: v });
                 }}
-                placeholder="Anything you want to add from yourself — a mood, a constraint, a brand color…"
+                placeholder="Overall direction — what you're building, who it's for, the mood, any brand rules."
                 rows={3}
                 className="mt-2 w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               />
