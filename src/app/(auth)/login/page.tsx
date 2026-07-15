@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bookmark } from "lucide-react";
@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,6 +17,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+
+  // Surface a failed OAuth round-trip (/callback redirects here with ?error).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "auth") {
+      setError("Sign-in didn't complete. Please try again.");
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +63,14 @@ export default function LoginPage() {
           <p className="text-sm text-[var(--text-secondary)]">
             Sign in to your Snapp account
           </p>
+        </div>
+
+        <GoogleSignInButton onError={setError} />
+
+        <div className="my-5 flex items-center gap-3">
+          <span className="h-px flex-1 bg-[var(--border)]" />
+          <span className="text-xs text-[var(--text-muted)]">or</span>
+          <span className="h-px flex-1 bg-[var(--border)]" />
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

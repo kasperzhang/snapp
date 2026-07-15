@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -97,6 +98,14 @@ export default function SignupPage() {
           <p className="text-sm text-[var(--text-secondary)]">
             Start organizing your bookmarks
           </p>
+        </div>
+
+        <GoogleSignInButton onError={setError} />
+
+        <div className="my-5 flex items-center gap-3">
+          <span className="h-px flex-1 bg-[var(--border)]" />
+          <span className="text-xs text-[var(--text-muted)]">or</span>
+          <span className="h-px flex-1 bg-[var(--border)]" />
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
