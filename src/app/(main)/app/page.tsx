@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils/cn";
 
 export default function HomePage() {
   const router = useRouter();
@@ -41,6 +42,9 @@ export default function HomePage() {
   const nameTouched = useRef(false);
   const [creatingMix, setCreatingMix] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
+  // Plays the exit animation before compose unmounts.
+  const [composeClosing, setComposeClosing] = useState(false);
+  const closeTimer = useRef<number | null>(null);
   // The generate-in-place rail — set right after a mix is created.
   const [panelMixId, setPanelMixId] = useState<string | null>(null);
 
@@ -107,6 +111,8 @@ export default function HomePage() {
 
   // ── Compose ──
   const startCompose = () => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current);
+    setComposeClosing(false);
     setSelectedIds(new Set());
     setAspectsById({});
     setCommentsById({});
@@ -116,7 +122,8 @@ export default function HomePage() {
     setComposeError(null);
     setComposeActive(true);
   };
-  const cancelCompose = () => {
+  const teardownCompose = () => {
+    setComposeClosing(false);
     setComposeActive(false);
     setSelectedIds(new Set());
     setAspectsById({});
@@ -125,6 +132,12 @@ export default function HomePage() {
     setMixName("");
     nameTouched.current = false;
     setComposeError(null);
+  };
+  // Fade the compose block out, then unmount it.
+  const cancelCompose = () => {
+    if (composeClosing) return;
+    setComposeClosing(true);
+    closeTimer.current = window.setTimeout(teardownCompose, 220);
   };
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
@@ -232,7 +245,12 @@ export default function HomePage() {
           <div className="px-6 md:px-10 pt-7">
             {/* Compose bar — mirrors the landing mockup: MIX badge, editable
                 name, live counts, ink Generate */}
-            <div className="rise-in flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-[#DECDB4] bg-gradient-to-r from-[#F8F2E7] to-[#FDFBF6] py-2.5 pl-4 pr-2.5">
+            <div
+              className={cn(
+                composeClosing ? "rise-out" : "rise-in",
+                "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-[#DECDB4] bg-gradient-to-r from-[#F8F2E7] to-[#FDFBF6] py-2.5 pl-4 pr-2.5"
+              )}
+            >
               <span className="rounded-md border border-[var(--brand)] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--brand)]">
                 Mix
               </span>
@@ -270,7 +288,7 @@ export default function HomePage() {
             </div>
 
             {/* The big picture — direction for the whole mix, not one site */}
-            <div className="rise-in rise-in-1">
+            <div className={composeClosing ? "rise-out" : "rise-in rise-in-1"}>
               <p className="mb-1.5 mt-3.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
                 Mix notes
               </p>
@@ -309,7 +327,12 @@ export default function HomePage() {
 
         {/* Compose hint */}
         {composeActive && (
-          <div className="rise-in rise-in-2 px-6 md:px-10 pt-3 text-[13px] text-[var(--text-muted)]">
+          <div
+            className={cn(
+              composeClosing ? "rise-out" : "rise-in rise-in-2",
+              "px-6 md:px-10 pt-3 text-[13px] text-[var(--text-muted)]"
+            )}
+          >
             Tap sites to add them ·{" "}
             <b className="font-medium text-[var(--text-secondary)]">+ Borrow</b>{" "}
             tags aspects ·{" "}
