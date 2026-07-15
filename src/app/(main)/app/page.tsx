@@ -232,7 +232,7 @@ export default function HomePage() {
           <div className="px-6 md:px-10 pt-7">
             {/* Compose bar — mirrors the landing mockup: MIX badge, editable
                 name, live counts, ink Generate */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-[#DECDB4] bg-gradient-to-r from-[#F8F2E7] to-[#FDFBF6] py-2.5 pl-4 pr-2.5">
+            <div className="rise-in flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-[#DECDB4] bg-gradient-to-r from-[#F8F2E7] to-[#FDFBF6] py-2.5 pl-4 pr-2.5">
               <span className="rounded-md border border-[var(--brand)] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-[var(--brand)]">
                 Mix
               </span>
@@ -270,16 +270,18 @@ export default function HomePage() {
             </div>
 
             {/* The big picture — direction for the whole mix, not one site */}
-            <p className="mb-1.5 mt-3.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              Mix notes
-            </p>
-            <textarea
-              value={ownNotes}
-              onChange={(e) => setOwnNotes(e.target.value)}
-              placeholder="Overall direction — what you're building, who it's for, the mood, any brand rules. This shapes the whole brief."
-              rows={2}
-              className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-            />
+            <div className="rise-in rise-in-1">
+              <p className="mb-1.5 mt-3.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                Mix notes
+              </p>
+              <textarea
+                value={ownNotes}
+                onChange={(e) => setOwnNotes(e.target.value)}
+                placeholder="Overall direction — what you're building, who it's for, the mood, any brand rules. This shapes the whole brief."
+                rows={2}
+                className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              />
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-between px-6 md:px-10 pt-7">
@@ -307,7 +309,7 @@ export default function HomePage() {
 
         {/* Compose hint */}
         {composeActive && (
-          <div className="px-6 md:px-10 pt-3 text-[13px] text-[var(--text-muted)]">
+          <div className="rise-in rise-in-2 px-6 md:px-10 pt-3 text-[13px] text-[var(--text-muted)]">
             Tap sites to add them ·{" "}
             <b className="font-medium text-[var(--text-secondary)]">+ Borrow</b>{" "}
             tags aspects ·{" "}

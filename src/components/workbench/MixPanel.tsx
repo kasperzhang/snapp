@@ -112,7 +112,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
   };
 
   return (
-    <aside className="fixed inset-y-0 right-0 z-40 flex w-[min(400px,100vw)] flex-col border-l border-[var(--border)] bg-[var(--background)] shadow-2xl duration-300 animate-in slide-in-from-right-6 fade-in lg:static lg:z-auto lg:shadow-none">
+    <aside className="slide-in-right fixed inset-y-0 right-0 z-40 flex w-[min(400px,100vw)] flex-col border-l border-[var(--border)] bg-[var(--background)] shadow-2xl lg:static lg:z-auto lg:shadow-none">
       {/* Header */}
       <div className="border-b border-[var(--border)] px-5 pb-4 pt-5">
         <div className="flex items-center justify-between">

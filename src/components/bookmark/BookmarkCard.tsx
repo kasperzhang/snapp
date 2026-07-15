@@ -321,7 +321,7 @@ export function BookmarkCard({
               {/* Hand-rolled popovers (not Radix menus: menus dismiss on any
                   non-item interaction, which kills form fields). */}
               {openPanel === "borrow" && (
-                <div className="absolute right-0 top-full z-30 mt-2 w-60 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+                <div className="pop-in absolute right-0 top-full z-30 mt-2 w-60 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
                   <div className="max-h-56 overflow-y-auto p-1.5">
                     {DESIGN_ASPECTS.map((a) => {
                       const on = aspects.includes(a.id);
@@ -369,7 +369,7 @@ export function BookmarkCard({
               )}
 
               {openPanel === "note" && onCommentChange && (
-                <div className="absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+                <div className="pop-in absolute right-0 top-full z-30 mt-2 w-64 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
                   <div className="px-2.5 pb-1 pt-2">
                     <p className="mb-1.5 text-[11px] font-medium text-[var(--text-muted)]">
                       Note for this site
