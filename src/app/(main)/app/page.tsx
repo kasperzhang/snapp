@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Sparkles } from "lucide-react";
+import { Layers, Plus, Sparkles } from "lucide-react";
 import { useBookmarks, useTags, announceMixesChanged } from "@/hooks";
 import { BookmarkGrid, AddBookmarkDialog, EditBookmarkDialog } from "@/components/bookmark";
 import { SiteAnalysisDialog } from "@/components/analysis";
@@ -292,10 +292,16 @@ export default function HomePage() {
                 {bookmarks.length === 1 ? "bookmark" : "bookmarks"}
               </p>
             </div>
-            <Button size="sm" onClick={handleAddClick}>
-              <Plus className="w-4 h-4" />
-              Add
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" onClick={startCompose}>
+                <Layers className="w-4 h-4" />
+                New mix
+              </Button>
+              <Button size="sm" onClick={handleAddClick}>
+                <Plus className="w-4 h-4" />
+                Add
+              </Button>
+            </div>
           </div>
         )}
 
