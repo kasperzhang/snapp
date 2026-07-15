@@ -352,6 +352,26 @@ export default function HomePage() {
             onEdit={(bookmark) => setEditingBookmark(bookmark)}
             onDelete={handleDeleteBookmark}
             onAnalyze={(bookmark) => setAnalyzingBookmark(bookmark)}
+            emptyMessage={
+              debouncedSearch || selectedTagIds.length > 0
+                ? "Nothing matches"
+                : "Save your first site"
+            }
+            emptyHint={
+              debouncedSearch || selectedTagIds.length > 0
+                ? "Try a different search or clear the tag filter."
+                : "Paste any URL — snapp grabs the preview, favicon, fonts, and colors. Free and unlimited."
+            }
+            emptyAction={
+              !composeActive &&
+              !debouncedSearch &&
+              selectedTagIds.length === 0 ? (
+                <Button onClick={handleAddClick}>
+                  <Plus className="w-4 h-4" />
+                  Add your first bookmark
+                </Button>
+              ) : undefined
+            }
             selectable={composeActive}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}

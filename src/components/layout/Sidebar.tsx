@@ -14,6 +14,7 @@ import {
   PanelLeftOpen,
   Zap,
   CreditCard,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useWorkbenches } from "@/hooks";
@@ -433,6 +434,10 @@ export function Sidebar({
                   </div>
                 </div>
               )}
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
+                <SettingsIcon className="w-4 h-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
               {billing?.plan === "pro" ? (
                 <DropdownMenuItem onClick={() => goBilling("portal")}>
                   <CreditCard className="w-4 h-4 mr-2" />

@@ -12,6 +12,8 @@ interface BookmarkGridProps {
   onDelete?: (bookmarkId: string) => void;
   onAnalyze?: (bookmark: BookmarkWithRelations) => void;
   emptyMessage?: string;
+  emptyHint?: string;
+  emptyAction?: React.ReactNode;
   selectable?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (bookmarkId: string) => void;
@@ -49,6 +51,8 @@ export function BookmarkGrid({
   onDelete,
   onAnalyze,
   emptyMessage = "No bookmarks yet",
+  emptyHint,
+  emptyAction,
   selectable = false,
   selectedIds,
   onToggleSelect,
@@ -70,10 +74,18 @@ export function BookmarkGrid({
   if (bookmarks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <Bookmark className="w-8 h-8 text-[var(--text-secondary)] mb-4" />
-        <p className="text-[var(--text-secondary)]">
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-tint)]">
+          <Bookmark className="h-6 w-6 text-[var(--brand)]" />
+        </div>
+        <p className="font-[family-name:var(--font-display)] text-lg font-semibold text-[var(--foreground)]">
           {emptyMessage}
         </p>
+        {emptyHint && (
+          <p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-secondary)]">
+            {emptyHint}
+          </p>
+        )}
+        {emptyAction && <div className="mt-6">{emptyAction}</div>}
       </div>
     );
   }
