@@ -34,9 +34,19 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://usesnapp.app"
+  ),
   title: "snapp — bookmarks that brief your coding agent",
   description:
     "Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design brief your coding agent can actually follow.",
+  openGraph: {
+    title: "snapp — bookmarks that brief your coding agent",
+    description:
+      "Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design brief your coding agent can actually follow.",
+    url: "/",
+    siteName: "snapp",
+  },
 };
 
 export default function RootLayout({
