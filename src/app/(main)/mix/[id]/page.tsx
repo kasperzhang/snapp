@@ -79,7 +79,7 @@ export default function WorkbenchEditorPage() {
           className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] hover:text-[var(--foreground)] mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          All workbenches
+          All mixes
         </Link>
 
         {loading ? (

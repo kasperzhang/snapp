@@ -345,7 +345,7 @@ export default function HomePage() {
         )}
 
         {/* Grid */}
-        <main className="flex-1 px-6 md:px-10 py-7">
+        <main className="flex flex-1 flex-col px-6 md:px-10 py-7">
           <BookmarkGrid
             bookmarks={bookmarks}
             loading={bookmarksLoading}

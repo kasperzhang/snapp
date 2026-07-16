@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, LogOut, Zap } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, CreditCard, LogOut, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
@@ -89,6 +90,13 @@ export default function SettingsPage() {
       <Sidebar userEmail={userEmail} />
       <ContentPanel>
         <main className="mx-auto w-full max-w-[640px] px-6 py-8 md:py-10">
+          <Link
+            href="/app"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--foreground)]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to bookmarks
+          </Link>
           <h1 className="text-2xl font-semibold text-[var(--foreground)]">
             Settings
           </h1>

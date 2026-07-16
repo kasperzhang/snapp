@@ -73,7 +73,8 @@ export function BookmarkGrid({
 
   if (bookmarks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
+      // flex-1 centers this vertically when the parent is a flex column
+      <div className="flex flex-1 flex-col items-center justify-center py-16 text-center">
         <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-tint)]">
           <Bookmark className="h-6 w-6 text-[var(--brand)]" />
         </div>

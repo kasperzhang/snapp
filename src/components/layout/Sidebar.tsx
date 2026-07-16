@@ -68,6 +68,9 @@ export function Sidebar({
     usage: Record<"guide" | "analysis" | "scan", { used: number; limit: number }>;
   };
   const [billing, setBilling] = useState<Billing | null>(null);
+  // Profile display name (falls back to the email prefix while loading /
+  // when unset).
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -75,9 +78,19 @@ export function Sidebar({
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => alive && d && setBilling(d))
       .catch(() => {});
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user || !alive) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      if (alive) setDisplayName(data?.full_name?.trim() || null);
+    });
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSignOut = async () => {
@@ -394,7 +407,7 @@ export function Sidebar({
                 )}
               >
                 <div className="w-[26px] h-[26px] rounded-full bg-[var(--foreground)] text-[var(--background)] flex items-center justify-center text-[11px] font-semibold shrink-0">
-                  {(userEmail?.[0] || "K").toUpperCase()}
+                  {(displayName?.[0] || userEmail?.[0] || "K").toUpperCase()}
                 </div>
                 <span
                   className={cn(
@@ -404,7 +417,8 @@ export function Sidebar({
                       : "flex-1 max-w-[140px] opacity-100 delay-[120ms]"
                   )}
                 >
-                  {userEmail ? userEmail.split("@")[0] : "Account"}
+                  {displayName ||
+                    (userEmail ? userEmail.split("@")[0] : "Account")}
                 </span>
               </button>
             </DropdownMenuTrigger>
