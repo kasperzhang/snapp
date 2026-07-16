@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Privacy Policy — snapp",
 };
 
-const CONTACT_EMAIL = "realmrzhang@gmail.com";
+const CONTACT_EMAIL = "kasperzhang.ai@gmail.com";
 
 export default function PrivacyPage() {
   return (
@@ -91,10 +91,11 @@ export default function PrivacyPage() {
 
       <h2>5. Your rights</h2>
       <p>
-        Depending on where you live (e.g. GDPR or CCPA), you may have rights
-        to access, correct, export, or delete your personal data, and to
-        object to certain processing. Email us and we&apos;ll honor those
-        requests.
+        snapp is operated from Canada and handles personal data in line with
+        PIPEDA. Depending on where you live (e.g. PIPEDA, GDPR, or CCPA),
+        you may have rights to access, correct, export, or delete your
+        personal data, and to object to certain processing. Email us and
+        we&apos;ll honor those requests.
       </p>
 
       <h2>6. Security</h2>

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Terms of Service — snapp",
 };
 
-const CONTACT_EMAIL = "realmrzhang@gmail.com";
+const CONTACT_EMAIL = "kasperzhang.ai@gmail.com";
 
 export default function TermsPage() {
   return (
@@ -126,7 +126,16 @@ export default function TermsPage() {
         you accept the new terms.
       </p>
 
-      <h2>10. Contact</h2>
+      <h2>10. Governing law</h2>
+      <p>
+        These terms are governed by the laws of the Province of Ontario and
+        the federal laws of Canada applicable in it. Any dispute will be
+        resolved in the courts of Ontario, sitting in Toronto. If you use
+        snapp as a consumer, this doesn&apos;t take away protections you have
+        under the mandatory consumer laws of the place you live.
+      </p>
+
+      <h2>11. Contact</h2>
       <p>
         Questions about these terms:{" "}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>

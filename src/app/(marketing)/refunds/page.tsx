@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Refund & Cancellation Policy — snapp",
 };
 
-const CONTACT_EMAIL = "realmrzhang@gmail.com";
+const CONTACT_EMAIL = "kasperzhang.ai@gmail.com";
 
 export default function RefundsPage() {
   return (
