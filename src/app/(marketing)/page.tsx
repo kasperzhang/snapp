@@ -310,7 +310,20 @@ export default async function LandingPage() {
             mocha <i className="lp-swatch-i" style={{ background: "#8D6F4C" }} /> #8D6F4C · set in
             Bricolage Grotesque &amp; Geist. Briefed by snapp.
           </p>
-          <p className="lp-footer-copy">© {new Date().getFullYear()} snapp</p>
+          <p className="lp-footer-copy">
+            © {new Date().getFullYear()} snapp ·{" "}
+            <Link href="/terms" className="lp-footer-link">
+              Terms
+            </Link>{" "}
+            ·{" "}
+            <Link href="/privacy" className="lp-footer-link">
+              Privacy
+            </Link>{" "}
+            ·{" "}
+            <Link href="/refunds" className="lp-footer-link">
+              Refunds
+            </Link>
+          </p>
         </div>
       </footer>
     </div>
@@ -1287,6 +1300,7 @@ const lpCss = `
   border: 1px solid var(--line); vertical-align: -1px; margin: 0 1px;
 }
 .lp-footer-copy { font-size: 12px; color: var(--ink-mute); }
+.lp-footer-link:hover { color: var(--ink); }
 
 /* ── motion ── */
 .lp-rise { opacity: 0; transform: translateY(16px); animation: lpRise 0.75s cubic-bezier(0.22,1,0.36,1) forwards; }

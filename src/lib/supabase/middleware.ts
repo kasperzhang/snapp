@@ -41,7 +41,11 @@ export async function updateSession(request: NextRequest) {
   const isCallback = path.startsWith("/callback");
   const isApiRoute = path.startsWith("/api");
   // Public marketing surface — viewable signed-out or signed-in.
-  const isMarketing = path === "/";
+  const isMarketing =
+    path === "/" ||
+    path.startsWith("/terms") ||
+    path.startsWith("/privacy") ||
+    path.startsWith("/refunds");
 
   if (!user && !isAuthPage && !isCallback && !isApiRoute && !isMarketing) {
     // Send signed-out users hitting the app to login.
