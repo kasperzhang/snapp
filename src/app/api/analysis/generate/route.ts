@@ -18,16 +18,11 @@ const MODEL = "claude-sonnet-5";
 // clamps to 60s, so on Hobby this route needs streaming or a shorter prompt.
 export const maxDuration = 300;
 
-function buildPrompt(fonts: ExtractedFont[], colors: ExtractedColor[], url: string): string {
-  const fontList = fonts
-    .map((f) => `- ${f.family} (weights: ${f.weights.join(", ")}) - ${f.source} font, used for ${f.usage}`)
-    .join("\n");
-
-  const colorList = colors
-    .map((c) => `- ${c.hex} (RGB: ${c.rgb.r}, ${c.rgb.g}, ${c.rgb.b}) - ${c.context} color, frequency: ${c.frequency}`)
-    .join("\n");
-
-  return `<role>
+// Static prompt prefix — byte-identical across requests so Anthropic's prompt
+// cache can serve it (~4K tokens; see cache_control at the call site). The
+// per-site context and screenshot are appended as separate content blocks
+// AFTER this, keeping the cacheable prefix stable.
+const STATIC_PROMPT = `<role>
 You are an expert frontend engineer, UI/UX designer, visual design specialist, and typography expert. Your expertise spans:
 - Design system architecture and token management
 - Typography systems (type scales, font pairing, vertical rhythm)
@@ -43,18 +38,6 @@ Your goal is to analyze a website's visual design and produce a comprehensive, o
 - Human developers implementing the design
 </role>
 
-<context>
-Source Website: ${url}
-
-The following design elements were automatically extracted from the website:
-
-**Extracted Fonts:**
-${fontList || "No fonts detected"}
-
-**Extracted Colors:**
-${colorList || "No colors detected"}
-</context>
-
 <task>
 Generate a COMPLETE design system specification based on the extracted data. This document will be used as a reference for AI tools and developers to replicate or adapt this website's visual style.
 
@@ -64,6 +47,7 @@ Generate a COMPLETE design system specification based on the extracted data. Thi
 3. Be COMPLETE - Fill every section with actionable specifications
 4. Be IMPLEMENTATION-READY - All code snippets must be copy-paste ready
 5. CAPTURE THE PERSONALITY - Don't produce generic output; express what makes THIS design unique
+6. OUTPUT ONLY THE DOCUMENT - Begin directly with the "# Design Style:" line and end after the final section. No preamble, no closing remarks, no questions
 </task>
 
 <output-format>
@@ -501,10 +485,21 @@ It should NOT feel like:
 | Shadow Style | [description] |
 | Animation Speed | [value] |
 
+---
+
+## Paste-Ready Agent Prompt
+
+A single fenced \`\`\`text code block (roughly 150-250 words) the reader can paste
+verbatim into an AI coding agent (Claude Code, Cursor, v0) to build in this style.
+Write it as direct commands: name the fonts with fallbacks, list the core hex
+tokens and their roles, state the radius/shadow/spacing rules and the motion feel,
+and repeat the three most load-bearing Bold Choices. It must be self-contained —
+usable without the rest of this document.
+
 </output-format>
 
 <instructions>
-Now analyze the extracted design data and generate the complete design system specification following the exact format above.
+The extracted design data — and, when available, a full-page screenshot — follows after these instructions. Analyze it and generate the complete design system specification following the exact format above.
 
 Remember:
 - Every [placeholder] must be replaced with a specific value
@@ -512,7 +507,33 @@ Remember:
 - Be bold and opinionated - this is YOUR expert interpretation of the design
 - The output will be used by both AI tools and human developers
 - Capture what makes THIS website's design unique, not generic best practices
+- When a screenshot is attached, treat it as the primary source of truth for layout, spacing, imagery, and overall feel; the extracted tokens are supporting evidence. Where they conflict, trust the screenshot.
 </instructions>`;
+
+function buildContext(
+  fonts: ExtractedFont[],
+  colors: ExtractedColor[],
+  url: string
+): string {
+  const fontList = fonts
+    .map((f) => `- ${f.family} (weights: ${f.weights.join(", ")}) - ${f.source} font, used for ${f.usage}`)
+    .join("\n");
+
+  const colorList = colors
+    .map((c) => `- ${c.hex} (RGB: ${c.rgb.r}, ${c.rgb.g}, ${c.rgb.b}) - ${c.context} color, frequency: ${c.frequency}`)
+    .join("\n");
+
+  return `<context>
+Source Website: ${url}
+
+The following design elements were automatically extracted from the website:
+
+**Extracted Fonts:**
+${fontList || "No fonts detected"}
+
+**Extracted Colors:**
+${colorList || "No colors detected"}
+</context>`;
 }
 
 export async function POST(request: NextRequest) {
@@ -578,30 +599,43 @@ export async function POST(request: NextRequest) {
     }
 
     const url = (analysis.bookmark as { url: string })?.url || "the website";
-    const prompt = buildPrompt(
-      analysis.fonts as ExtractedFont[],
-      analysis.colors as ExtractedColor[],
-      url
-    );
 
-    // Call Claude API. The large, mostly-static prompt prefix is marked for
-    // prompt caching so repeated analyses only pay full input price once.
+    // Static instructions first with the cache breakpoint (a byte-identical
+    // prefix is what makes the prompt cache hit), then per-site context, then
+    // the screenshot so the model reads the actual design, not just tokens.
+    const content: Anthropic.ContentBlockParam[] = [
+      {
+        type: "text",
+        text: STATIC_PROMPT,
+        cache_control: { type: "ephemeral" },
+      },
+      {
+        type: "text",
+        text: buildContext(
+          analysis.fonts as ExtractedFont[],
+          analysis.colors as ExtractedColor[],
+          url
+        ),
+      },
+    ];
+    if (analysis.screenshot_url) {
+      content.push({
+        type: "text",
+        text: "Full-page screenshot of the website:",
+      });
+      content.push({
+        type: "image",
+        source: { type: "url", url: analysis.screenshot_url },
+      });
+    }
+
+    // 8000 caps worst-case generation at ~2 min of output — the 300s Vercel
+    // timeout becomes unreachable (16000 could brush it).
     const message = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 16000,
+      max_tokens: 8000,
       thinking: { type: "disabled" }, // keep latency low (Sonnet 5 runs adaptive thinking by default)
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: prompt,
-              cache_control: { type: "ephemeral" },
-            },
-          ],
-        },
-      ],
+      messages: [{ role: "user", content }],
     });
 
     // Extract text from response

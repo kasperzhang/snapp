@@ -78,6 +78,14 @@ component snippets).
 
 ## Quick Reference
 A compact bullet cheat-sheet of the core decisions.
+
+## Paste-Ready Agent Prompt
+A single fenced \`\`\`text code block (roughly 150-250 words) the designer can paste
+verbatim into an AI coding agent (Claude Code, Cursor, v0) to build in this style.
+Write it as direct commands: name the fonts with fallbacks, list the core hex
+tokens and their roles, state the radius/shadow/spacing rules and the motion feel,
+and repeat the three most load-bearing decisions from above. It must be
+self-contained — usable without the rest of this document.
 </output-format>
 
 <instructions>
@@ -86,6 +94,7 @@ A compact bullet cheat-sheet of the core decisions.
 - When a font/color is explicitly picked, use it; otherwise infer sensible values from the
   screenshot and extracted tokens.
 - Keep it a single, opinionated, cohesive system.
+- Output ONLY the Markdown document: begin directly with the "# Combined Design Guide:" heading and end after the last section. No preamble, no closing remarks, no questions.
 </instructions>`;
 
 interface ItemForPrompt {
@@ -255,9 +264,12 @@ export async function POST(request: NextRequest) {
 
     let designGuide = "";
     try {
+      // 8000 caps worst-case generation at ~2 min of output — the 300s Vercel
+      // timeout becomes unreachable (16000 could brush it and strand the
+      // workbench in guide_status "generating").
       const message = await anthropic.messages.create({
         model: MODEL,
-        max_tokens: 16000,
+        max_tokens: 8000,
         thinking: { type: "disabled" },
         messages: [{ role: "user", content }],
       });
