@@ -322,7 +322,7 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* TABS (tag filter) — hidden when collapsed */}
+        {/* TAGS (tag filter) — hidden when collapsed */}
         <div
           className={cn(
             "flex flex-col transition-opacity duration-200",
@@ -335,7 +335,7 @@ export function Sidebar({
             <>
               <div className="flex items-center justify-between px-2 pb-2">
                 <span className="font-[family-name:var(--font-display)] text-[10px] tracking-[0.12em] text-[var(--text-muted)]">
-                  TABS
+                  TAGS
                 </span>
               </div>
               <div className="flex flex-col gap-0.5 pb-2">
