@@ -240,11 +240,14 @@ export default function HomePage() {
 
       <ContentPanel>
         <div className="flex flex-col min-h-full">
-        {/* Content header */}
-        {composeActive ? (
-          <div className="px-6 md:px-10 pt-7">
-            {/* Compose bar — mirrors the landing mockup: MIX badge, editable
-                name, live counts, ink Generate */}
+        {/* Compose bar — mirrors the landing mockup: MIX badge, editable
+            name, live counts, ink Generate. A direct child of the scrollable
+            flex column (not nested inside the small header block below) so
+            its containing block spans the whole scroll area — sticky only
+            stays pinned while its own parent is still in view, and the
+            header block alone is far shorter than the full bookmark list. */}
+        {composeActive && (
+          <div className="sticky top-0 z-20 bg-[var(--background)] px-6 md:px-10 pt-7 pb-2">
             <div
               className={cn(
                 composeClosing ? "rise-out" : "rise-in",
@@ -286,7 +289,12 @@ export default function HomePage() {
                 Generate brief
               </Button>
             </div>
+          </div>
+        )}
 
+        {/* Content header */}
+        {composeActive ? (
+          <div className="px-6 md:px-10">
             {/* The big picture — direction for the whole mix, not one site */}
             <div className={composeClosing ? "rise-out" : "rise-in rise-in-1"}>
               <p className="mb-1.5 mt-3.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
