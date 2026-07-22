@@ -59,7 +59,7 @@ export default function WorkbenchLibraryPage() {
             </p>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-secondary)]">
               Pick a few saved sites, tag what to borrow from each, and get
-              one design brief for your agent.
+              one design guide for your agent.
             </p>
             <Button className="mt-6" onClick={startCompose}>
               <Plus className="w-4 h-4" />
@@ -85,7 +85,7 @@ export default function WorkbenchLibraryPage() {
           title="Delete mix?"
           description={
             deleting
-              ? `"${deleting.name}" and its brief will be deleted. Your bookmarks stay in the library.`
+              ? `"${deleting.name}" and its guide will be deleted. Your bookmarks stay in the library.`
               : ""
           }
           onConfirm={async () => {

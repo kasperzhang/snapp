@@ -573,7 +573,7 @@ export async function POST(request: NextRequest) {
 
     if (!analysis.fonts || !analysis.colors) {
       return NextResponse.json(
-        { error: "Analysis must be completed before generating design prompt" },
+        { error: "Analysis must be completed before generating design guide" },
         { status: 400 }
       );
     }
@@ -667,7 +667,7 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error("Error updating analysis:", updateError);
       return NextResponse.json(
-        { error: "Failed to save design prompt" },
+        { error: "Failed to save design guide" },
         { status: 500 }
       );
     }
@@ -676,7 +676,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error generating design prompt:", error);
     return NextResponse.json(
-      { error: "Failed to generate design prompt" },
+      { error: "Failed to generate design guide" },
       { status: 500 }
     );
   }

@@ -65,7 +65,7 @@ export default function WorkbenchEditorPage() {
     try {
       await generate();
     } catch (e) {
-      setGenError(e instanceof Error ? e.message : "Failed to generate brief");
+      setGenError(e instanceof Error ? e.message : "Failed to generate guide");
     }
   };
 
@@ -99,7 +99,7 @@ export default function WorkbenchEditorPage() {
             />
             <p className="text-[var(--text-secondary)] mb-8">
               Mark what to borrow from each site, add your own notes, then
-              generate one design brief.
+              generate one design guide.
             </p>
 
             {/* Sources */}
@@ -148,7 +148,7 @@ export default function WorkbenchEditorPage() {
                 disabled={!canGenerate || generating}
               >
                 <Sparkles className="w-4 h-4" />
-                {workbench.design_guide ? "Regenerate brief" : "Generate brief"}
+                {workbench.design_guide ? "Regenerate guide" : "Generate guide"}
               </Button>
               {!allResolved && items.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 text-sm text-[var(--text-secondary)]">
@@ -168,7 +168,7 @@ export default function WorkbenchEditorPage() {
             {/* Guide */}
             {generating && !workbench.design_guide && (
               <p className="text-sm text-[var(--text-secondary)]">
-                Generating your design brief — this can take a minute…
+                Generating your design guide — this can take a minute…
               </p>
             )}
             {workbench.design_guide && (

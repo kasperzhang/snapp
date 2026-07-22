@@ -91,8 +91,8 @@ export function AnalysisPanel({
         <ColorPalette colors={colors || []} />
       </CollapsibleSection>
 
-      {/* AI Design Prompt Section */}
-      <CollapsibleSection title="Design prompt" defaultOpen={!!designPrompt}>
+      {/* AI Design Guide Section */}
+      <CollapsibleSection title="Design guide" defaultOpen={!!designPrompt}>
         {designPrompt ? (
           <div className="prose prose-sm max-w-none">
             <div className="p-3 bg-[var(--border)] rounded-lg text-sm text-[var(--foreground)] whitespace-pre-wrap max-h-64 overflow-y-auto">

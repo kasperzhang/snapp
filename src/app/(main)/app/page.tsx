@@ -182,7 +182,7 @@ export default function HomePage() {
   };
   const displayMixName = nameTouched.current ? mixName : suggestMixName();
 
-  // Create the mix and open the brief rail — no page jump.
+  // Create the mix and open the guide rail — no page jump.
   const generateMix = async () => {
     if (selectedIds.size === 0 || creatingMix) return;
     setCreatingMix(true);
@@ -286,7 +286,7 @@ export default function HomePage() {
                 className="bg-[var(--foreground)] hover:bg-black"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                Generate brief
+                Generate guide
               </Button>
             </div>
           </div>
@@ -303,7 +303,7 @@ export default function HomePage() {
               <textarea
                 value={ownNotes}
                 onChange={(e) => setOwnNotes(e.target.value)}
-                placeholder="Overall direction — what you're building, who it's for, the mood, any brand rules. This shapes the whole brief."
+                placeholder="Overall direction — what you're building, who it's for, the mood, any brand rules. This shapes the whole guide."
                 rows={2}
                 className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               />
@@ -392,7 +392,7 @@ export default function HomePage() {
         </div>
       </ContentPanel>
 
-      {/* The brief rail — generate and iterate without leaving the library */}
+      {/* The guide rail — generate and iterate without leaving the library */}
       {panelMixId && (
         <MixPanel
           workbenchId={panelMixId}

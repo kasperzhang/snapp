@@ -25,7 +25,7 @@ interface MixPanelProps {
 }
 
 /* The generate-in-place rail: opens next to the bookmark grid right after a
-   mix is composed, scans its sources, writes the brief, and hands it over —
+   mix is composed, scans its sources, writes the guide, and hands it over —
    no navigation. The full /mix/[id] page stays the deep view. */
 export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
   const {
@@ -65,7 +65,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
     }
   }, [workbench, scanItem]);
 
-  // The user already asked for a brief by pressing Generate — run it as soon
+  // The user already asked for a guide by pressing Generate — run it as soon
   // as the sources are ready, exactly once.
   useEffect(() => {
     if (
@@ -89,7 +89,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
       await generate();
     } catch (e) {
       const err = e as Error & { status?: number };
-      setGenError(err.message || "Failed to generate brief");
+      setGenError(err.message || "Failed to generate guide");
       if (err.status === 402) setOverLimit(true);
     }
   };
@@ -174,7 +174,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
         )}
 
         {/* Your notes — the designer's own prompt; edit here, then
-            regenerate to bake it into the brief. */}
+            regenerate to bake it into the guide. */}
         {workbench && (
           <div className="mt-3">
             <button
@@ -248,7 +248,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
                   onClick={runGenerate}
                   loading={generating}
                   disabled={!canGenerate || generating}
-                  title="Regenerate brief"
+                  title="Regenerate guide"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                 </Button>
@@ -266,7 +266,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
         ) : generating ? (
           <PanelStatus
             icon={<Sparkles className="h-5 w-5 text-[var(--accent)]" />}
-            line="Writing your brief…"
+            line="Writing your guide…"
             sub="Fusing what you tagged from each source. This can take a minute."
             skeleton
           />
@@ -304,7 +304,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
           <PanelStatus
             icon={<Sparkles className="h-5 w-5 text-[var(--accent)]" />}
             line="Ready to generate"
-            sub="Starting your brief…"
+            sub="Starting your guide…"
             skeleton
           />
         )}
