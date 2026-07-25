@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { LogoMark } from "@/components/ui/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,9 @@ export default async function LandingPage() {
       <header className="lp-nav">
         <nav className="lp-nav-inner">
           <Link href="/" className="lp-wordmark">
-            <span className="lp-logo-tile">s</span>
+            <span className="lp-logo-tile">
+              <LogoMark />
+            </span>
             <span>snapp</span>
           </Link>
           <div className="lp-nav-links">
@@ -301,7 +304,9 @@ export default async function LandingPage() {
       <footer className="lp-footer">
         <div className="lp-footer-inner">
           <Link href="/" className="lp-wordmark lp-wordmark-sm">
-            <span className="lp-logo-tile">s</span>
+            <span className="lp-logo-tile">
+              <LogoMark />
+            </span>
             <span>snapp</span>
           </Link>
           <p className="lp-footer-spec">
@@ -855,8 +860,8 @@ const lpCss = `
   width: 27px; height: 27px; border-radius: 8px;
   background: var(--mocha); color: #FBFAF7;
   display: grid; place-items: center;
-  font-size: 16px; font-weight: 700;
 }
+.lp-logo-tile svg { width: 13px; height: 13px; }
 .lp-nav-links { display: flex; gap: 30px; font-size: 13.5px; color: var(--ink-soft); }
 .lp-nav-links a:hover { color: var(--ink); }
 .lp-nav-cta { display: flex; align-items: center; gap: 16px; }
@@ -1293,7 +1298,8 @@ const lpCss = `
   display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
 }
 .lp-wordmark-sm { font-size: 15px; }
-.lp-wordmark-sm .lp-logo-tile { width: 22px; height: 22px; font-size: 13px; border-radius: 6px; }
+.lp-wordmark-sm .lp-logo-tile { width: 22px; height: 22px; border-radius: 6px; }
+.lp-wordmark-sm .lp-logo-tile svg { width: 11px; height: 11px; }
 .lp-footer-spec { font-family: var(--mono); font-size: 10.5px; color: var(--ink-mute); line-height: 2; }
 .lp-swatch-i {
   display: inline-block; width: 9px; height: 9px; border-radius: 3px;

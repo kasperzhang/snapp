@@ -17,6 +17,7 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { LogoMark } from "@/components/ui";
 import { useWorkbenches } from "@/hooks";
 import { Tag, BookmarkWithRelations } from "@/types";
 import {
@@ -157,10 +158,10 @@ export function Sidebar({
           <button
             onClick={() => setCollapsed(false)}
             title="Open sidebar"
-            className="group/logo relative w-7 h-7 rounded-lg shrink-0"
+            className="group/logo relative w-[27px] h-[27px] rounded-lg shrink-0"
           >
-            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[var(--brand)] text-white font-[family-name:var(--font-display)] font-bold text-[15px] transition-opacity duration-150 group-hover/logo:opacity-0">
-              s
+            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[var(--brand)] text-white transition-opacity duration-150 group-hover/logo:opacity-0">
+              <LogoMark className="w-[13px] h-[13px]" />
             </span>
             <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-[var(--sidebar-hover)] text-[var(--foreground)] opacity-0 transition-opacity duration-150 group-hover/logo:opacity-100">
               <PanelLeftOpen className="w-[18px] h-[18px]" />
@@ -168,11 +169,14 @@ export function Sidebar({
           </button>
         ) : (
           <>
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-[var(--brand)] text-white flex items-center justify-center font-[family-name:var(--font-display)] font-bold text-[15px] shrink-0">
-                s
+            {/* Wordmark metrics mirror `.lp-wordmark` on the landing page —
+                Bricolage 700 at 19px, 9px gap, 27px tile — so the app and the
+                marketing site read as the same brand. */}
+            <div className="flex items-center gap-[9px] flex-1 min-w-0">
+              <div className="w-[27px] h-[27px] rounded-lg bg-[var(--brand)] text-white flex items-center justify-center shrink-0">
+                <LogoMark className="w-[13px] h-[13px]" />
               </div>
-              <span className="font-[family-name:var(--font-display)] font-semibold text-lg tracking-tight text-[var(--foreground)] whitespace-nowrap">
+              <span className="font-[family-name:var(--font-display)] font-bold text-[19px] tracking-[-0.02em] text-[var(--foreground)] whitespace-nowrap">
                 snapp
               </span>
             </div>

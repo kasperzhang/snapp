@@ -29,3 +29,4 @@ export {
 } from "./DropdownMenu";
 export { Skeleton } from "./Skeleton";
 export { ConfirmDialog } from "./ConfirmDialog";
+export { LogoMark } from "./Logo";

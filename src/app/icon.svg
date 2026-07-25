@@ -1,0 +1,7 @@
+<svg width="44" height="44" viewBox="-5 -5 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- Same mark as /public/logo.svg, but the viewBox is padded from 34 to 44 units
+     so the shape sits at ~76% of the tile. Edge-to-edge reads as oversized once
+     a browser drops it into its own rounded tab chip. -->
+<path d="M31.6442 3.07696C32.622 3.22502 33.3448 4.06548 33.3448 5.05441L33.3448 18.8127L11.3252 16.6727L11.3252 4.9504e-07L31.6442 3.07696Z" fill="black"/>
+<path d="M22.0196 16.6727L22.0196 33.347L1.70041 30.2685C0.72269 30.1204 6.90753e-07 29.28 7.33978e-07 28.2911L1.33541e-06 14.532L22.0196 16.6727Z" fill="black"/>
+</svg>
