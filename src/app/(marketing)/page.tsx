@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
    snapp landing — "the annotated screenshot"
 
    One idea carries the page: a large, believable screenshot of the app doing
-   its real job (library → borrow chips → brief), marked up like a designer's
+   its real job (library → borrow chips → guide), marked up like a designer's
    moodboard. Warm tones belong to the human/taste side; the single cool blue
-   belongs to the agent/code side. The footer prints this page's own brief.
+   belongs to the agent/code side. The footer prints this page's own guide.
    ──────────────────────────────────────────────────────────────────────────── */
 
 // The twelve borrowable aspects (mirrors DESIGN_ASPECTS in src/types).
@@ -32,7 +32,7 @@ const ASPECTS: { label: string; hue: string }[] = [
 const STEPS = [
   { n: "01", verb: "Save", line: "Bookmark the sites you love. Free, unlimited, gorgeous." },
   { n: "02", verb: "Borrow", line: "Tag what each one gets right — this type, that color, that scroll." },
-  { n: "03", verb: "Brief", line: "Paste one spec into your agent instead of forty prompts." },
+  { n: "03", verb: "Guide", line: "Paste one spec into your agent instead of forty prompts." },
 ];
 
 export default async function LandingPage() {
@@ -89,7 +89,7 @@ export default async function LandingPage() {
         <p className="lp-hero-sub lp-rise lp-d2">
           snapp is where you keep the sites you wish you&apos;d made. Save them free, in
           a library that looks as good as they do — then mix your favorites into one
-          design brief your coding agent can actually follow.
+          design guide your coding agent can actually follow.
         </p>
         <div className="lp-hero-ctas lp-rise lp-d3">
           <Link href={appHref} className="lp-btn lp-btn-primary">
@@ -110,13 +110,13 @@ export default async function LandingPage() {
           <span className="lp-note lp-note-borrow" aria-hidden>
             tag what to borrow ↓
           </span>
-          <span className="lp-note lp-note-brief" aria-hidden>
-            one brief, three sites →
+          <span className="lp-note lp-note-guide" aria-hidden>
+            one guide, three sites →
           </span>
           <AppMockup />
         </div>
         <p className="lp-agents">
-          <span>Paste the brief into</span>
+          <span>Paste the guide into</span>
           Cursor · Claude Code · v0 · Lovable · Bolt
         </p>
       </section>
@@ -194,12 +194,12 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── The brief (dark) ─────────────────────────────────── */}
+      {/* ── The guide (dark) ─────────────────────────────────── */}
       <section className="lp-dark">
         <div className="lp-section-inner lp-cols">
           <div className="lp-col-copy">
             <p className="lp-eyebrow lp-eyebrow-dark">The output</p>
-            <h2 className="lp-h2 lp-h2-dark">One brief instead of forty prompts.</h2>
+            <h2 className="lp-h2 lp-h2-dark">One guide instead of forty prompts.</h2>
             <p className="lp-body lp-body-dark">
               What comes out isn&apos;t a moodboard — it&apos;s a working document:
               hex values, font pairings, a spacing scale, component notes. Written
@@ -214,7 +214,7 @@ export default async function LandingPage() {
                 <span>cursor — new chat</span>
               </div>
               <pre>
-                <span className="lp-t-prompt">›</span> Use the attached design brief.
+                <span className="lp-t-prompt">›</span> Use the attached design guide.
                 {"\n"}
                 <span className="lp-t-dim">  palette</span>   porcelain #FBFAF7 · espresso #221C15 · mocha #8D6F4C
                 {"\n"}
@@ -229,7 +229,7 @@ export default async function LandingPage() {
             </div>
           </div>
           <div className="lp-col-visual">
-            <BriefDocument large />
+            <GuideDocument large />
           </div>
         </div>
       </section>
@@ -265,7 +265,7 @@ export default async function LandingPage() {
                 <li>Unlimited bookmarks</li>
                 <li>Previews, tags &amp; instant search</li>
                 <li>30 deep site scans a month</li>
-                <li>5 briefs to try the Mix</li>
+                <li>5 guides to try the Mix</li>
               </ul>
               <Link href={appHref} className="lp-btn lp-btn-ghost lp-btn-block">
                 {loggedIn ? "Open app" : "Start free"}
@@ -280,7 +280,7 @@ export default async function LandingPage() {
               <p className="lp-plan-blurb">The Mix, unlocked.</p>
               <ul>
                 <li>Everything in Free</li>
-                <li>200 design briefs a month</li>
+                <li>200 design guides a month</li>
                 <li>1,000 site analyses a month</li>
                 <li>Priority generation</li>
               </ul>
@@ -310,10 +310,10 @@ export default async function LandingPage() {
             <span>snapp</span>
           </Link>
           <p className="lp-footer-spec">
-            This page&apos;s brief — porcelain <i className="lp-swatch-i" style={{ background: "#FBFAF7" }} />{" "}
+            This page&apos;s guide — porcelain <i className="lp-swatch-i" style={{ background: "#FBFAF7" }} />{" "}
             #FBFAF7 · espresso <i className="lp-swatch-i" style={{ background: "#221C15" }} /> #221C15 ·
             mocha <i className="lp-swatch-i" style={{ background: "#8D6F4C" }} /> #8D6F4C · set in
-            Bricolage Grotesque &amp; Geist. Briefed by snapp.
+            Bricolage Grotesque &amp; Geist. Guided by snapp.
           </p>
           <p className="lp-footer-copy">
             © {new Date().getFullYear()} snapp ·{" "}
@@ -497,7 +497,7 @@ function AppMockup() {
   const data = sites();
   let chipIndex = 0;
   return (
-    <div className="mk-window" role="img" aria-label="The snapp app: a visual bookmark library with three sites selected and a generated design brief panel">
+    <div className="mk-window" role="img" aria-label="The snapp app: a visual bookmark library with three sites selected and the generated design guide in the mix panel">
       {/* browser chrome */}
       <div className="mk-chrome">
         <div className="mk-chrome-dots">
@@ -505,7 +505,7 @@ function AppMockup() {
           <i />
           <i />
         </div>
-        <div className="mk-chrome-url">app.snapp.design</div>
+        <div className="mk-chrome-url">usesnapp.app/app</div>
         <div className="mk-chrome-spacer" />
       </div>
 
@@ -513,7 +513,9 @@ function AppMockup() {
         {/* sidebar */}
         <aside className="mk-side">
           <div className="mk-side-brand">
-            <span className="mk-side-logo">s</span>
+            <span className="mk-side-logo">
+              <LogoMark />
+            </span>
             <b>snapp</b>
           </div>
           <div className="mk-side-search">⌘K &nbsp;Search library…</div>
@@ -558,27 +560,28 @@ function AppMockup() {
 
         {/* main */}
         <main className="mk-main">
-          <div className="mk-topbar">
-            <div>
-              <b>Bookmarks</b>
-              <span>24 sites</span>
-            </div>
-            <div className="mk-topbar-actions">
-              <span className="mk-view-toggle">
-                <i className="mk-view-on" />
-                <i />
-              </span>
-              <span className="mk-add">+ Add bookmark</span>
-            </div>
-          </div>
-
+          {/* Composing a mix takes over the header — no title row, no Add
+              button — exactly as it does in the app. */}
           <div className="mk-compose">
             <div className="mk-compose-left">
               <span className="mk-compose-badge">Mix</span>
               Portfolio refresh · <b>3 sources</b> · 4 aspects tagged
             </div>
-            <span className="mk-generate">Generate brief</span>
+            <span className="mk-cancel">Cancel</span>
+            <span className="mk-generate">Generate guide</span>
           </div>
+
+          {/* The designer's own direction — the one input that isn't borrowed
+              from a site, and the thing that shapes the whole guide. */}
+          <p className="mk-mixnotes-label">Mix notes</p>
+          <div className="mk-mixnotes">
+            A warm, editorial portfolio for a ceramics studio — calm, confident,
+            nothing shouty. Keep it readable on mobile.
+          </div>
+          <p className="mk-hint">
+            Tap sites to add them · <b>+ Borrow</b> tags aspects · <b>+ Note</b>{" "}
+            says what tags can&apos;t
+          </p>
 
           <div className="mk-grid">
             {data.map((s) => (
@@ -611,16 +614,27 @@ function AppMockup() {
           </div>
         </main>
 
-        {/* brief panel */}
+        {/* mix panel */}
         <aside className="mk-panel">
           <div className="mk-panel-head">
-            <p className="mk-side-label">Brief preview</p>
-            <b>Warm Editorial</b>
-            <span>from 3 sources · just now</span>
+            <p className="mk-side-label">Mix</p>
+            <b>Portfolio refresh</b>
+            <span className="mk-panel-srcs">
+              {["objekt.studio", "pulse.fm", "kiln.ceramics"].map((d) => (
+                <span key={d} className="mk-src">
+                  ✓ {d}
+                </span>
+              ))}
+            </span>
+            <span className="mk-notes">
+              Your notes <i /> ⌄
+            </span>
           </div>
-          <BriefDocument />
+          <GuideDocument />
           <div className="mk-panel-actions">
             <span className="mk-copy-btn">Copy for your agent</span>
+            <span className="mk-icon-btn">⟳</span>
+            <span className="mk-open-btn">Open ↗</span>
           </div>
         </aside>
       </div>
@@ -628,58 +642,88 @@ function AppMockup() {
   );
 }
 
-/* The brief artifact — used small inside the mockup panel, large in the dark
+/* The guide artifact — used small inside the mockup panel, large in the dark
    section. Same component so the story stays literal: this IS the output. */
-function BriefDocument({ large = false }: { large?: boolean }) {
+/* One token line of the Color section: the hex, with the colour beside it. */
+function Tok({ name, hex, note }: { name: string; hex: string; note?: string }) {
+  return (
+    <span className="bd-tok">
+      <span className="bd-tok-n">{name}</span>
+      <i style={{ background: hex }} />
+      {hex}
+      {note && <em>{note}</em>}
+    </span>
+  );
+}
+
+function GuideDocument({ large = false }: { large?: boolean }) {
   return (
     <div className={`bd${large ? " bd-large" : ""}`}>
-      <p className="bd-label">Design brief</p>
-      <h4>Warm Editorial</h4>
+      <p className="bd-label">Design guide</p>
+      <div className="bd-doc">
+        <p className="bd-h1">
+          <span># </span>Combined Design Guide: Warm Editorial
+        </p>
 
-      <p className="bd-sec">Palette</p>
-      <div className="bd-swatches">
-        {[
-          ["#FBFAF7", "porcelain"],
-          ["#221C15", "espresso"],
-          ["#8D6F4C", "mocha"],
-          ["#C25E6A", "rosewood"],
-          ["#D9962F", "ochre"],
-        ].map(([c, n]) => (
-          <div key={c} className="bd-swatch">
-            <i style={{ background: c }} />
-            {large && <span>{n}</span>}
-          </div>
-        ))}
-      </div>
+        <p className="bd-h2">
+          <span>## </span>Design Philosophy
+        </p>
+        <p className="bd-p">
+          Editorial calm on a warm paper ground. Objekt sets the voice with
+          confident display type; Pulse lends the single loud accent; Kiln keeps
+          every surface soft and hand-made.
+        </p>
 
-      <p className="bd-sec">Type</p>
-      <div className="bd-type">
-        <span className="bd-aa">Aa</span>
-        <div>
-          <b>Bricolage Grotesque — display</b>
-          <span>Geist — body · Geist Mono — data</span>
-        </div>
-      </div>
+        <p className="bd-h2">
+          <span>## </span>Typography
+        </p>
+        <p className="bd-p">
+          Display — Bricolage Grotesque, 600, −0.02em <em>(Objekt)</em>
+          <br />
+          Body — Geist, 400/500, 1.6 line-height
+          <br />
+          Data — Geist Mono, 12px, 0.14em tracking
+        </p>
 
-      <p className="bd-sec">Space &amp; shape</p>
-      <div className="bd-scale">
-        {[4, 8, 12, 20, 32].map((n) => (
-          <i key={n} style={{ width: `${n}px` }} />
-        ))}
-        <span>14px cards · pill buttons</span>
-      </div>
-
-      {large && (
-        <>
-          <p className="bd-sec">Voice</p>
-          <p className="bd-voice">
-            Confident, unhurried. Buttons say what they do. Nothing shouts.
+        <p className="bd-h2">
+          <span>## </span>Color &amp; Background
+        </p>
+        <p className="bd-p bd-toks">
+          <Tok name="--bg" hex="#FBFAF7" note="porcelain" />
+          <Tok name="--ink" hex="#221C15" note="espresso" />
+          <Tok name="--accent" hex="#8D6F4C" note="mocha (Pulse)" />
+          {large && <Tok name="--warn" hex="#C25E6A" note="rosewood" />}
+          {large && <Tok name="--line" hex="#E7E1D5" />}
+        </p>
+        {large && (
+          <p className="bd-p">
+            Flat paper ground — no gradients, no glass. <em>(Kiln)</em>
           </p>
-        </>
-      )}
+        )}
 
-      <div className="bd-code">
-        <span>--accent:</span> #8D6F4C; <span>--radius:</span> 14px;
+        {large && (
+          <>
+            <p className="bd-h2">
+              <span>## </span>Layout &amp; Spacing
+            </p>
+            <p className="bd-p">
+              1200px container · 4 / 8 / 12 / 20 / 32 scale · 14px card radius ·
+              pill buttons
+            </p>
+          </>
+        )}
+
+        {/* Sections run in the order the prompt's <output-format> asks for. */}
+        <p className="bd-h2 bd-fade-h">
+          <span>## </span>
+          {large ? "Components" : "Layout & Spacing"}
+        </p>
+      </div>
+      {/* The guide keeps going — the panel scrolls in the real app. */}
+      <div className="bd-more">
+        {large
+          ? "+ Motion & Effects · Imagery & Iconography · Your Additions · Implementation Notes · Quick Reference · Paste-Ready Agent Prompt"
+          : "+ 7 more sections"}
       </div>
     </div>
   );
@@ -907,7 +951,7 @@ const lpCss = `
   opacity: 0; animation: lpFade 0.5s ease-out 1.5s forwards;
 }
 .lp-note-borrow { top: -34px; left: 26%; transform: rotate(-3deg); }
-.lp-note-brief { top: -34px; right: 4%; transform: rotate(2deg); }
+.lp-note-guide { top: -34px; right: 4%; transform: rotate(2deg); }
 @media (max-width: 900px) { .lp-note { display: none; } }
 
 /* browser window */
@@ -948,6 +992,7 @@ const lpCss = `
 }
 .mk-side-brand { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-size: 15px; font-weight: 700; padding: 2px 6px 12px; }
 .mk-side-logo { width: 21px; height: 21px; border-radius: 6px; background: var(--mocha); color: #FBFAF7; display: grid; place-items: center; font-size: 12px; }
+.mk-side-logo svg { width: 10px; height: 10px; }
 .mk-side-search {
   border: 1px solid var(--line); background: var(--card); border-radius: 8px;
   padding: 6px 10px; font-size: 11.5px; color: var(--ink-mute); margin-bottom: 14px;
@@ -980,20 +1025,8 @@ const lpCss = `
 
 /* main */
 .mk-main { flex: 1; min-width: 0; padding: 16px 18px 20px; }
-.mk-topbar { display: flex; align-items: center; justify-content: space-between; white-space: nowrap; gap: 8px; }
-.mk-topbar b { font-family: var(--display); font-size: 17px; font-weight: 650; margin-right: 10px; }
-.mk-topbar span { font-size: 12px; color: var(--ink-mute); }
-.mk-topbar-actions { display: flex; align-items: center; gap: 10px; }
-.mk-view-toggle { display: flex; gap: 3px; border: 1px solid var(--line); border-radius: 7px; padding: 3px; }
-.mk-view-toggle i { width: 16px; height: 14px; border-radius: 4px; background: var(--line); opacity: 0.6; }
-.mk-view-on { background: var(--mocha-tint); border: 1px solid var(--mocha); opacity: 1; }
-.mk-add {
-  background: var(--mocha-deep); color: #FBFAF7;
-  font-size: 12px; font-weight: 550; border-radius: 999px; padding: 7px 14px;
-  white-space: nowrap;
-}
 .mk-compose {
-  margin-top: 13px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
   border: 1px solid #DECDB4; background: linear-gradient(90deg, #F8F2E7, #FDFBF6);
   border-radius: 11px; padding: 9px 12px; font-size: 12.5px; color: var(--ink-soft);
 }
@@ -1003,10 +1036,26 @@ const lpCss = `
   font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
   border: 1px solid var(--mocha); color: var(--mocha); border-radius: 5px; padding: 2px 6px;
 }
+.mk-cancel {
+  margin-left: auto; flex-shrink: 0;
+  font-size: 11.5px; font-weight: 500; color: var(--ink-soft); padding: 6px 4px;
+}
 .mk-generate {
   flex-shrink: 0; background: var(--ink); color: var(--paper);
   font-size: 11.5px; font-weight: 550; border-radius: 999px; padding: 6px 13px;
 }
+
+/* Mix notes — the designer's own direction, above the grid */
+.mk-mixnotes-label {
+  margin: 13px 0 5px; font-family: var(--mono); font-size: 8.5px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute);
+}
+.mk-mixnotes {
+  border: 1px solid var(--line); background: var(--card); border-radius: 10px;
+  padding: 9px 12px; font-size: 11.5px; line-height: 1.5; color: var(--ink-soft);
+}
+.mk-hint { margin-top: 10px; font-size: 11px; color: var(--ink-mute); }
+.mk-hint b { font-weight: 500; color: var(--ink-soft); }
 
 .mk-grid {
   margin-top: 14px;
@@ -1087,7 +1136,7 @@ const lpCss = `
 .mk-term-dim { opacity: 0.55; }
 .mk-term-cursor { display: inline-block; animation: lpBlink 1.1s steps(1) infinite; }
 
-/* brief panel */
+/* mix panel */
 .mk-panel {
   width: 252px; flex-shrink: 0;
   border-left: 1px solid var(--line);
@@ -1097,14 +1146,31 @@ const lpCss = `
 }
 .mk-panel-head b { font-family: var(--display); font-size: 15px; font-weight: 650; display: block; }
 .mk-panel-head > span { font-size: 10.5px; color: var(--ink-mute); }
-.mk-panel-actions { margin-top: auto; }
+/* Scanned sources, as the real Mix panel lists them */
+.mk-panel-srcs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.mk-src {
+  border: 1px solid var(--line); background: #FFF; border-radius: 999px;
+  padding: 2px 7px; font-size: 9.5px; color: var(--ink-soft); white-space: nowrap;
+}
+/* Designer's own direction for the whole mix — collapsed, with a dot when set */
+.mk-notes {
+  display: flex; align-items: center; gap: 4px; margin-top: 10px;
+  font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-mute);
+}
+.mk-notes i { width: 3px; height: 3px; border-radius: 999px; background: var(--mocha); }
+.mk-panel-actions { margin-top: auto; display: flex; align-items: center; gap: 5px; }
 .mk-copy-btn {
-  display: block; text-align: center;
+  flex: 1; text-align: center;
   background: var(--mocha-deep); color: #FBFAF7;
-  font-size: 12px; font-weight: 550; border-radius: 999px; padding: 9px;
+  font-size: 11px; font-weight: 550; border-radius: 999px; padding: 8px;
+}
+.mk-icon-btn, .mk-open-btn {
+  flex-shrink: 0; border: 1px solid var(--line); background: #FFF;
+  color: var(--ink); border-radius: 999px; font-size: 10.5px; padding: 7px 9px;
 }
 
-@media (max-width: 1080px) { .mk-panel { display: none; } .lp-note-brief { display: none; } }
+@media (max-width: 1080px) { .mk-panel { display: none; } .lp-note-guide { display: none; } }
 @media (max-width: 860px) {
   .mk-side { display: none; }
   .mk-grid { grid-template-columns: repeat(3, 1fr); }
@@ -1115,49 +1181,55 @@ const lpCss = `
   .mk-grid .mk-card:nth-child(n+5) { display: none; }
   .mk-compose-left { font-size: 11px; }
   .mk-thumb { height: 82px; }
-  .mk-topbar > div:first-child span { display: none; }
-  .mk-view-toggle { display: none; }
 }
 
-/* ── brief document ── */
+/* ── guide document ── */
 .bd {
   background: var(--card); border: 1px solid var(--line); border-radius: 13px;
   padding: 14px; font-size: 11px;
+  /* Explicit — the large variant sits inside .lp-dark and would otherwise
+     inherit its light-on-dark text colour onto a white card. */
+  color: var(--ink);
 }
 .bd-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-mute); }
-.bd h4 { font-family: var(--display); font-size: 16px; font-weight: 650; margin-top: 3px; letter-spacing: -0.01em; }
-.bd-sec { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute); margin: 12px 0 6px; }
-.bd-swatches { display: flex; gap: 5px; }
-.bd-swatch { flex: 1; }
-.bd-swatch i { display: block; height: 26px; border-radius: 6px; border: 1px solid var(--line); }
-.bd-swatch span { display: block; margin-top: 4px; font-family: var(--mono); font-size: 8.5px; color: var(--ink-mute); text-align: center; }
-.bd-type { display: flex; align-items: center; gap: 10px; }
-.bd-aa { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
-.bd-type b { display: block; font-size: 10.5px; }
-.bd-type span { display: block; font-size: 9.5px; color: var(--ink-mute); }
-.bd-scale { display: flex; align-items: center; gap: 4px; }
-.bd-scale i { height: 14px; border-radius: 3px; background: var(--mocha-tint); border: 1px solid #DECDB4; }
-.bd-scale span { margin-left: 6px; font-size: 9px; color: var(--ink-mute); }
-.bd-voice { font-size: 10.5px; line-height: 1.55; color: var(--ink-soft); font-style: italic; }
-.bd-code {
-  margin-top: 12px; font-family: var(--mono); font-size: 9.5px;
-  background: var(--agent-ink); color: #C7D5EA;
-  border-radius: 8px; padding: 8px 10px;
-}
-.bd-code span { color: #7E97BC; }
 
-.bd-large { padding: 30px 32px; font-size: 13px; border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5); transform: rotate(-1deg); }
-.bd-large h4 { font-size: 26px; }
+/* The artifact is Markdown — the app renders it as running text, so the
+   mockup does too. Headings keep their # markers; the muted marker colour is
+   the only liberty taken over the real <pre>. */
+.bd-doc { margin-top: 8px; }
+.bd-h1 {
+  font-family: var(--display); font-size: 13px; font-weight: 650;
+  letter-spacing: -0.01em; line-height: 1.35; margin-bottom: 9px;
+}
+.bd-h2 {
+  font-family: var(--display); font-size: 10.5px; font-weight: 650;
+  margin: 10px 0 3px;
+}
+.bd-h1 > span, .bd-h2 > span { color: var(--mocha); font-weight: 500; }
+.bd-p { font-size: 10px; line-height: 1.55; color: var(--ink-soft); }
+.bd-p em { font-style: normal; color: var(--ink-mute); }
+.bd-toks { display: flex; flex-direction: column; gap: 3px; }
+.bd-tok { font-family: var(--mono); font-size: 9px; display: flex; align-items: center; gap: 5px; }
+.bd-tok-n { color: var(--mocha); min-width: 52px; }
+.bd-tok i { width: 9px; height: 9px; border-radius: 3px; border: 1px solid var(--line); flex-shrink: 0; }
+.bd-tok em { font-style: normal; color: var(--ink-mute); }
+/* The document runs past the fold, as it does in the panel. */
+.bd-fade-h { opacity: 0.45; }
+.bd-more {
+  margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--line);
+  font-family: var(--mono); font-size: 8.5px; color: var(--ink-mute);
+}
+
+.bd-large { padding: 30px 32px; border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5); transform: rotate(-1deg); }
 .bd-large .bd-label { font-size: 10px; }
-.bd-large .bd-sec { font-size: 10px; margin: 18px 0 9px; }
-.bd-large .bd-swatch i { height: 40px; border-radius: 9px; }
-.bd-large .bd-aa { font-size: 40px; }
-.bd-large .bd-type b { font-size: 13px; }
-.bd-large .bd-type span { font-size: 11.5px; }
-.bd-large .bd-scale i { height: 20px; }
-.bd-large .bd-scale span { font-size: 11px; }
-.bd-large .bd-voice { font-size: 13px; }
-.bd-large .bd-code { font-size: 11.5px; padding: 12px 14px; margin-top: 18px; }
+.bd-large .bd-doc { margin-top: 12px; }
+.bd-large .bd-h1 { font-size: 22px; margin-bottom: 16px; }
+.bd-large .bd-h2 { font-size: 14px; margin: 17px 0 5px; }
+.bd-large .bd-p { font-size: 12.5px; line-height: 1.6; }
+.bd-large .bd-tok { font-size: 11.5px; gap: 8px; }
+.bd-large .bd-tok-n { min-width: 74px; }
+.bd-large .bd-tok i { width: 12px; height: 12px; border-radius: 4px; }
+.bd-large .bd-more { font-size: 10.5px; margin-top: 16px; padding-top: 12px; }
 
 /* ── sections ── */
 .lp-section { padding: 110px 28px; }
