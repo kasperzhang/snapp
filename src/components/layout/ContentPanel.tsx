@@ -16,7 +16,11 @@ export function ContentPanel({
     <div className="flex-1 min-w-0 min-h-0 p-2 md:p-3 md:pl-1">
       <div
         className={cn(
-          "h-full overflow-y-auto bg-[var(--background)] rounded-[22px] border border-[var(--border-light)] shadow-[var(--shadow-card)]",
+          // scrollbar-gutter reserves the 8px track even when the content is
+          // short. Without it a page of 18 cards scrolls and a page of 1
+          // doesn't, so the scrollbar appears and disappears between pages and
+          // the whole layout jumps 8px sideways.
+          "h-full overflow-y-auto [scrollbar-gutter:stable] bg-[var(--background)] rounded-[22px] border border-[var(--border-light)] shadow-[var(--shadow-card)]",
           className
         )}
       >

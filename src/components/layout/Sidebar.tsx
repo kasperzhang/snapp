@@ -195,15 +195,23 @@ export function Sidebar({
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-3">
         {/* Search */}
         {searchOpen && onSearchChange && !collapsed ? (
-          <input
-            autoFocus
-            value={search || ""}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onBlur={() => setSearchOpen(false)}
-            onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
-            placeholder="Search bookmarks…"
-            className="mb-5 w-full rounded-[10px] bg-white border border-[var(--border)] px-3 py-2 text-[13px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-          />
+          // Same shell as the button below, down to the height and the icon
+          // slot — anything different here shows up as the box resizing under
+          // the cursor at the moment it's clicked.
+          <div className="mb-5 flex items-center w-full h-10 bg-white border border-[var(--border)] rounded-[10px] overflow-hidden text-[13px] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors duration-200 focus-within:border-[var(--accent)]">
+            <span className={iconWrap}>
+              <Search className="w-[15px] h-[15px] text-[var(--text-muted)]" />
+            </span>
+            <input
+              autoFocus
+              value={search || ""}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onBlur={() => setSearchOpen(false)}
+              onKeyDown={(e) => e.key === "Escape" && setSearchOpen(false)}
+              placeholder="Search bookmarks…"
+              className="flex-1 min-w-0 h-full bg-transparent pr-3 text-[13px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none"
+            />
+          </div>
         ) : (
           <button
             onClick={() => {
@@ -225,9 +233,6 @@ export function Sidebar({
             >
               <span className="flex-1 text-left truncate">
                 {search ? search : "Search"}
-              </span>
-              <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)] border border-[var(--border)] rounded px-1.5 shrink-0">
-                ⌘K
               </span>
             </span>
           </button>
