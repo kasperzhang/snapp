@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ilikeContains } from "@/lib/db/filters";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,10 +29,13 @@ export async function GET(request: NextRequest) {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    // Apply search filter
+    // Apply search filter. The term is quoted and its wildcards escaped —
+    // a raw comma would otherwise split this into extra conditions.
     if (search) {
       query = query.or(
-        `title.ilike.%${search}%,description.ilike.%${search}%,url.ilike.%${search}%,domain.ilike.%${search}%`
+        ["title", "description", "url", "domain"]
+          .map((col) => ilikeContains(col, search))
+          .join(",")
       );
     }
 
