@@ -138,8 +138,29 @@ which is why the source cap plus the output cap together bound both cost and tim
 | **Anthropic Agent Skills** (`container.skills`) | Not applicable — Skills run in code-execution containers for file-producing workflows (.pptx, .xlsx). Snapp's generation is a single structured completion; the "skill" equivalent here is the versioned prompt template in code, which also keeps caching effective. |
 | **Assistant prefill** to force the H1 opening | 400s on claude-sonnet-5. Replaced by explicit output-only instructions. |
 | **Agent loop / tool use** | Overkill — there's no decision-making between steps; scan data is gathered before the call. |
-| **Streaming** | Would improve perceived latency (worth doing later for UX), but the current non-streaming call at 8K tokens is safely inside both SDK and Vercel timeouts. If `max_tokens` ever needs to grow past ~16K, streaming becomes mandatory. |
 | **Higher `maxDuration`** | 300s is the plan ceiling; the right fix was bounding output, not buying time. |
+
+### Adopted since: streaming
+
+The combined-guide route now streams (`anthropic.messages.stream`). It was
+listed here as "worth doing later" while generation was a single blocking
+call; a minute of frozen skeleton was the worst part of the flow, so the Mix
+panel now renders the guide as it is written.
+
+Two consequences worth remembering when editing the route:
+
+- **Usage metering must stay after `finalMessage()`.** Token counts aren't
+  final until the stream ends, so `recordUsage` runs after the delta loop —
+  not alongside the request.
+- **Failures after the first byte can't be an HTTP status.** Every pre-flight
+  check (auth, rate limit, plan cap) still answers with plain JSON *before*
+  the stream opens; anything that fails later rides an in-band `err` frame,
+  and the stream is closed rather than errored so the client can read the
+  message.
+
+`max_tokens: 8000` still stands, but the reason changed: it now bounds cost
+and output length rather than protecting against the Vercel timeout, which
+streaming largely defuses.
 
 ---
 
