@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
       .select(
         `
         *,
-        tags:bookmark_tags(tag:tags(*))
+        tags:bookmark_tags(tag:tags(*)),
+        analyses:site_analyses(screenshot_url,analysis_status,created_at)
       `
       )
       .eq("user_id", user.id)
@@ -45,10 +46,26 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform the data to flatten nested relations
-    const transformedBookmarks = bookmarks?.map((bookmark) => ({
-      ...bookmark,
-      tags: bookmark.tags?.map((t: { tag: unknown }) => t.tag).filter(Boolean) || [],
-    }));
+    interface RawAnalysis {
+      screenshot_url: string | null;
+      analysis_status: string;
+      created_at: string;
+    }
+    const transformedBookmarks = bookmarks?.map((bookmark) => {
+      // A bookmark can be scanned more than once — take the newest scan that
+      // actually produced a screenshot. It's the card's preferred preview.
+      const shot = ((bookmark.analyses as RawAnalysis[] | null) ?? [])
+        .filter((a) => a.screenshot_url)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+      const { analyses: _analyses, ...rest } = bookmark;
+      return {
+        ...rest,
+        tags:
+          bookmark.tags?.map((t: { tag: unknown }) => t.tag).filter(Boolean) ||
+          [],
+        screenshot_url: shot?.screenshot_url ?? null,
+      };
+    });
 
     // Filter by tags (client-side for simplicity)
     let filteredBookmarks = transformedBookmarks;

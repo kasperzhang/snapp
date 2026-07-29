@@ -4,6 +4,7 @@ import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { BookmarkCard } from "./BookmarkCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Bookmark } from "lucide-react";
+import { useEmbeddable } from "@/hooks";
 
 interface BookmarkGridProps {
   bookmarks: BookmarkWithRelations[];
@@ -61,6 +62,10 @@ export function BookmarkGrid({
   commentsById,
   onCommentChange,
 }: BookmarkGridProps) {
+  // Which of these sites permit framing. Answered asynchronously; until it
+  // arrives every card shows its screenshot.
+  const embeddable = useEmbeddable(bookmarks.map((b) => b.url));
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -97,6 +102,7 @@ export function BookmarkGrid({
         <BookmarkCard
           key={bookmark.id}
           bookmark={bookmark}
+          embeddable={embeddable[bookmark.url]}
           onEdit={() => onEdit?.(bookmark)}
           onDelete={() => onDelete?.(bookmark.id)}
           onAnalyze={() => onAnalyze?.(bookmark)}

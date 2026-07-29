@@ -15,6 +15,10 @@ import { cn } from "@/lib/utils/cn";
 
 interface BookmarkCardProps {
   bookmark: BookmarkWithRelations;
+  /** Does this site permit being framed? Undefined until the check returns —
+      the card shows its screenshot until then, so a site that refuses framing
+      never flashes an empty frame. */
+  embeddable?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   onAnalyze?: () => void;
@@ -35,6 +39,7 @@ const ASPECT_META = Object.fromEntries(
 
 export function BookmarkCard({
   bookmark,
+  embeddable,
   onEdit,
   onDelete,
   onAnalyze,
@@ -46,8 +51,9 @@ export function BookmarkCard({
   comment = "",
   onCommentChange,
 }: BookmarkCardProps) {
-  const [iframeError, setIframeError] = useState(false);
-  const [iframeLoading, setIframeLoading] = useState(true);
+  // Preview falls back down a chain: scan screenshot → the site's own
+  // og:image → a wordmark. `shotIndex` is how far down we've been forced.
+  const [shotIndex, setShotIndex] = useState(0);
   // Which compose popover is open: the aspect checklist or the note editor.
   const [openPanel, setOpenPanel] = useState<"borrow" | "note" | null>(null);
   const borrowRef = useRef<HTMLDivElement>(null);
@@ -69,6 +75,14 @@ export function BookmarkCard({
     };
   }, [openPanel]);
 
+  /* Best available preview. The scan screenshot is the real page; og:image is
+     whatever the site shows when its link is shared — usually a logo or
+     banner, so it's second choice. Neither is guaranteed to exist. */
+  const previewSrc =
+    [bookmark.screenshot_url, bookmark.og_image_url].filter(Boolean)[
+      shotIndex
+    ] ?? null;
+
   return (
     <Card
       hoverable
@@ -83,37 +97,23 @@ export function BookmarkCard({
     >
       {/* Preview Area */}
       <div className="relative aspect-[16/10] bg-[var(--border)] overflow-hidden rounded-t-[var(--radius-card)]">
-        {!iframeError ? (
-          <>
-            {iframeLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[var(--border)]">
-                <div className="w-8 h-8 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
-            <iframe
-              src={bookmark.url}
-              title={bookmark.title}
-              className={cn(
-                "bookmark-iframe",
-                iframeLoading && "opacity-0"
-              )}
-              sandbox="allow-scripts allow-same-origin"
-              loading="lazy"
-              onLoad={() => setIframeLoading(false)}
-              onError={() => {
-                setIframeError(true);
-                setIframeLoading(false);
-              }}
-            />
-          </>
-        ) : bookmark.og_image_url ? (
+        {embeddable ? (
+          <iframe
+            src={bookmark.url}
+            title={bookmark.title}
+            className="bookmark-iframe"
+            sandbox="allow-scripts allow-same-origin"
+            loading="lazy"
+          />
+        ) : previewSrc ? (
           <img
-            src={bookmark.og_image_url}
+            src={previewSrc}
             alt={bookmark.title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
+            className="w-full h-full object-cover object-top"
+            loading="lazy"
+            // A dead image URL drops us to the next source rather than
+            // leaving a broken-image box.
+            onError={() => setShotIndex((i) => i + 1)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">

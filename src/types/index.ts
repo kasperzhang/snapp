@@ -36,6 +36,9 @@ export interface BookmarkTag {
 
 export interface BookmarkWithRelations extends Bookmark {
   tags: Tag[];
+  /** Newest scan screenshot, if this bookmark has ever been scanned. The
+      grid prefers it over the site's own og:image. */
+  screenshot_url?: string | null;
 }
 
 export interface URLMetadata {
