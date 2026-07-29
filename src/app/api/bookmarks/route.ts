@@ -19,6 +19,18 @@ export async function GET(request: NextRequest) {
     const tagIds = searchParams.get("tags")?.split(",").filter(Boolean);
 
     const requestedPage = Math.max(1, Number(searchParams.get("page")) || 1);
+    const untaggedOnly = searchParams.get("untagged") === "1";
+
+    // Bookmarks carrying no tag at all. Expressed as an exclusion because
+    // there's no row to match on — the absence of a join row is the condition.
+    let excludeIds: string[] | null = null;
+    if (untaggedOnly) {
+      const { data: tagged } = await supabase
+        .from("bookmark_tags")
+        .select("bookmark_id");
+      const ids = [...new Set((tagged ?? []).map((t) => t.bookmark_id))];
+      excludeIds = ids.length > 0 ? ids : null;
+    }
 
     // Tag filter has to happen in the query, not after it — filtering a page
     // that was already sliced would drop rows that belong on it. Resolving to
@@ -57,6 +69,7 @@ export async function GET(request: NextRequest) {
         .order("created_at", { ascending: false });
 
       if (taggedIds) q = q.in("id", taggedIds);
+      if (excludeIds) q = q.not("id", "in", `(${excludeIds.join(",")})`);
       // The term is quoted and its wildcards escaped — a raw comma would
       // otherwise split this into extra conditions.
       if (search) {
@@ -82,7 +95,7 @@ export async function GET(request: NextRequest) {
     // it's the control that clears the filter. Only worth a second query when
     // a filter is actually narrowing things.
     let libraryTotal = total ?? 0;
-    if (search || taggedIds) {
+    if (search || taggedIds || untaggedOnly) {
       const { count: all } = await supabase
         .from("bookmarks")
         .select("id", { count: "exact", head: true })

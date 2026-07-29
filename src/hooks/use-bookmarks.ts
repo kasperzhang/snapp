@@ -6,6 +6,7 @@ import { BookmarkWithRelations, CreateBookmarkInput, URLMetadata } from "@/types
 interface UseBookmarksOptions {
   search?: string;
   tagIds?: string[];
+  untagged?: boolean;
   page?: number;
 }
 
@@ -24,6 +25,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
       const params = new URLSearchParams();
       if (options.search) params.set("search", options.search);
       if (options.tagIds?.length) params.set("tags", options.tagIds.join(","));
+      if (options.untagged) params.set("untagged", "1");
       if (options.page && options.page > 1) params.set("page", String(options.page));
 
       const response = await fetch(`/api/bookmarks?${params.toString()}`);
@@ -40,7 +42,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [options.search, options.tagIds, options.page]);
+  }, [options.search, options.tagIds, options.untagged, options.page]);
 
   useEffect(() => {
     fetchBookmarks();

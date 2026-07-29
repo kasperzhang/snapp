@@ -22,6 +22,7 @@ export default function HomePage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [untaggedOnly, setUntaggedOnly] = useState(false);
   const [userEmail, setUserEmail] = useState<string>();
   const [editingBookmark, setEditingBookmark] = useState<BookmarkWithRelations | null>(null);
   const [analyzingBookmark, setAnalyzingBookmark] = useState<BookmarkWithRelations | null>(null);
@@ -68,6 +69,7 @@ export default function HomePage() {
   } = useBookmarks({
     search: debouncedSearch,
     tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+    untagged: untaggedOnly,
     page,
   });
 
@@ -75,7 +77,7 @@ export default function HomePage() {
   // would point somewhere arbitrary — or past the end.
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, selectedTagIds]);
+  }, [debouncedSearch, selectedTagIds, untaggedOnly]);
 
   // A cold load has nothing to show, so it gets skeletons. A page flip or
   // filter change already has the previous results on screen — swapping those
@@ -92,7 +94,7 @@ export default function HomePage() {
     gridTopRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   };
 
-  const { tags, createTag, refresh: refreshTags } = useTags();
+  const { tags, untaggedCount, createTag, refresh: refreshTags } = useTags();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -137,11 +139,18 @@ export default function HomePage() {
   const handleAddClick = () => addDialogTriggerRef.current?.click();
 
   // ── Tag filter ──
-  const toggleTag = (id: string) =>
+  const toggleTag = (id: string) => {
+    // Picking a tag leaves the untagged view — they're mutually exclusive.
+    setUntaggedOnly(false);
     setSelectedTagIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  const clearTags = () => setSelectedTagIds([]);
+  };
+  // "All" clears every filter, untagged included.
+  const clearTags = () => {
+    setSelectedTagIds([]);
+    setUntaggedOnly(false);
+  };
 
   // ── Compose ──
   const startCompose = () => {
@@ -267,6 +276,14 @@ export default function HomePage() {
         tags={tags}
         bookmarks={bookmarks}
         totalBookmarks={libraryTotal}
+        untaggedCount={untaggedCount}
+        untaggedActive={untaggedOnly}
+        // The two are alternatives: "has this tag" and "has no tag" can't
+        // both hold, so each clears the other.
+        onToggleUntagged={() => {
+          setUntaggedOnly((v) => !v);
+          setSelectedTagIds([]);
+        }}
         selectedTagIds={selectedTagIds}
         onToggleTag={toggleTag}
         onClearTags={clearTags}

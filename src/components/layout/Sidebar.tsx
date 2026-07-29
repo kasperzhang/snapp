@@ -40,6 +40,10 @@ interface SidebarProps {
   selectedTagIds?: string[];
   onToggleTag?: (id: string) => void;
   onClearTags?: () => void;
+  /** Bookmarks with no tag at all — a filter, not a tag. */
+  untaggedCount?: number;
+  untaggedActive?: boolean;
+  onToggleUntagged?: () => void;
   // Start the compose flow on the current page (Bookmarks). If absent, we
   // navigate home into compose mode.
   onNewWorkbench?: () => void;
@@ -55,6 +59,9 @@ export function Sidebar({
   selectedTagIds = [],
   onToggleTag,
   onClearTags,
+  untaggedCount = 0,
+  untaggedActive = false,
+  onToggleUntagged,
   onNewWorkbench,
 }: SidebarProps) {
   const router = useRouter();
@@ -356,7 +363,7 @@ export function Sidebar({
                   onClick={() => onClearTags?.()}
                   className={cn(
                     "flex items-center gap-2.5 px-2.5 py-2 rounded-[9px] text-[13.5px] transition-colors",
-                    selectedTagIds.length === 0
+                    selectedTagIds.length === 0 && !untaggedActive
                       ? "bg-[var(--sidebar-hover)] text-[var(--foreground)] font-medium"
                       : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--foreground)]"
                   )}
@@ -401,6 +408,32 @@ export function Sidebar({
                     </button>
                   );
                 })}
+                {onToggleUntagged && untaggedCount > 0 && (
+                  <button
+                    onClick={onToggleUntagged}
+                    className={cn(
+                      "flex items-center gap-2.5 px-2.5 py-2 rounded-[9px] text-[13.5px] transition-colors",
+                      untaggedActive
+                        ? "bg-[var(--sidebar-hover)] text-[var(--foreground)] font-medium"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--foreground)]"
+                    )}
+                  >
+                    {/* Hollow dot — the other rows use a filled tag colour, and
+                        this row stands for having none. */}
+                    <span
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full mx-1 border",
+                        untaggedActive
+                          ? "border-[var(--foreground)]"
+                          : "border-[var(--text-muted)]"
+                      )}
+                    />
+                    <span className="flex-1 text-left truncate">Untagged</span>
+                    <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)]">
+                      {untaggedCount}
+                    </span>
+                  </button>
+                )}
               </div>
             </>
           )}

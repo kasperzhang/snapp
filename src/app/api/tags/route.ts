@@ -57,7 +57,27 @@ export async function GET() {
       }) => ({ ...tag, bookmark_count: bookmark_tags?.[0]?.count ?? 0 })
     );
 
-    return NextResponse.json(withCounts);
+    // How many bookmarks carry no tag at all. Grouped with the tag counts
+    // rather than the bookmark list because it's the same sidebar row set, and
+    // it doesn't need re-reading on every page turn.
+    const { data: taggedRows } = await supabase
+      .from("bookmark_tags")
+      .select("bookmark_id");
+    const taggedIds = [...new Set((taggedRows ?? []).map((r) => r.bookmark_id))];
+
+    let untaggedQuery = supabase
+      .from("bookmarks")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if (taggedIds.length > 0) {
+      untaggedQuery = untaggedQuery.not("id", "in", `(${taggedIds.join(",")})`);
+    }
+    const { count: untaggedCount } = await untaggedQuery;
+
+    return NextResponse.json({
+      tags: withCounts,
+      untaggedCount: untaggedCount ?? 0,
+    });
   } catch (error) {
     console.error("Error fetching tags:", error);
     return NextResponse.json(

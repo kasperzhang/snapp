@@ -5,6 +5,7 @@ import { Tag, CreateTagInput } from "@/types";
 
 export function useTags() {
   const [tags, setTags] = useState<Tag[]>([]);
+  const [untaggedCount, setUntaggedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +20,10 @@ export function useTags() {
       }
 
       const data = await response.json();
-      setTags(data);
+      // Array form is the pre-count shape; keep reading it so a stale cached
+      // response can't blank the sidebar.
+      setTags(Array.isArray(data) ? data : data.tags ?? []);
+      setUntaggedCount(Array.isArray(data) ? 0 : data.untaggedCount ?? 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch tags");
     } finally {
@@ -85,6 +89,7 @@ export function useTags() {
 
   return {
     tags,
+    untaggedCount,
     loading,
     error,
     refresh: fetchTags,
