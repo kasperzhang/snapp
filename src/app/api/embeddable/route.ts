@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { assertPublicHttpUrl } from "@/lib/security/ssrf";
 
 /* Which sites will a browser actually let us put in an <iframe>?
    This can't be answered in the browser: a site that refuses framing still
@@ -74,16 +75,23 @@ export async function POST(request: NextRequest) {
 
     // Collapse to distinct origins — a grid usually holds several pages from
     // the same site, and the policy is identical across them.
+    //
+    // Every URL goes through the same SSRF guard the scan and metadata routes
+    // use: this endpoint makes server-side requests to caller-supplied URLs,
+    // so without it an authenticated user could probe internal services and
+    // read the answer off the returned boolean.
     const origins = new Map<string, string>();
-    for (const raw of urls.slice(0, 100)) {
-      try {
-        const u = new URL(raw);
-        if (u.protocol !== "https:" && u.protocol !== "http:") continue;
-        origins.set(raw, u.origin);
-      } catch {
-        /* skip unparseable */
-      }
-    }
+    await Promise.all(
+      urls.slice(0, 100).map(async (raw: unknown) => {
+        if (typeof raw !== "string") return;
+        try {
+          const u = await assertPublicHttpUrl(raw);
+          origins.set(raw, u.origin);
+        } catch {
+          /* unparseable, non-http, or private — leave it out entirely */
+        }
+      })
+    );
 
     const distinct = [...new Set(origins.values())];
     const results = await Promise.all(distinct.map((o) => checkOrigin(o)));
