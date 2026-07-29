@@ -15,6 +15,8 @@ interface BookmarkGridProps {
   emptyMessage?: string;
   emptyHint?: string;
   emptyAction?: React.ReactNode;
+  /** How many placeholder cards to draw on a cold load. */
+  skeletonCount?: number;
   selectable?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (bookmarkId: string) => void;
@@ -54,6 +56,7 @@ export function BookmarkGrid({
   emptyMessage = "No bookmarks yet",
   emptyHint,
   emptyAction,
+  skeletonCount = 6,
   selectable = false,
   selectedIds,
   onToggleSelect,
@@ -69,7 +72,7 @@ export function BookmarkGrid({
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: skeletonCount }).map((_, i) => (
           <BookmarkSkeleton key={i} />
         ))}
       </div>

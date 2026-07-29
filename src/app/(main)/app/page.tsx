@@ -76,6 +76,13 @@ export default function HomePage() {
     setPage(1);
   }, [debouncedSearch, selectedTagIds]);
 
+  // A cold load has nothing to show, so it gets skeletons. A page flip or
+  // filter change already has the previous results on screen — swapping those
+  // for skeletons makes the app feel slower than it is, so they stay put and
+  // dim instead.
+  const firstLoad = bookmarksLoading && bookmarks.length === 0;
+  const refreshing = bookmarksLoading && bookmarks.length > 0;
+
   const gridTopRef = useRef<HTMLDivElement>(null);
   // Paging from the bottom control would otherwise leave you at the foot of a
   // fresh page. ContentPanel scrolls internally, so this can't be window.
@@ -374,10 +381,20 @@ export default function HomePage() {
 
         {/* Grid */}
         <main className="flex flex-1 gap-5 px-6 md:px-10 py-7">
-          <div ref={gridTopRef} className="flex min-w-0 flex-1 flex-col scroll-mt-6">
+          <div
+            ref={gridTopRef}
+            className={cn(
+              "flex min-w-0 flex-1 flex-col scroll-mt-6 transition-opacity duration-200",
+              refreshing && "pointer-events-none opacity-40"
+            )}
+            aria-busy={refreshing}
+          >
           <BookmarkGrid
             bookmarks={bookmarks}
-            loading={bookmarksLoading}
+            loading={firstLoad}
+            // Two rows fills the viewport without building a grid of 18
+            // placeholders the user will never scroll to.
+            skeletonCount={Math.min(6, BOOKMARKS_PAGE_SIZE)}
             onEdit={(bookmark) => setEditingBookmark(bookmark)}
             onDelete={handleDeleteBookmark}
             onAnalyze={(bookmark) => setAnalyzingBookmark(bookmark)}
@@ -410,14 +427,12 @@ export default function HomePage() {
             onCommentChange={changeComment}
           />
           </div>
-          {!bookmarksLoading && (
-            <Pagination
-              page={page}
-              total={totalBookmarks}
-              pageSize={BOOKMARKS_PAGE_SIZE}
-              onPageChange={goToPage}
-            />
-          )}
+          <Pagination
+            page={page}
+            total={totalBookmarks}
+            pageSize={BOOKMARKS_PAGE_SIZE}
+            onPageChange={goToPage}
+          />
         </main>
         </div>
       </ContentPanel>
