@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ilikeContains } from "@/lib/db/filters";
+import { BOOKMARKS_PAGE_SIZE, pageCount } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,29 +18,77 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const tagIds = searchParams.get("tags")?.split(",").filter(Boolean);
 
-    let query = supabase
-      .from("bookmarks")
-      .select(
-        `
-        *,
-        tags:bookmark_tags(tag:tags(*)),
-        analyses:site_analyses(screenshot_url,analysis_status,created_at)
-      `
-      )
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+    const requestedPage = Math.max(1, Number(searchParams.get("page")) || 1);
 
-    // Apply search filter. The term is quoted and its wildcards escaped —
-    // a raw comma would otherwise split this into extra conditions.
-    if (search) {
-      query = query.or(
-        ["title", "description", "url", "domain"]
-          .map((col) => ilikeContains(col, search))
-          .join(",")
+    // Tag filter has to happen in the query, not after it — filtering a page
+    // that was already sliced would drop rows that belong on it. Resolving to
+    // ids first keeps the join out of the paginated select.
+    let taggedIds: string[] | null = null;
+    if (tagIds && tagIds.length > 0) {
+      const { data: tagged } = await supabase
+        .from("bookmark_tags")
+        .select("bookmark_id")
+        .in("tag_id", tagIds);
+
+      taggedIds = [...new Set((tagged ?? []).map((t) => t.bookmark_id))];
+      if (taggedIds.length === 0) {
+        return NextResponse.json({
+          items: [],
+          total: 0,
+          page: 1,
+          pageSize: BOOKMARKS_PAGE_SIZE,
+        });
+      }
+    }
+
+    // A supabase query builder is single-use, and the count has to be known
+    // before the range is chosen — asking for a range past the end is a
+    // PostgREST error, not an empty page.
+    const buildQuery = (columns: string, head: boolean) => {
+      let q = supabase
+        .from("bookmarks")
+        .select(columns, { count: "exact", head })
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (taggedIds) q = q.in("id", taggedIds);
+      // The term is quoted and its wildcards escaped — a raw comma would
+      // otherwise split this into extra conditions.
+      if (search) {
+        q = q.or(
+          ["title", "description", "url", "domain"]
+            .map((col) => ilikeContains(col, search))
+            .join(",")
+        );
+      }
+      return q;
+    };
+
+    const { count: total, error: countError } = await buildQuery("id", true);
+    if (countError) {
+      console.error("Error counting bookmarks:", countError);
+      return NextResponse.json(
+        { error: "Failed to fetch bookmarks" },
+        { status: 500 }
       );
     }
 
-    const { data: bookmarks, error } = await query;
+    // Clamp rather than 500: deleting rows can strand the client on a page
+    // that no longer exists.
+    const page = Math.min(
+      requestedPage,
+      pageCount(total ?? 0, BOOKMARKS_PAGE_SIZE)
+    );
+    const from = (page - 1) * BOOKMARKS_PAGE_SIZE;
+
+    const { data: bookmarks, error } = await buildQuery(
+      `
+        *,
+        tags:bookmark_tags(tag:tags(*)),
+        analyses:site_analyses(screenshot_url,analysis_status,created_at)
+      `,
+      false
+    ).range(from, from + BOOKMARKS_PAGE_SIZE - 1);
 
     if (error) {
       console.error("Error fetching bookmarks:", error);
@@ -49,39 +98,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Transform the data to flatten nested relations
-    interface RawAnalysis {
-      screenshot_url: string | null;
-      analysis_status: string;
-      created_at: string;
+    // Transform the data to flatten nested relations. The select string is
+    // built at runtime, so supabase can't infer the row shape — declare it.
+    interface RawRow {
+      analyses?: {
+        screenshot_url: string | null;
+        analysis_status: string;
+        created_at: string;
+      }[] | null;
+      tags?: { tag: unknown }[] | null;
+      [key: string]: unknown;
     }
-    const transformedBookmarks = bookmarks?.map((bookmark) => {
-      // A bookmark can be scanned more than once — take the newest scan that
-      // actually produced a screenshot. It's the card's preferred preview.
-      const shot = ((bookmark.analyses as RawAnalysis[] | null) ?? [])
-        .filter((a) => a.screenshot_url)
-        .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
-      const { analyses: _analyses, ...rest } = bookmark;
-      return {
-        ...rest,
-        tags:
-          bookmark.tags?.map((t: { tag: unknown }) => t.tag).filter(Boolean) ||
-          [],
-        screenshot_url: shot?.screenshot_url ?? null,
-      };
+    const transformedBookmarks = (bookmarks as unknown as RawRow[] | null)?.map(
+      (bookmark) => {
+        // A bookmark can be scanned more than once — take the newest scan that
+        // actually produced a screenshot. It's the card's preferred preview.
+        const shot = (bookmark.analyses ?? [])
+          .filter((a) => a.screenshot_url)
+          .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+        const { analyses: _analyses, ...rest } = bookmark;
+        return {
+          ...rest,
+          tags: (bookmark.tags ?? []).map((t) => t.tag).filter(Boolean),
+          screenshot_url: shot?.screenshot_url ?? null,
+        };
+      }
+    );
+
+    return NextResponse.json({
+      items: transformedBookmarks ?? [],
+      total: total ?? 0,
+      page,
+      pageSize: BOOKMARKS_PAGE_SIZE,
     });
-
-    // Filter by tags (client-side for simplicity)
-    let filteredBookmarks = transformedBookmarks;
-    if (tagIds && tagIds.length > 0) {
-      filteredBookmarks = transformedBookmarks?.filter((bookmark) =>
-        tagIds.some((tagId) =>
-          bookmark.tags?.some((tag: { id: string }) => tag.id === tagId)
-        )
-      );
-    }
-
-    return NextResponse.json(filteredBookmarks || []);
   } catch (error) {
     console.error("Error fetching bookmarks:", error);
     return NextResponse.json(

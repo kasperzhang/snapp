@@ -6,10 +6,12 @@ import { BookmarkWithRelations, CreateBookmarkInput, URLMetadata } from "@/types
 interface UseBookmarksOptions {
   search?: string;
   tagIds?: string[];
+  page?: number;
 }
 
 export function useBookmarks(options: UseBookmarksOptions = {}) {
   const [bookmarks, setBookmarks] = useState<BookmarkWithRelations[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +23,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
       const params = new URLSearchParams();
       if (options.search) params.set("search", options.search);
       if (options.tagIds?.length) params.set("tags", options.tagIds.join(","));
+      if (options.page && options.page > 1) params.set("page", String(options.page));
 
       const response = await fetch(`/api/bookmarks?${params.toString()}`);
       if (!response.ok) {
@@ -28,13 +31,14 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
       }
 
       const data = await response.json();
-      setBookmarks(data);
+      setBookmarks(data.items ?? []);
+      setTotal(data.total ?? 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch bookmarks");
     } finally {
       setLoading(false);
     }
-  }, [options.search, options.tagIds]);
+  }, [options.search, options.tagIds, options.page]);
 
   useEffect(() => {
     fetchBookmarks();
@@ -67,6 +71,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
 
     const newBookmark = await response.json();
     setBookmarks((prev) => [newBookmark, ...prev]);
+    setTotal((n) => n + 1);
     return newBookmark;
   };
 
@@ -103,10 +108,12 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
     }
 
     setBookmarks((prev) => prev.filter((b) => b.id !== id));
+    setTotal((n) => Math.max(0, n - 1));
   };
 
   return {
     bookmarks,
+    total,
     loading,
     error,
     refresh: fetchBookmarks,

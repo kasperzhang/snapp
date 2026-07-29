@@ -10,6 +10,8 @@ import { MixPanel } from "@/components/workbench";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Pagination } from "@/components/ui/Pagination";
+import { BOOKMARKS_PAGE_SIZE } from "@/lib/pagination";
 import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils/cn";
@@ -52,8 +54,11 @@ export default function HomePage() {
     if (searchParams.get("compose")) router.replace("/app");
   }, [searchParams, router]);
 
+  const [page, setPage] = useState(1);
+
   const {
     bookmarks,
+    total: totalBookmarks,
     loading: bookmarksLoading,
     fetchMetadata,
     createBookmark,
@@ -62,7 +67,22 @@ export default function HomePage() {
   } = useBookmarks({
     search: debouncedSearch,
     tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+    page,
   });
+
+  // Any change to the filters re-numbers the results, so a held page number
+  // would point somewhere arbitrary — or past the end.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, selectedTagIds]);
+
+  const gridTopRef = useRef<HTMLDivElement>(null);
+  // Paging from the bottom control would otherwise leave you at the foot of a
+  // fresh page. ContentPanel scrolls internally, so this can't be window.
+  const goToPage = (p: number) => {
+    setPage(p);
+    gridTopRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
 
   const { tags, createTag } = useTags();
 
@@ -316,8 +336,8 @@ export default function HomePage() {
                 {title}
               </h1>
               <p className="text-[13px] text-[var(--text-muted)] mt-1">
-                {bookmarks.length}{" "}
-                {bookmarks.length === 1 ? "bookmark" : "bookmarks"}
+                {totalBookmarks}{" "}
+                {totalBookmarks === 1 ? "bookmark" : "bookmarks"}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -354,6 +374,16 @@ export default function HomePage() {
 
         {/* Grid */}
         <main className="flex flex-1 flex-col px-6 md:px-10 py-7">
+          <div ref={gridTopRef} className="scroll-mt-6" />
+          {!bookmarksLoading && (
+            <Pagination
+              page={page}
+              total={totalBookmarks}
+              pageSize={BOOKMARKS_PAGE_SIZE}
+              onPageChange={setPage}
+              className="pb-6"
+            />
+          )}
           <BookmarkGrid
             bookmarks={bookmarks}
             loading={bookmarksLoading}
@@ -388,6 +418,15 @@ export default function HomePage() {
             commentsById={commentsById}
             onCommentChange={changeComment}
           />
+          {!bookmarksLoading && (
+            <Pagination
+              page={page}
+              total={totalBookmarks}
+              pageSize={BOOKMARKS_PAGE_SIZE}
+              onPageChange={goToPage}
+              className="pt-8"
+            />
+          )}
         </main>
         </div>
       </ContentPanel>
