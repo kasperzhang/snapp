@@ -27,6 +27,8 @@ export interface Tag {
   name: string;
   color: string;
   created_at: string;
+  /** Bookmarks carrying this tag across the whole library — not the page. */
+  bookmark_count?: number;
 }
 
 export interface BookmarkTag {

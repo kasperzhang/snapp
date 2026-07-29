@@ -12,6 +12,7 @@ interface UseBookmarksOptions {
 export function useBookmarks(options: UseBookmarksOptions = {}) {
   const [bookmarks, setBookmarks] = useState<BookmarkWithRelations[]>([]);
   const [total, setTotal] = useState(0);
+  const [libraryTotal, setLibraryTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
       const data = await response.json();
       setBookmarks(data.items ?? []);
       setTotal(data.total ?? 0);
+      setLibraryTotal(data.libraryTotal ?? data.total ?? 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch bookmarks");
     } finally {
@@ -72,6 +74,7 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
     const newBookmark = await response.json();
     setBookmarks((prev) => [newBookmark, ...prev]);
     setTotal((n) => n + 1);
+    setLibraryTotal((n) => n + 1);
     return newBookmark;
   };
 
@@ -109,11 +112,13 @@ export function useBookmarks(options: UseBookmarksOptions = {}) {
 
     setBookmarks((prev) => prev.filter((b) => b.id !== id));
     setTotal((n) => Math.max(0, n - 1));
+    setLibraryTotal((n) => Math.max(0, n - 1));
   };
 
   return {
     bookmarks,
     total,
+    libraryTotal,
     loading,
     error,
     refresh: fetchBookmarks,

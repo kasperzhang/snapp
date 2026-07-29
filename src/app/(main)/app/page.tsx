@@ -59,6 +59,7 @@ export default function HomePage() {
   const {
     bookmarks,
     total: totalBookmarks,
+    libraryTotal,
     loading: bookmarksLoading,
     fetchMetadata,
     createBookmark,
@@ -91,7 +92,7 @@ export default function HomePage() {
     gridTopRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   };
 
-  const { tags, createTag } = useTags();
+  const { tags, createTag, refresh: refreshTags } = useTags();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -113,6 +114,7 @@ export default function HomePage() {
     tag_ids: string[];
   }) => {
     await createBookmark(data);
+    refreshTags();
   };
 
   const handleUpdateBookmark = async (data: {
@@ -120,7 +122,12 @@ export default function HomePage() {
     description?: string;
     tag_ids: string[];
   }) => {
-    if (editingBookmark) await updateBookmark(editingBookmark.id, data);
+    if (editingBookmark) {
+      await updateBookmark(editingBookmark.id, data);
+      // Tag counts live on the tags endpoint now, so they don't follow the
+      // bookmark list — re-read them when membership changes.
+      refreshTags();
+    }
   };
 
   const handleDeleteBookmark = (bookmarkId: string) => {
@@ -259,6 +266,7 @@ export default function HomePage() {
         onSearchChange={setSearch}
         tags={tags}
         bookmarks={bookmarks}
+        totalBookmarks={libraryTotal}
         selectedTagIds={selectedTagIds}
         onToggleTag={toggleTag}
         onClearTags={clearTags}
@@ -479,7 +487,10 @@ export default function HomePage() {
             : ""
         }
         onConfirm={async () => {
-          if (deletingBookmark) await deleteBookmark(deletingBookmark.id);
+          if (deletingBookmark) {
+            await deleteBookmark(deletingBookmark.id);
+            refreshTags();
+          }
         }}
       />
 

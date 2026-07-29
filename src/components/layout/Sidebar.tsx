@@ -34,6 +34,9 @@ interface SidebarProps {
   onSearchChange?: (value: string) => void;
   tags?: Tag[];
   bookmarks?: BookmarkWithRelations[];
+  /** Library-wide bookmark total for the "All" row. The bookmarks prop is
+      only the current page, so it can't be counted for this. */
+  totalBookmarks?: number;
   selectedTagIds?: string[];
   onToggleTag?: (id: string) => void;
   onClearTags?: () => void;
@@ -48,6 +51,7 @@ export function Sidebar({
   onSearchChange,
   tags,
   bookmarks,
+  totalBookmarks,
   selectedTagIds = [],
   onToggleTag,
   onClearTags,
@@ -360,14 +364,19 @@ export function Sidebar({
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--foreground)] mx-1" />
                   <span className="flex-1 text-left">All</span>
                   <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)]">
-                    {bookmarks?.length ?? 0}
+                    {totalBookmarks ?? bookmarks?.length ?? 0}
                   </span>
                 </button>
                 {tags.map((t) => {
                   const active = selectedTagIds.includes(t.id);
+                  // Counted server-side over the whole library. Counting the
+                  // `bookmarks` prop would report only the current page —
+                  // every tag reads 0 once you turn to page 2.
                   const count =
+                    t.bookmark_count ??
                     bookmarks?.filter((b) => b.tags?.some((x) => x.id === t.id))
-                      .length ?? 0;
+                      .length ??
+                    0;
                   return (
                     <button
                       key={t.id}

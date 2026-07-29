@@ -32,9 +32,14 @@ export async function GET(request: NextRequest) {
 
       taggedIds = [...new Set((tagged ?? []).map((t) => t.bookmark_id))];
       if (taggedIds.length === 0) {
+        const { count: all } = await supabase
+          .from("bookmarks")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id);
         return NextResponse.json({
           items: [],
           total: 0,
+          libraryTotal: all ?? 0,
           page: 1,
           pageSize: BOOKMARKS_PAGE_SIZE,
         });
@@ -71,6 +76,18 @@ export async function GET(request: NextRequest) {
         { error: "Failed to fetch bookmarks" },
         { status: 500 }
       );
+    }
+
+    // The sidebar's "All" row reports the library, not the filtered set —
+    // it's the control that clears the filter. Only worth a second query when
+    // a filter is actually narrowing things.
+    let libraryTotal = total ?? 0;
+    if (search || taggedIds) {
+      const { count: all } = await supabase
+        .from("bookmarks")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      libraryTotal = all ?? 0;
     }
 
     // Clamp rather than 500: deleting rows can strand the client on a page
@@ -128,6 +145,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       items: transformedBookmarks ?? [],
       total: total ?? 0,
+      libraryTotal,
       page,
       pageSize: BOOKMARKS_PAGE_SIZE,
     });

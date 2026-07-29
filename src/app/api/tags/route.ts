@@ -29,9 +29,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // The count comes from the join table rather than from whatever bookmarks
+    // the client happens to be showing — the sidebar reports how many
+    // bookmarks carry each tag in the whole library, not on the current page.
     const { data: tags, error } = await supabase
       .from("tags")
-      .select("*")
+      .select("*, bookmark_tags(count)")
       .eq("user_id", user.id)
       .order("name", { ascending: true });
 
@@ -43,7 +46,18 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(tags || []);
+    // Flatten the aggregate into a plain number for the client.
+    const withCounts = (tags ?? []).map(
+      ({
+        bookmark_tags,
+        ...tag
+      }: {
+        bookmark_tags?: { count: number }[];
+        [key: string]: unknown;
+      }) => ({ ...tag, bookmark_count: bookmark_tags?.[0]?.count ?? 0 })
+    );
+
+    return NextResponse.json(withCounts);
   } catch (error) {
     console.error("Error fetching tags:", error);
     return NextResponse.json(
