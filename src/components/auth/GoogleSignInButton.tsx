@@ -34,7 +34,7 @@ export function GoogleSignInButton({ onError }: GoogleSignInButtonProps) {
       type="button"
       onClick={handleClick}
       disabled={loading}
-      className="flex h-10 w-full items-center justify-center gap-2.5 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--surface)] text-sm font-medium text-[var(--foreground)] transition-colors hover:border-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--background)] disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex h-11 w-full items-center justify-center gap-2.5 rounded-[var(--radius-button)] border border-[var(--border)] bg-[var(--surface)] text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--border-light)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--background)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
