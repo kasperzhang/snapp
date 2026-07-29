@@ -373,17 +373,8 @@ export default function HomePage() {
         )}
 
         {/* Grid */}
-        <main className="flex flex-1 flex-col px-6 md:px-10 py-7">
-          <div ref={gridTopRef} className="scroll-mt-6" />
-          {!bookmarksLoading && (
-            <Pagination
-              page={page}
-              total={totalBookmarks}
-              pageSize={BOOKMARKS_PAGE_SIZE}
-              onPageChange={setPage}
-              className="pb-6"
-            />
-          )}
+        <main className="flex flex-1 gap-5 px-6 md:px-10 py-7">
+          <div ref={gridTopRef} className="flex min-w-0 flex-1 flex-col scroll-mt-6">
           <BookmarkGrid
             bookmarks={bookmarks}
             loading={bookmarksLoading}
@@ -418,13 +409,13 @@ export default function HomePage() {
             commentsById={commentsById}
             onCommentChange={changeComment}
           />
+          </div>
           {!bookmarksLoading && (
             <Pagination
               page={page}
               total={totalBookmarks}
               pageSize={BOOKMARKS_PAGE_SIZE}
               onPageChange={goToPage}
-              className="pt-8"
             />
           )}
         </main>

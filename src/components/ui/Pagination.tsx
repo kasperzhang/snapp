@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { pageCount } from "@/lib/pagination";
 import { cn } from "@/lib/utils/cn";
 
@@ -12,9 +12,8 @@ interface PaginationProps {
   className?: string;
 }
 
-/* Page numbers with ellipses, always showing first, last, current and its
-   neighbours — so the control keeps a stable width however many pages there
-   are. Returns e.g. [1, "…", 4, 5, 6, "…", 12]. */
+/* A window of page numbers around the current one, so a long library doesn't
+   grow an unbounded rail. Returns e.g. [1, "gap", 4, 5, 6, "gap", 12]. */
 function pageItems(current: number, last: number): (number | "gap")[] {
   if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1);
 
@@ -30,6 +29,10 @@ function pageItems(current: number, last: number): (number | "gap")[] {
   return items;
 }
 
+/* A vertical rail that sits beside the grid rather than bracketing it: a
+   hairline with zero-padded mono numerals, the current page marked by an
+   accent tick on the line. Sticky, so it stays reachable while the grid
+   scrolls under it. */
 export function Pagination({
   page,
   total,
@@ -38,18 +41,23 @@ export function Pagination({
   className,
 }: PaginationProps) {
   const last = pageCount(total, pageSize);
-  // Nothing to navigate — don't take up the space.
+  // One page needs no navigation — take up no space at all.
   if (last <= 1) return null;
 
   const go = (p: number) => onPageChange(Math.min(last, Math.max(1, p)));
 
+  // Disabled arrows fade out instead of grey out — a dead control shouldn't
+  // draw the eye in a rail this quiet.
   const arrow =
-    "inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] transition-colors hover:border-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[var(--border)]";
+    "flex h-6 w-full items-center justify-center text-[var(--text-muted)] transition-opacity hover:text-[var(--foreground)] disabled:pointer-events-none disabled:opacity-0";
 
   return (
     <nav
       aria-label="Bookmark pages"
-      className={cn("flex items-center justify-center gap-1.5", className)}
+      className={cn(
+        "sticky top-7 flex shrink-0 flex-col items-stretch self-start",
+        className
+      )}
     >
       <button
         onClick={() => go(page - 1)}
@@ -57,35 +65,39 @@ export function Pagination({
         aria-label="Previous page"
         className={arrow}
       >
-        <ChevronLeft className="h-4 w-4" />
+        <ChevronUp className="h-3.5 w-3.5" />
       </button>
 
-      {pageItems(page, last).map((item, i) =>
-        item === "gap" ? (
-          <span
-            key={`gap-${i}`}
-            aria-hidden
-            className="px-1 text-[13px] text-[var(--text-muted)]"
-          >
-            …
-          </span>
-        ) : (
-          <button
-            key={item}
-            onClick={() => go(item)}
-            aria-label={`Page ${item}`}
-            aria-current={item === page ? "page" : undefined}
-            className={cn(
-              "h-8 min-w-8 rounded-full px-2.5 text-[13px] font-medium transition-colors",
-              item === page
-                ? "bg-[var(--accent)] text-white"
-                : "text-[var(--text-secondary)] hover:bg-[var(--border-light)]"
-            )}
-          >
-            {item}
-          </button>
-        )
-      )}
+      <div className="flex flex-col border-l border-[var(--border)] py-1">
+        {pageItems(page, last).map((item, i) =>
+          item === "gap" ? (
+            <span
+              key={`gap-${i}`}
+              aria-hidden
+              className="py-1 pl-3 font-mono text-[10px] leading-none text-[var(--text-muted)]"
+            >
+              ·
+            </span>
+          ) : (
+            <button
+              key={item}
+              onClick={() => go(item)}
+              aria-label={`Page ${item}`}
+              aria-current={item === page ? "page" : undefined}
+              className={cn(
+                // -ml-px pulls the tick over the container's hairline so the
+                // active segment replaces it rather than sitting beside it.
+                "-ml-px border-l-2 py-1.5 pl-3 pr-0.5 text-left font-mono text-[11px] tabular-nums tracking-[0.08em] transition-colors",
+                item === page
+                  ? "border-[var(--accent)] font-medium text-[var(--foreground)]"
+                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--foreground)]"
+              )}
+            >
+              {String(item).padStart(2, "0")}
+            </button>
+          )
+        )}
+      </div>
 
       <button
         onClick={() => go(page + 1)}
@@ -93,7 +105,7 @@ export function Pagination({
         aria-label="Next page"
         className={arrow}
       >
-        <ChevronRight className="h-4 w-4" />
+        <ChevronDown className="h-3.5 w-3.5" />
       </button>
     </nav>
   );
