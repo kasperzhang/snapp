@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { withResolvedGuideStatus } from "@/lib/workbench/stale";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DESIGN_ASPECTS } from "@/types";
 
@@ -69,7 +70,9 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      return NextResponse.json(workbench);
+      // A run abandoned mid-flight would otherwise report `generating`
+      // forever, locking the mix out of regeneration.
+      return NextResponse.json(withResolvedGuideStatus(workbench));
     }
 
     // List: all workbenches with an item count
@@ -88,10 +91,15 @@ export async function GET(request: NextRequest) {
     }
 
     const withCounts = (workbenches || []).map(
-      (w: { workbench_items?: { count: number }[] }) => ({
-        ...w,
-        item_count: w.workbench_items?.[0]?.count ?? 0,
-      })
+      (w: {
+        workbench_items?: { count: number }[];
+        guide_status?: string | null;
+        updated_at?: string | null;
+      }) =>
+        withResolvedGuideStatus({
+          ...w,
+          item_count: w.workbench_items?.[0]?.count ?? 0,
+        })
     );
 
     return NextResponse.json(withCounts);

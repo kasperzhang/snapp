@@ -56,6 +56,11 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
   const canGenerate = allResolved && completed.length > 0;
   const generating = workbench?.guide_status === "generating";
   const guide = workbench?.design_guide ?? null;
+  // A failure recorded on the row itself — either this session's run before a
+  // reload, or a run the server abandoned (see lib/workbench/stale). Without
+  // surfacing it the panel would sit on "Ready to generate" with nothing
+  // driving it, since the auto-generate effect deliberately won't retry.
+  const failedEarlier = !guide && workbench?.guide_status === "error";
 
   // Scan any source that hasn't been analyzed yet (once each).
   useEffect(() => {
@@ -288,10 +293,12 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
             sub="Each site gets a screenshot plus its fonts and colors."
             skeleton
           />
-        ) : genError ? (
+        ) : genError || failedEarlier ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
             <AlertCircle className="h-6 w-6 text-red-500" />
-            <p className="text-sm text-[var(--text-secondary)]">{genError}</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              {genError ?? "That generation didn't finish."}
+            </p>
             {overLimit ? (
               <Button size="sm" onClick={goUpgrade}>
                 <Zap className="h-3.5 w-3.5" />
