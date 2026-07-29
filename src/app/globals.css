@@ -65,6 +65,21 @@ body {
   min-height: 100vh;
 }
 
+/* Chrome paints autofilled fields with its own pale blue, which reads as a
+   bug against the warm palette. Repaint the fill with an inset shadow (the
+   background-color itself can't be overridden) and hold it with a long
+   transition so the blue never flashes back. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--foreground);
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  caret-color: var(--foreground);
+  transition: background-color 600000s 0s;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -142,11 +157,28 @@ body {
   transform-origin: top right;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rise-in, .rise-out, .slide-in-right, .pop-in { animation: none; }
+/* stream-caret: trails the guide text while the model is still writing it */
+@keyframes caretBlink {
+  0%, 45% { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+.stream-caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  animation: caretBlink 1s step-end infinite;
 }
 
-/* Iframe styles */
+@media (prefers-reduced-motion: reduce) {
+  .rise-in, .rise-out, .slide-in-right, .pop-in { animation: none; }
+  .stream-caret { animation: none; }
+}
+
+/* Live site preview — only rendered for sites that permit framing (see
+   /api/embeddable). Scaled down so a desktop page fits the card. */
 .bookmark-iframe {
   pointer-events: none;
   transform: scale(0.25);
@@ -154,6 +186,7 @@ body {
   width: 400%;
   height: 400%;
   transition: pointer-events 0.2s;
+  border: 0;
 }
 
 /* Enable iframe interaction on hover */
@@ -161,8 +194,6 @@ body {
   pointer-events: auto;
 }
 
-
-/* Visual indicator for interactive iframe */
 .bookmark-card:hover {
   box-shadow: var(--shadow-card-hover);
 }

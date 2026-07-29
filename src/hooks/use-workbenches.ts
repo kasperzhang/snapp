@@ -241,25 +241,68 @@ export function useWorkbench(id: string | null) {
     }
   };
 
-  const generate = async () => {
+  /* The guide streams back as NDJSON so the panel can show it being written.
+     onDelta receives the text accumulated so far, not just the new chunk. */
+  const generate = async (onDelta?: (partial: string) => void) => {
     if (!id) return;
     setWorkbench((prev) =>
       prev ? { ...prev, guide_status: "generating" } : prev
     );
+    const failed = (message: string, status?: number) => {
+      setWorkbench((prev) => (prev ? { ...prev, guide_status: "error" } : prev));
+      // Carry the HTTP status so callers can react to 402 (plan limit).
+      return Object.assign(new Error(message), { status });
+    };
+
     const res = await fetch("/api/workbenches/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ workbench_id: id }),
     });
+    // Everything that can reject the request does so before the stream opens,
+    // so a non-2xx here is still plain JSON.
     if (!res.ok) {
-      const e = await res.json();
-      setWorkbench((prev) => (prev ? { ...prev, guide_status: "error" } : prev));
-      // Carry the HTTP status so callers can react to 402 (plan limit).
-      throw Object.assign(new Error(e.error || "Failed to generate brief"), {
-        status: res.status,
-      });
+      const e = await res.json().catch(() => ({}));
+      throw failed(e.error || "Failed to generate brief", res.status);
     }
-    const updated = await res.json();
+    if (!res.body) throw failed("Failed to generate brief", res.status);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let guide = "";
+    let updated: Workbench | null = null;
+    let streamError: string | null = null;
+
+    const handleLine = (line: string) => {
+      if (!line.trim()) return;
+      const frame = JSON.parse(line);
+      if (frame.t === "d") {
+        guide += frame.v;
+        onDelta?.(guide);
+      } else if (frame.t === "done") {
+        updated = frame.workbench as Workbench;
+      } else if (frame.t === "err") {
+        streamError = frame.message || "Failed to generate guide";
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // A frame can be split across chunks — keep the trailing partial line.
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines) handleLine(line);
+    }
+    if (buffer.trim()) handleLine(buffer);
+
+    if (streamError) throw failed(streamError);
+    // No terminal frame means the connection dropped or the function died —
+    // don't resolve as if it succeeded.
+    if (!updated) throw failed("Generation was interrupted — try again");
+
     setWorkbench((prev) => (prev ? { ...prev, ...updated } : prev));
     return updated as Workbench;
   };

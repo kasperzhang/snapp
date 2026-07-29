@@ -97,6 +97,14 @@ self-contained — usable without the rest of this document.
 - Output ONLY the Markdown document: begin directly with the "# Combined Design Guide:" heading and end after the last section. No preamble, no closing remarks, no questions.
 </instructions>`;
 
+/* NDJSON frames — one JSON object per line, streamed to the client while the
+   guide is written. "d" is a text delta, "done" carries the saved workbench
+   row, "err" reports a failure that happened after headers were already sent. */
+type GuideFrame =
+  | { t: "d"; v: string }
+  | { t: "done"; workbench: unknown }
+  | { t: "err"; message: string };
+
 interface ItemForPrompt {
   index: number;
   title: string;
@@ -262,59 +270,95 @@ export async function POST(request: NextRequest) {
       text: "Now write the combined design guide following the output format exactly.",
     });
 
-    let designGuide = "";
-    try {
-      // 8000 caps worst-case generation at ~2 min of output — the 300s Vercel
-      // timeout becomes unreachable (16000 could brush it and strand the
-      // workbench in guide_status "generating").
-      const message = await anthropic.messages.create({
-        model: MODEL,
-        max_tokens: 8000,
-        thinking: { type: "disabled" },
-        messages: [{ role: "user", content }],
-      });
-      designGuide = message.content
-        .filter((b) => b.type === "text")
-        .map((b) => (b as { type: "text"; text: string }).text)
-        .join("\n");
+    // From here on the response is a stream, so failures can no longer be an
+    // HTTP status — they ride in-band as an "err" frame. Every check that can
+    // reject the request (auth, limits, plan cap) already ran above.
+    const encoder = new TextEncoder();
+    // Swallow enqueue failures: if the panel was closed mid-generation the
+    // controller is dead, but we still want the guide finished, metered and
+    // saved so it's waiting when the designer comes back.
+    const send = (
+      controller: ReadableStreamDefaultController,
+      frame: GuideFrame
+    ) => {
+      try {
+        controller.enqueue(encoder.encode(JSON.stringify(frame) + "\n"));
+      } catch {
+        /* client gone — keep generating */
+      }
+    };
 
-      // Meter the successful generation with real token counts + est. cost.
-      await recordUsage(supabase, {
-        userId: user.id,
-        kind: "guide",
-        tokensIn: totalInputTokens(message.usage),
-        tokensOut: message.usage?.output_tokens ?? 0,
-        costCents: estimateCostCents(MODEL, message.usage),
-        metadata: { workbench_id, sources: sources.length },
-      });
-    } catch (err) {
-      console.error("Error generating combined guide:", err);
-      await supabase
-        .from("workbenches")
-        .update({ guide_status: "error" })
-        .eq("id", workbench_id);
-      return NextResponse.json(
-        { error: "Failed to generate design guide" },
-        { status: 500 }
-      );
-    }
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // 8000 bounds the guide's length and per-call cost. Streaming keeps
+          // bytes flowing, so the 300s Vercel timeout is no longer the
+          // constraint it was when this ran as one blocking call.
+          const message = anthropic.messages.stream({
+            model: MODEL,
+            max_tokens: 8000,
+            thinking: { type: "disabled" },
+            messages: [{ role: "user", content }],
+          });
 
-    const { data: updated, error: updateError } = await supabase
-      .from("workbenches")
-      .update({ design_guide: designGuide, guide_status: "completed" })
-      .eq("id", workbench_id)
-      .select()
-      .single();
+          let designGuide = "";
+          for await (const event of message) {
+            if (
+              event.type === "content_block_delta" &&
+              event.delta.type === "text_delta"
+            ) {
+              designGuide += event.delta.text;
+              send(controller, { t: "d", v: event.delta.text });
+            }
+          }
 
-    if (updateError) {
-      console.error("Error saving combined guide:", updateError);
-      return NextResponse.json(
-        { error: "Failed to save design guide" },
-        { status: 500 }
-      );
-    }
+          // Usage is only final once the stream ends.
+          const final = await message.finalMessage();
+          await recordUsage(supabase, {
+            userId: user.id,
+            kind: "guide",
+            tokensIn: totalInputTokens(final.usage),
+            tokensOut: final.usage?.output_tokens ?? 0,
+            costCents: estimateCostCents(MODEL, final.usage),
+            metadata: { workbench_id, sources: sources.length },
+          });
 
-    return NextResponse.json(updated);
+          const { data: updated, error: updateError } = await supabase
+            .from("workbenches")
+            .update({ design_guide: designGuide, guide_status: "completed" })
+            .eq("id", workbench_id)
+            .select()
+            .single();
+
+          if (updateError) throw updateError;
+
+          send(controller, { t: "done", workbench: updated });
+        } catch (err) {
+          console.error("Error generating combined guide:", err);
+          await supabase
+            .from("workbenches")
+            .update({ guide_status: "error" })
+            .eq("id", workbench_id);
+          // close(), not error() — an errored stream reaches the client as an
+          // opaque network failure with no message to show.
+          send(controller, { t: "err", message: "Failed to generate design guide" });
+        } finally {
+          try {
+            controller.close();
+          } catch {
+            /* already closed by a disconnect */
+          }
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "X-Accel-Buffering": "no",
+      },
+    });
   } catch (error) {
     console.error("Error generating combined guide:", error);
     return NextResponse.json(
