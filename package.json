@@ -15,6 +15,7 @@
     "@sparticuz/chromium-min": "^143.0.4",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.94.0",
+    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "color": "^5.0.3",
     "color-namer": "^1.4.0",

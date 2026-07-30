@@ -6,6 +6,7 @@ import {
   Playpen_Sans_Hebrew,
   Space_Grotesk,
 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,22 +38,22 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL || "https://www.usesnapp.app"
   ),
-  title: "snapp — bookmarks that guide your coding agent",
+  title: "snapp — give your coding agent taste",
   description:
-    "Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design guide your coding agent can actually follow.",
+    "For people building with Cursor, Claude Code, v0 and Lovable. Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design guide your agent actually follows.",
   openGraph: {
-    title: "snapp — bookmarks that guide your coding agent",
+    title: "snapp — give your coding agent taste",
     description:
-      "Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design guide your coding agent can actually follow.",
+      "For people building with Cursor, Claude Code, v0 and Lovable. Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design guide your agent actually follows.",
     url: "/",
     siteName: "snapp",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "snapp — bookmarks that guide your coding agent",
+    title: "snapp — give your coding agent taste",
     description:
-      "Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design guide your coding agent can actually follow.",
+      "For people building with Cursor, Claude Code, v0 and Lovable. Save the sites you wish you'd made, tag what to borrow from each, and snapp writes one design guide your agent actually follows.",
   },
 };
 
@@ -67,6 +68,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${playpen.variable} ${spaceGrotesk.variable} ${bricolage.variable} antialiased`}
       >
         {children}
+        {/* Page views and referrers — without this every copy and layout
+            decision on the marketing pages is unfalsifiable. */}
+        <Analytics />
       </body>
     </html>
   );
