@@ -26,10 +26,10 @@ export default function PrivacyPage() {
         <li>
           <strong>Your content</strong> — the URLs you bookmark, titles,
           notes, tags, mixes, and the screenshots, fonts, and colors captured
-          when you scan a site, plus the design briefs generated for you.
+          when you scan a site, plus the design guides generated for you.
         </li>
         <li>
-          <strong>Usage records</strong> — a log of metered actions (briefs,
+          <strong>Usage records</strong> — a log of metered actions (guides,
           analyses, scans) with token counts and estimated cost, used to
           enforce plan limits and billing.
         </li>
@@ -48,9 +48,9 @@ export default function PrivacyPage() {
       <ul>
         <li>to provide the service — storing and showing your library;</li>
         <li>
-          to generate design briefs: when you run a scan or a mix, the
+          to generate design guides: when you run a scan or a mix, the
           relevant screenshots, extracted fonts/colors, and your notes are
-          sent to Anthropic&apos;s Claude API to produce the brief;
+          sent to Anthropic&apos;s Claude API to produce the guide;
         </li>
         <li>to enforce plan limits and process subscription payments;</li>
         <li>to respond when you contact us.</li>

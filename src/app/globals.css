@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Warm identity (matches the landing page's brief):
+  /* Warm identity (matches the landing page's guide):
      porcelain paper, espresso ink, mocha interaction color. */
   --background: #FBFAF7;
   --foreground: #221C15;

@@ -35,7 +35,7 @@ export default function RefundsPage() {
       <p>
         Renewal payments are generally non-refundable, but if you forgot to
         cancel and haven&apos;t meaningfully used Pro since the renewal
-        (briefs, analyses, or scans), email us within 7 days of the charge
+        (guides, analyses, or scans), email us within 7 days of the charge
         and we&apos;ll refund it.
       </p>
 
