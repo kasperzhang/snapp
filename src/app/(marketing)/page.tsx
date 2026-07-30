@@ -277,24 +277,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── Who it's for ─────────────────────────────────────── */}
-      <section className="lp-section">
-        <div className="lp-section-inner">
-          <p className="lp-eyebrow lp-center">Who this is for</p>
-          <h2 className="lp-h2 lp-center">
-            Different tools. Same missing piece.
-          </h2>
-          <div className="lp-audiences">
-            {AUDIENCES.map((a) => (
-              <div key={a.who} className="lp-audience">
-                <h3>{a.who}</h3>
-                <p>{a.line}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Steps ────────────────────────────────────────────── */}
       <section className="lp-section">
         <div className="lp-section-inner">
@@ -307,6 +289,22 @@ export default async function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Who it's for ─────────────────────────────────────── */}
+      <section className="lp-section">
+        <div className="lp-section-inner lp-aud-inner">
+          <p className="lp-eyebrow">Who this is for</p>
+          <h2 className="lp-h2">Different tools. Same missing piece.</h2>
+          <dl className="lp-audiences">
+            {AUDIENCES.map((a) => (
+              <div key={a.who} className="lp-audience">
+                <dt>{a.who}</dt>
+                <dd>{a.line}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 

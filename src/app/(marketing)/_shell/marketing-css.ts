@@ -440,6 +440,14 @@ export const lpCss = `
 
 /* ── sections ── */
 .lp-section { padding: 110px 28px; }
+/* Two plain sections in a row stack 110px of bottom padding onto 110px of
+   top padding — 220px of void between two short text blocks. The first
+   section's bottom padding is separation enough. Tinted sections keep theirs
+   either side: their background makes the padding read as the panel's inset
+   rather than as a gap. */
+.lp-section:not(.lp-section-tint) + .lp-section:not(.lp-section-tint) {
+  padding-top: 0;
+}
 .lp-section-tint { background: #F6F3EC; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .lp-section-inner { max-width: 1120px; margin: 0 auto; }
 .lp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
@@ -612,18 +620,25 @@ export const lpCss = `
 }
 .lp-tool-mark { width: 15px; height: 15px; flex-shrink: 0; }
 
-/* ── who it's for ── */
-.lp-audiences {
-  margin-top: 44px; display: grid; gap: 26px;
-  grid-template-columns: repeat(3, 1fr);
+/* ── who it's for ──
+   A stacked index rather than another three-column grid: the Steps and the
+   aspect list are already that shape, and two of them in a row read as the
+   same section twice. */
+.lp-aud-inner { max-width: 940px; }
+.lp-audiences { margin-top: 38px; border-top: 1px solid var(--line); }
+.lp-audience {
+  display: grid; grid-template-columns: minmax(190px, 0.8fr) 2fr; gap: 28px;
+  align-items: baseline; padding: 20px 0;
+  border-bottom: 1px solid var(--line);
 }
-.lp-audience { border-top: 1px solid var(--line); padding-top: 18px; }
-.lp-audience h3 {
-  font-family: var(--display); font-size: 15px; font-weight: 650;
-  letter-spacing: -0.01em; margin-bottom: 8px;
+.lp-audience dt {
+  font-family: var(--display); font-size: 16px; font-weight: 650;
+  letter-spacing: -0.01em;
 }
-.lp-audience p { font-size: 14.5px; line-height: 1.65; color: var(--ink-soft); }
-@media (max-width: 820px) { .lp-audiences { grid-template-columns: 1fr; gap: 20px; } }
+.lp-audience dd { font-size: 15.5px; line-height: 1.65; color: var(--ink-soft); }
+@media (max-width: 720px) {
+  .lp-audience { grid-template-columns: 1fr; gap: 6px; padding: 16px 0; }
+}
 
 /* ── faq ── */
 .lp-faq-inner { max-width: 720px; }
