@@ -38,6 +38,7 @@ export async function MarketingShell({
             <a href={anchors ? "#library" : "/#library"}>Library</a>
             <a href={anchors ? "#mix" : "/#mix"}>Mix</a>
             <a href={anchors ? "#pricing" : "/#pricing"}>Pricing</a>
+            <Link href="/blog">Blog</Link>
           </div>
           <div className="lp-nav-cta">
             {loggedIn ? (

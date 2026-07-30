@@ -704,4 +704,77 @@ export const lpCss = `
   text-align: center;
 }
 .lp-article-cta .lp-hero-note { margin-top: 14px; }
+/* ── blog ── */
+.lp-blog-index { padding-bottom: 72px; }
+.lp-post-list { margin-top: 52px; border-top: 1px solid var(--line); }
+.lp-post-list li { border-bottom: 1px solid var(--line); }
+.lp-post { display: block; padding: 26px 0; }
+.lp-post-meta {
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-mute);
+}
+.lp-post-topic { color: var(--mocha); }
+.lp-post h2 {
+  margin-top: 10px; font-family: var(--display); font-size: 22px;
+  font-weight: 650; letter-spacing: -0.02em; line-height: 1.25;
+  transition: color 0.15s ease;
+}
+.lp-post p { margin-top: 8px; font-size: 15.5px; line-height: 1.6; color: var(--ink-soft); max-width: 42em; }
+.lp-post:hover h2 { color: var(--mocha-deep); }
+
+.lp-back {
+  display: inline-block; margin-bottom: 26px;
+  font-size: 13.5px; color: var(--ink-mute);
+}
+.lp-back:hover { color: var(--ink); }
+.lp-post-date {
+  margin-top: 18px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute);
+}
+
+/* Rendered Markdown. The .lp-article rules already cover h2/p/code; these are
+   the elements a post adds on top. */
+.lp-prose { margin-top: 40px; }
+.lp-prose h2:first-child { margin-top: 0; }
+.lp-prose ul, .lp-prose ol { margin-top: 16px; padding-left: 20px; }
+.lp-prose li { font-size: 16px; line-height: 1.72; color: var(--ink-soft); margin-top: 10px; }
+.lp-prose li strong, .lp-prose p strong { color: var(--ink); font-weight: 600; }
+.lp-prose table {
+  margin-top: 22px; width: 100%; border-collapse: collapse;
+  font-size: 15px; text-align: left;
+}
+.lp-prose th, .lp-prose td {
+  padding: 11px 14px 11px 0; border-bottom: 1px solid var(--line);
+  vertical-align: top; color: var(--ink-soft);
+}
+.lp-prose th {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--ink-mute); font-weight: 400;
+}
+.lp-prose blockquote {
+  margin-top: 20px; padding-left: 18px; border-left: 2px solid var(--mocha);
+  color: var(--ink-soft);
+}
+
+/* ── blog teaser on the landing page ── */
+.lp-latest { margin-top: 46px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.lp-latest-card {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 16px; padding: 22px 20px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.lp-latest-card:hover { border-color: var(--ink-mute); transform: translateY(-2px); }
+.lp-latest-card span {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--mocha);
+}
+.lp-latest-card h3 {
+  font-family: var(--display); font-size: 17px; font-weight: 650;
+  letter-spacing: -0.015em; line-height: 1.3;
+}
+.lp-latest-card p { font-size: 14px; line-height: 1.6; color: var(--ink-soft); }
+.lp-latest-more { margin-top: 30px; text-align: center; }
+@media (max-width: 860px) { .lp-latest { grid-template-columns: 1fr; } }
 `;

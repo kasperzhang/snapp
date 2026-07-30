@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { LogoMark } from "@/components/ui/Logo";
 import { MarketingShell } from "./_shell/MarketingShell";
 import { TOOL_MARKS } from "@/components/marketing/ToolLogos";
+import { getAllPosts } from "@/lib/blog";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,7 @@ const PHASES = [
 ];
 
 export default async function LandingPage() {
+  const posts = getAllPosts().slice(0, 3);
   const supabase = await createClient();
   const {
     data: { user },
@@ -345,6 +347,36 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Writing ─────────────────────────────────────────── */}
+      {posts.length > 0 && (
+        <section className="lp-section">
+          <div className="lp-section-inner">
+            <p className="lp-eyebrow lp-center">From the blog</p>
+            <h2 className="lp-h2 lp-center">
+              How to say what you mean to a model.
+            </h2>
+            <div className="lp-latest">
+              {posts.map((p) => (
+                <Link
+                  key={p.slug}
+                  href={`/blog/${p.slug}`}
+                  className="lp-latest-card"
+                >
+                  <span>{p.topic ?? "Writing"}</span>
+                  <h3>{p.title}</h3>
+                  <p>{p.description}</p>
+                </Link>
+              ))}
+            </div>
+            <p className="lp-latest-more">
+              <Link href="/blog" className="lp-btn lp-btn-ghost lp-btn-sm">
+                Read the blog
+              </Link>
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ── FAQ ──────────────────────────────────────────────── */}
       <section className="lp-section">

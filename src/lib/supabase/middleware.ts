@@ -46,9 +46,10 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/terms") ||
     path.startsWith("/privacy") ||
     path.startsWith("/refunds") ||
-    // Long-form /for/* pages are indexable landing surfaces — they have to be
-    // reachable signed-out or crawlers get bounced to /login.
-    path.startsWith("/for/");
+    // Indexable landing surfaces — they have to be reachable signed-out or
+    // crawlers get bounced to /login and the content is invisible to search.
+    path.startsWith("/for/") ||
+    path.startsWith("/blog");
 
   if (!user && !isAuthPage && !isCallback && !isApiRoute && !isMarketing) {
     // Send signed-out users hitting the app to login.
