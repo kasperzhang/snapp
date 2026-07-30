@@ -542,12 +542,72 @@ export const lpCss = `
 .lp-t-cursor { animation: lpBlink 1.1s steps(1) infinite; color: #6E92C9; }
 
 /* steps */
-.lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 56px; max-width: 1000px; margin: 0 auto; }
-.lp-step { border-top: 2px solid var(--ink); padding-top: 20px; }
-.lp-step-n { font-family: var(--mono); font-size: 11.5px; color: var(--mocha); letter-spacing: 0.1em; }
-.lp-step h3 { margin-top: 10px; }
-.lp-step p { margin-top: 9px; font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); }
-@media (max-width: 720px) { .lp-steps { grid-template-columns: 1fr; gap: 34px; } }
+/* ── working flow ──
+   A rail rather than a row of cards: four phases reading left to right with
+   the line carrying the eye between them, so it looks like a sequence
+   instead of four unrelated columns. */
+.lp-flow {
+  margin-top: 54px; display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0; list-style: none;
+}
+.lp-phase { position: relative; padding-right: 30px; }
+.lp-phase-rail { display: block; position: relative; height: 13px; margin-bottom: 20px; }
+.lp-phase-rail i {
+  position: absolute; top: 3px; left: 0;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--mocha);
+}
+/* The connector stops at the last phase — the sequence ends there. */
+.lp-phase:not(:last-child) .lp-phase-rail::after {
+  content: ""; position: absolute; top: 6px; left: 15px; right: 8px;
+  height: 1px; background: var(--line);
+}
+.lp-phase-n {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+  color: var(--ink-mute);
+}
+.lp-phase h3 { margin-top: 8px; }
+.lp-phase p { margin-top: 10px; font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); }
+@media (max-width: 900px) {
+  .lp-flow { grid-template-columns: repeat(2, 1fr); row-gap: 34px; }
+  .lp-phase:nth-child(2) .lp-phase-rail::after { display: none; }
+}
+@media (max-width: 560px) {
+  .lp-flow { grid-template-columns: 1fr; row-gap: 28px; }
+  .lp-phase { padding-right: 0; }
+  .lp-phase .lp-phase-rail::after { display: none; }
+}
+
+/* ── comparison ── */
+.lp-section-warm { background: var(--mocha-tint); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.lp-vs-inner { max-width: 940px; }
+.lp-versus { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.lp-vs-card { border-radius: 18px; padding: 28px 26px; border: 1px solid var(--line); }
+/* The two cards are deliberately unequal: the left one recedes. */
+.lp-vs-bad { background: transparent; }
+.lp-vs-good {
+  background: var(--card); border-color: #DECDB4;
+  box-shadow: 0 1px 2px rgba(34,28,21,0.04), 0 18px 44px -22px rgba(34,28,21,0.30);
+}
+.lp-vs-tag {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--ink-mute);
+}
+.lp-vs-card h3 {
+  margin-top: 8px; font-family: var(--display); font-size: 22px;
+  font-weight: 650; letter-spacing: -0.02em;
+}
+.lp-vs-bad h3 { color: var(--ink-mute); }
+.lp-vs-card ul { margin-top: 22px; display: flex; flex-direction: column; gap: 14px; }
+.lp-vs-card li {
+  display: grid; grid-template-columns: 16px 1fr; gap: 10px;
+  font-size: 14.5px; line-height: 1.6; color: var(--ink-soft);
+}
+.lp-vs-card li i { font-style: normal; font-size: 12px; line-height: 1.9; }
+.lp-vs-bad li { color: var(--ink-mute); }
+.lp-vs-bad li i { color: var(--ink-mute); }
+.lp-vs-good li i { color: var(--mocha); }
+@media (max-width: 760px) { .lp-versus { grid-template-columns: 1fr; } }
 
 /* pricing */
 .lp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 340px)); gap: 20px; justify-content: center; margin-top: 60px; }
@@ -619,26 +679,6 @@ export const lpCss = `
   font-size: 12.5px; letter-spacing: 0.02em; text-transform: none;
 }
 .lp-tool-mark { width: 15px; height: 15px; flex-shrink: 0; }
-
-/* ── who it's for ──
-   A stacked index rather than another three-column grid: the Steps and the
-   aspect list are already that shape, and two of them in a row read as the
-   same section twice. */
-.lp-aud-inner { max-width: 940px; }
-.lp-audiences { margin-top: 38px; border-top: 1px solid var(--line); }
-.lp-audience {
-  display: grid; grid-template-columns: minmax(190px, 0.8fr) 2fr; gap: 28px;
-  align-items: baseline; padding: 20px 0;
-  border-bottom: 1px solid var(--line);
-}
-.lp-audience dt {
-  font-family: var(--display); font-size: 16px; font-weight: 650;
-  letter-spacing: -0.01em;
-}
-.lp-audience dd { font-size: 15.5px; line-height: 1.65; color: var(--ink-soft); }
-@media (max-width: 720px) {
-  .lp-audience { grid-template-columns: 1fr; gap: 6px; padding: 16px 0; }
-}
 
 /* ── faq ── */
 .lp-faq-inner { max-width: 720px; }

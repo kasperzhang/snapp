@@ -31,23 +31,6 @@ const ASPECTS: { label: string; hue: string }[] = [
   { label: "Vibe", hue: "#48887B" },
 ];
 
-/* Concrete situations rather than a job title — the people this is for don't
-   all call themselves the same thing. */
-const AUDIENCES = [
-  {
-    who: "Shipping with Lovable or v0",
-    line: "The app works. It looks like every other app the model has seen. You need it to look like something you chose.",
-  },
-  {
-    who: "Building in Cursor or Claude Code",
-    line: "You want a design system the agent will hold to across fifty files — not a palette it forgets by the next prompt.",
-  },
-  {
-    who: "A designer with an agent",
-    line: "You already know what good looks like. You just can't type it fast enough, and the agent keeps guessing.",
-  },
-];
-
 /* Rendered on the page and emitted as FAQPage JSON-LD from this one source. */
 const FAQS = [
   {
@@ -76,10 +59,50 @@ const FAQS = [
   },
 ];
 
-const STEPS = [
-  { n: "01", verb: "Save", line: "Bookmark the sites you love. Free, unlimited, gorgeous." },
-  { n: "02", verb: "Borrow", line: "Tag what each one gets right — this type, that color, that scroll." },
-  { n: "03", verb: "Guide", line: "Paste one spec into your agent instead of forty prompts." },
+/* The four moves a designer already makes when starting something new. snapp
+   doesn't add a step — it picks up at the point where the references usually
+   get lost. */
+const PHASES = [
+  {
+    n: "01",
+    verb: "Browse",
+    line: "You trawl the web like always — a studio site, a competitor, that one landing page you keep reopening.",
+  },
+  {
+    n: "02",
+    verb: "Save",
+    line: "Paste the URL. snapp keeps the preview, the favicon, and reads the fonts and colours behind it.",
+  },
+  {
+    n: "03",
+    verb: "Borrow",
+    line: "Tag what each one gets right. This one's type, that one's palette, a third one's scroll.",
+  },
+  {
+    n: "04",
+    verb: "Guide",
+    line: "One spec into your agent — hex values, font stacks, spacing, motion — instead of forty prompts.",
+  },
+];
+
+/* Paired so the two columns stay row-aligned however the copy changes. */
+const VERSUS = [
+  {
+    bad: "Whatever the model averages to — violet gradient, Inter, 12px radius",
+    good: "The sites you actually chose, and only the parts you tagged",
+  },
+  {
+    bad: "\u201cMake it look better\u201d, then again, then again",
+    good: "One paste, and it holds for the rest of the project",
+  },
+  {
+    bad: "Tokens burned re-describing taste every single session",
+    good: "Tokens spent building instead of negotiating",
+  },
+  {
+    bad: "A different answer in every file it touches",
+    good: "One system across the whole codebase",
+  },
 ];
 
 export default async function LandingPage() {
@@ -277,34 +300,62 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── Steps ────────────────────────────────────────────── */}
+      {/* ── The working flow ─────────────────────────────────── */}
       <section className="lp-section">
         <div className="lp-section-inner">
-          <div className="lp-steps">
-            {STEPS.map((s) => (
-              <div key={s.n} className="lp-step">
-                <span className="lp-step-n">{s.n}</span>
+          <p className="lp-eyebrow">The working flow</p>
+          <h2 className="lp-h2">
+            The way you already work, minus the part where the references get
+            lost.
+          </h2>
+          <ol className="lp-flow">
+            {PHASES.map((s) => (
+              <li key={s.n} className="lp-phase">
+                <span className="lp-phase-rail" aria-hidden>
+                  <i />
+                </span>
+                <span className="lp-phase-n">{s.n}</span>
                 <h3 className="lp-h3">{s.verb}</h3>
                 <p>{s.line}</p>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 
-      {/* ── Who it's for ─────────────────────────────────────── */}
-      <section className="lp-section">
-        <div className="lp-section-inner lp-aud-inner">
-          <p className="lp-eyebrow">Who this is for</p>
-          <h2 className="lp-h2">Different tools. Same missing piece.</h2>
-          <dl className="lp-audiences">
-            {AUDIENCES.map((a) => (
-              <div key={a.who} className="lp-audience">
-                <dt>{a.who}</dt>
-                <dd>{a.line}</dd>
-              </div>
-            ))}
-          </dl>
+      {/* ── Comparison ───────────────────────────────────────── */}
+      <section className="lp-section lp-section-warm">
+        <div className="lp-section-inner lp-vs-inner">
+          <p className="lp-eyebrow lp-center">With and without</p>
+          <h2 className="lp-h2 lp-center">
+            Same agent. Very different output.
+          </h2>
+          <div className="lp-versus">
+            <div className="lp-vs-card lp-vs-bad">
+              <p className="lp-vs-tag">Straight to the agent</p>
+              <h3>AI slop</h3>
+              <ul>
+                {VERSUS.map((v) => (
+                  <li key={v.bad}>
+                    <i aria-hidden>✕</i>
+                    {v.bad}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="lp-vs-card lp-vs-good">
+              <p className="lp-vs-tag">With snapp</p>
+              <h3>Your taste, held</h3>
+              <ul>
+                {VERSUS.map((v) => (
+                  <li key={v.good}>
+                    <i aria-hidden>✓</i>
+                    {v.good}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 
