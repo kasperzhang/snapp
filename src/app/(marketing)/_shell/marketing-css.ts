@@ -578,37 +578,6 @@ export const lpCss = `
   .lp-phase .lp-phase-rail::after { display: none; }
 }
 
-/* ── comparison ── */
-.lp-section-warm { background: var(--mocha-tint); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.lp-vs-inner { max-width: 940px; }
-.lp-versus { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.lp-vs-card { border-radius: 18px; padding: 28px 26px; border: 1px solid var(--line); }
-/* The two cards are deliberately unequal: the left one recedes. */
-.lp-vs-bad { background: transparent; }
-.lp-vs-good {
-  background: var(--card); border-color: #DECDB4;
-  box-shadow: 0 1px 2px rgba(34,28,21,0.04), 0 18px 44px -22px rgba(34,28,21,0.30);
-}
-.lp-vs-tag {
-  font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em;
-  text-transform: uppercase; color: var(--ink-mute);
-}
-.lp-vs-card h3 {
-  margin-top: 8px; font-family: var(--display); font-size: 22px;
-  font-weight: 650; letter-spacing: -0.02em;
-}
-.lp-vs-bad h3 { color: var(--ink-mute); }
-.lp-vs-card ul { margin-top: 22px; display: flex; flex-direction: column; gap: 14px; }
-.lp-vs-card li {
-  display: grid; grid-template-columns: 16px 1fr; gap: 10px;
-  font-size: 14.5px; line-height: 1.6; color: var(--ink-soft);
-}
-.lp-vs-card li i { font-style: normal; font-size: 12px; line-height: 1.9; }
-.lp-vs-bad li { color: var(--ink-mute); }
-.lp-vs-bad li i { color: var(--ink-mute); }
-.lp-vs-good li i { color: var(--mocha); }
-@media (max-width: 760px) { .lp-versus { grid-template-columns: 1fr; } }
-
 /* pricing */
 .lp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 340px)); gap: 20px; justify-content: center; margin-top: 60px; }
 .lp-plan {

@@ -85,26 +85,6 @@ const PHASES = [
   },
 ];
 
-/* Paired so the two columns stay row-aligned however the copy changes. */
-const VERSUS = [
-  {
-    bad: "Whatever the model averages to — violet gradient, Inter, 12px radius",
-    good: "The sites you actually chose, and only the parts you tagged",
-  },
-  {
-    bad: "\u201cMake it look better\u201d, then again, then again",
-    good: "One paste, and it holds for the rest of the project",
-  },
-  {
-    bad: "Tokens burned re-describing taste every single session",
-    good: "Tokens spent building instead of negotiating",
-  },
-  {
-    bad: "A different answer in every file it touches",
-    good: "One system across the whole codebase",
-  },
-];
-
 export default async function LandingPage() {
   const supabase = await createClient();
   const {
@@ -320,42 +300,6 @@ export default async function LandingPage() {
               </li>
             ))}
           </ol>
-        </div>
-      </section>
-
-      {/* ── Comparison ───────────────────────────────────────── */}
-      <section className="lp-section lp-section-warm">
-        <div className="lp-section-inner lp-vs-inner">
-          <p className="lp-eyebrow lp-center">With and without</p>
-          <h2 className="lp-h2 lp-center">
-            Same agent. Very different output.
-          </h2>
-          <div className="lp-versus">
-            <div className="lp-vs-card lp-vs-bad">
-              <p className="lp-vs-tag">Straight to the agent</p>
-              <h3>AI slop</h3>
-              <ul>
-                {VERSUS.map((v) => (
-                  <li key={v.bad}>
-                    <i aria-hidden>✕</i>
-                    {v.bad}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="lp-vs-card lp-vs-good">
-              <p className="lp-vs-tag">With snapp</p>
-              <h3>Your taste, held</h3>
-              <ul>
-                {VERSUS.map((v) => (
-                  <li key={v.good}>
-                    <i aria-hidden>✓</i>
-                    {v.good}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
         </div>
       </section>
 
