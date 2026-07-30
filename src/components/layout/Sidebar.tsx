@@ -493,7 +493,7 @@ export function Sidebar({
                       {billing.plan}
                     </span>
                     <span className="text-[var(--text-muted)]">
-                      {billing.usage.guide.used}/{billing.usage.guide.limit} briefs
+                      {billing.usage.guide.used}/{billing.usage.guide.limit} guides
                       this month
                     </span>
                   </div>

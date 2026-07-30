@@ -263,9 +263,9 @@ export function useWorkbench(id: string | null) {
     // so a non-2xx here is still plain JSON.
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
-      throw failed(e.error || "Failed to generate brief", res.status);
+      throw failed(e.error || "Failed to generate guide", res.status);
     }
-    if (!res.body) throw failed("Failed to generate brief", res.status);
+    if (!res.body) throw failed("Failed to generate guide", res.status);
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();

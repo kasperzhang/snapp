@@ -15,7 +15,7 @@ type Billing = {
 };
 
 const METERS: { key: keyof Billing["usage"]; label: string }[] = [
-  { key: "guide", label: "Design briefs" },
+  { key: "guide", label: "Design guides" },
   { key: "analysis", label: "Site analyses" },
   { key: "scan", label: "Deep scans" },
 ];
