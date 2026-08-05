@@ -33,6 +33,12 @@ export default function SignupPage() {
           data: {
             full_name: fullName,
           },
+          // Only used when "Confirm email" is ON. Without it the link falls back
+          // to the Site URL — the marketing homepage — where nothing exchanges
+          // the token, so the button in the email appears to do nothing. No
+          // query string: Supabase matches redirect URLs exactly, and a `?next=`
+          // suffix silently drops it back to the Site URL (see commit 68eb7ab).
+          emailRedirectTo: `${window.location.origin}/callback`,
         },
       });
 
