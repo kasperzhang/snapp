@@ -666,6 +666,39 @@ async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
   return categorized.slice(0, 20);
 }
 
+/**
+ * Snap every in-flight animation to its finished state.
+ *
+ * Modern sites reveal content on scroll — text fading in word by word, cards
+ * rising into place. Capturing a fixed number of milliseconds after scrolling
+ * catches those mid-flight: half the sentence rendered, the rest invisible, and
+ * the visible half sitting at a transient grey that then pollutes the extracted
+ * palette. Waiting longer only moves the race; it doesn't win it.
+ *
+ * `document.getAnimations()` covers CSS animations, CSS transitions AND the Web
+ * Animations API, which is what Framer, GSAP and friends drive their reveals
+ * through — so this catches the ones a CSS-only override would miss.
+ */
+async function finishAnimations(page: Page): Promise<void> {
+  try {
+    await page.evaluate(() => {
+      for (const animation of document.getAnimations()) {
+        try {
+          // Looping animations (spinners, marquees) never "finish" — calling
+          // finish() on one throws. They look the same at any moment anyway.
+          const iterations = animation.effect?.getTiming?.().iterations;
+          if (iterations === Infinity) continue;
+          animation.finish();
+        } catch {
+          /* some animations refuse to be finished; leave them */
+        }
+      }
+    });
+  } catch {
+    /* page navigated or closed mid-call — the capture will still work */
+  }
+}
+
 export async function analyzePage(url: string): Promise<ScanResult> {
   let browser: Browser | null = null;
 
@@ -681,6 +714,13 @@ export async function analyzePage(url: string): Promise<ScanResult> {
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     );
 
+    // Ask the site to skip its entrance choreography. Sites that honour this —
+    // Framer and Webflow output do by default — render straight to the final
+    // state, which removes the race entirely rather than trying to outwait it.
+    await page.emulateMediaFeatures([
+      { name: "prefers-reduced-motion", value: "reduce" },
+    ]);
+
     // Navigate to URL - use domcontentloaded for faster loading, then wait for network
     await page.goto(url, {
       waitUntil: "domcontentloaded",
@@ -694,8 +734,19 @@ export async function analyzePage(url: string): Promise<ScanResult> {
       // Network didn't fully settle, continue anyway
     }
 
-    // Wait a bit for any lazy-loaded content
+    // Wait a bit for any lazy-loaded content, then let the intro animation
+    // (preloader curtain, hero reveal) run out rather than photographing it.
     await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Webfonts render as fallback — or as nothing at all under font-display:
+    // block — until they load. Both misreport the typography we're here to read.
+    try {
+      await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    } catch {
+      /* older engines without the Font Loading API */
+    }
+
+    await finishAnimations(page);
 
     // Capture the page as consecutive viewport-height bands rather than one
     // tall image. `fullPage: true` would be downsampled to ~1568px on the long
@@ -714,8 +765,16 @@ export async function analyzePage(url: string): Promise<ScanResult> {
     for (let i = 0; i < bands; i++) {
       const y = i * VIEWPORT_HEIGHT;
       await page.evaluate((top) => window.scrollTo(0, top), y);
-      // Let lazy-loaded imagery and scroll-triggered animations settle.
+      // Give IntersectionObserver a beat to fire and lazy images to start...
       await new Promise((resolve) => setTimeout(resolve, 600));
+      // ...then jump whatever it started straight to its end state. Without
+      // this, a band lands mid-reveal: half a sentence rendered, the rest
+      // still transparent.
+      await finishAnimations(page);
+      // A finished reveal can itself trigger the next one (staggered groups),
+      // so settle once more before the shutter.
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      await finishAnimations(page);
       const shot = await page.screenshot({
         type: "webp",
         quality: 80,

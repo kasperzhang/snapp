@@ -174,6 +174,32 @@ model APIs, so a 6000px page arrives as unreadable mush. Bands stay sharp.
 `screenshot_url` remains the hero (bookmark previews, Mix); `screenshot_urls`
 holds the full ordered set.
 
+### Animations are finished, not outwaited
+Scroll-reveal choreography is the norm now — text fading in word by word, cards
+rising into place. Capturing a fixed delay after scrolling photographs those
+mid-flight: on nexola.framer.website a band caught "Nexola® is a *digital*"
+with the rest of the sentence still transparent. Two harms, not one — the model
+can't read the copy, and the transient mid-fade greys land in the extracted
+palette as if they were brand colours.
+
+Three guards, in order of how much they buy:
+
+1. **`prefers-reduced-motion: reduce`** is emulated before navigation. Sites
+   that honour it (Framer and Webflow output do by default) render straight to
+   the final state, removing the race rather than trying to outwait it.
+2. **`finishAnimations()`** snaps every in-flight animation to its end state
+   after each scroll. It uses `document.getAnimations()`, which covers CSS
+   animations, CSS transitions *and* the Web Animations API — the last is what
+   Framer and GSAP drive reveals through, so a CSS-only override would miss
+   them. Infinite animations (spinners, marquees) are skipped: `finish()`
+   throws on them, and they look the same at any moment anyway.
+3. **`document.fonts.ready`** is awaited before the first capture. Webfonts
+   render as fallback — or as nothing under `font-display: block` — until
+   loaded, and typography is the thing we're most here to read.
+
+Cost: roughly +3s per scan (6s → 9s). Immaterial next to a $0.0006 scan, and
+well inside the 60s route ceiling.
+
 ### Measured tokens beat inferred ones
 `extractStyleTokensFromPage` reads **border-radius, box-shadow and the spacing
 rhythm** off the live DOM, and `buildContext` presents them as facts the model
