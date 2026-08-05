@@ -4,6 +4,12 @@ import { analyzePage, generateDesignTokens } from "@/lib/scraper/page-analyzer";
 import { assertPublicHttpUrl, SsrfError } from "@/lib/security/ssrf";
 import { rateLimit } from "@/lib/ratelimit";
 import { checkUsageLimit, recordUsage } from "@/lib/billing/limits";
+import {
+  MAX_SECTIONS,
+  SCREENSHOT_BUCKET,
+  SCREENSHOT_CONTENT_TYPE,
+  screenshotPath,
+} from "@/lib/storage/screenshots";
 
 export const maxDuration = 60; // Vercel function timeout
 
@@ -79,23 +85,39 @@ export async function POST(request: NextRequest) {
       // Perform the page analysis
       const scanResult = await analyzePage(url);
 
-      // Upload screenshot to Supabase Storage
-      let screenshotUrl: string | null = null;
-      if (scanResult.screenshot) {
-        const fileName = `${user.id}/${analysis_id}.png`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("screenshots")
-          .upload(fileName, scanResult.screenshot, {
-            contentType: "image/png",
+      // Upload every captured band. Section 0 is the hero and keeps the bare
+      // path, so screenshot_url still points at it for card previews and Mix.
+      const screenshotUrls: string[] = [];
+      for (const [i, band] of scanResult.sections.entries()) {
+        const fileName = screenshotPath(user.id, analysis_id, undefined, i);
+        const { error: uploadError } = await supabase.storage
+          .from(SCREENSHOT_BUCKET)
+          .upload(fileName, band, {
+            contentType: SCREENSHOT_CONTENT_TYPE,
             upsert: true,
           });
+        if (uploadError) break; // keep whatever uploaded; a partial set still works
+        const { data: urlData } = supabase.storage
+          .from(SCREENSHOT_BUCKET)
+          .getPublicUrl(fileName);
+        screenshotUrls.push(urlData.publicUrl);
+      }
+      const screenshotUrl = screenshotUrls[0] ?? null;
 
-        if (!uploadError && uploadData) {
-          const { data: urlData } = supabase.storage
-            .from("screenshots")
-            .getPublicUrl(fileName);
-          screenshotUrl = urlData.publicUrl;
-        }
+      if (screenshotUrl) {
+        // A re-scan that produces fewer bands than last time, or that replaces a
+        // pre-WebP .png, would otherwise strand the leftovers — upsert only
+        // overwrites the identical path.
+        const stale: string[] = [
+          screenshotPath(user.id, analysis_id, "png"),
+          ...Array.from({ length: MAX_SECTIONS }, (_, i) => i)
+            .filter((i) => i >= screenshotUrls.length)
+            .flatMap((i) => [
+              screenshotPath(user.id, analysis_id, undefined, i),
+              screenshotPath(user.id, analysis_id, "png", i),
+            ]),
+        ];
+        await supabase.storage.from(SCREENSHOT_BUCKET).remove(stale);
       }
 
       // Generate design tokens
@@ -106,8 +128,10 @@ export async function POST(request: NextRequest) {
         .from("site_analyses")
         .update({
           screenshot_url: screenshotUrl,
+          screenshot_urls: screenshotUrls,
           fonts: scanResult.fonts,
           colors: scanResult.colors,
+          style_tokens: scanResult.styleTokens,
           design_tokens: designTokens,
           analysis_status: "completed",
           error_message: null,

@@ -579,7 +579,9 @@ export const lpCss = `
 }
 
 /* pricing */
-.lp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 340px)); gap: 20px; justify-content: center; margin-top: 60px; }
+.lp-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 300px)); gap: 20px; justify-content: center; margin-top: 60px; }
+@media (max-width: 980px) { .lp-plans { grid-template-columns: repeat(2, minmax(0, 320px)); } }
+@media (max-width: 660px) { .lp-plans { grid-template-columns: minmax(0, 380px); } }
 .lp-plan {
   position: relative; background: var(--card);
   border: 1px solid var(--line); border-radius: 18px; padding: 30px 28px;

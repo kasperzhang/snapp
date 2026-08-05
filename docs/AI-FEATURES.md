@@ -7,13 +7,24 @@ agent can build from directly.
 
 **The two features:**
 
-| Feature | Route | What it does |
-|---|---|---|
-| Design guide | `src/app/api/analysis/generate/route.ts` | One scanned site → complete design-system spec |
-| Mix | `src/app/api/workbenches/generate/route.ts` | Up to 8 scanned sites + designer's picks → one cohesive combined guide |
+| Feature | Route | Prompt | What it does |
+|---|---|---|---|
+| Design guide | `src/app/api/analysis/generate/route.ts` | `src/lib/ai/prompts/guide.ts` | One scanned site → complete design-system spec |
+| Mix | `src/app/api/workbenches/generate/route.ts` | `src/lib/ai/prompts/mix.ts` | Up to 8 scanned sites + designer's picks → one cohesive combined guide |
 
-Both call `claude-sonnet-5` via `anthropic.messages.create` — a single structured
-completion, no agent loop needed.
+Both are a single structured completion — no agent loop needed.
+
+**Where things live.** The prompts were lifted out of the route files so the eval
+harness (`scripts/eval-guides.mjs`) sends byte-identical bytes to what production
+sends, and so a second provider can reuse them. Edit prompts in
+`src/lib/ai/prompts/`, never inline in a route.
+
+The model is no longer hardcoded at the call site. `resolveModel(feature, plan)`
+in `src/lib/ai/models.ts` owns the choice, and `MODELS` there owns per-model
+token pricing (metering reads it via `estimateCostCents`). The `ROUTING` table is
+empty today, so everything resolves to `claude-sonnet-5` — identical to what
+shipped before. That table is the one place to change when the eval picks a
+cheaper model for a tier or a feature.
 
 ---
 
@@ -29,6 +40,29 @@ The role is specific ("design system architecture, type scales, color theory,
 Tailwind implementation"), not generic ("you are a helpful designer"). It names the
 *audience* too: AI design tools, AI coding assistants, human developers. The model
 calibrates precision to who will consume the output.
+
+### Omission is correct; invention is a defect
+Instruction #3 used to read *"Be COMPLETE — Fill every section."* Combined with
+fixed component slots (Ghost/Tertiary Button, Select/Dropdown, Checkbox/Radio)
+that **ordered the model to invent components the site doesn't have** — a
+portfolio with no forms still got checkbox styling. It now reads "Be GROUNDED",
+and each optional block says OMIT explicitly.
+
+Measured on ramisalo.design and meetzap.app: component blocks fell 8→5 and 8→3,
+with every omission verified against the scraper as genuinely absent, and output
+fell ~7.5%.
+
+Two honest caveats, so nobody re-litigates this from the changelog alone:
+- **This did not measurably improve the generated pages.** The motivating theory
+  was that over-specification constrains the downstream coding agent. It doesn't
+  appear to — Claude Design ignored the invented components entirely (zero
+  `<select>` in any output, BASE or tightened). The change shipped for cost and
+  factual correctness, which were measured; not for page quality, which was a
+  wash.
+- **Run-to-run variance of the downstream agent exceeds this effect size.** Two
+  runs of the *same* condition differed more than the two conditions differed.
+  Don't try to A/B prompt tweaks through rendered pages without many samples per
+  cell; the noise floor will eat the signal.
 
 ### Output format as a fill-in contract
 The `<output-format>` block is a complete Markdown skeleton with `[placeholder]`
@@ -96,7 +130,16 @@ the 5-minute TTL now read the template at ~0.1× input price.
 The Mix `LEAD` prompt (~1K tokens) sits *below* the cacheable minimum — a
 `cache_control` marker there would silently no-op, so it doesn't carry one.
 
-### `max_tokens: 8000` as a timeout guarantee
+### `max_tokens: 12000` — measured, not guessed
+Was 8000. Across six real sites Sonnet's natural length for this template is
+**7,700–8,500 tokens**, so an 8000 cap sat exactly on the model's output length
+and truncated roughly half of all guides — usually severing the Paste-Ready
+Agent Prompt, the single most useful section. At ~85s per 8,000 tokens, 12000
+lands near 120s, well inside the 300s ceiling. `scripts/eval-guides.mjs` reports
+`⚠ TRUNCATED` per generation; if that starts appearing again, tighten the
+output-format skeleton rather than raising the cap further.
+
+### The original reasoning (kept — it still bounds the ceiling)
 Vercel kills the function at `maxDuration = 300` (the plan ceiling), and a killed
 function skips the error handler — stranding `guide_status` at `"generating"`
 forever. At worst-case output speed, 8,000 tokens ≈ 2 minutes, so the timeout is
@@ -114,7 +157,46 @@ boost, the next step is `thinking: {type: "adaptive"}` + `output_config: {effort
 
 ### Vision via URL image blocks
 Screenshots pass as URL-type image sources (Supabase storage URLs) — no base64
-inflation of the request, and Anthropic fetches them directly.
+inflation of the request, and Anthropic fetches them directly. Note this is
+Anthropic-specific: Gemini's REST API wants inline base64, which is why the eval
+harness fetches the image itself before calling it.
+
+Screenshots are **WebP q80 at 1280×800** (`src/lib/scraper/page-analyzer.ts`) —
+about 120KB versus ~800KB for the PNG they used to be. Storage is the dominant
+Supabase cost and screenshots are never re-generated, so the format choice
+compounds. Both Anthropic and Gemini accept `image/webp`.
+
+### Sectioned capture, not one tall image
+The page is captured as up to `MAX_SCREENSHOT_SECTIONS` (3) consecutive
+viewport-height bands, hero first, each sent as its own labelled image. A single
+`fullPage: true` capture gets downsampled to ~1568px on the long edge by the
+model APIs, so a 6000px page arrives as unreadable mush. Bands stay sharp.
+`screenshot_url` remains the hero (bookmark previews, Mix); `screenshot_urls`
+holds the full ordered set.
+
+### Measured tokens beat inferred ones
+`extractStyleTokensFromPage` reads **border-radius, box-shadow and the spacing
+rhythm** off the live DOM, and `buildContext` presents them as facts the model
+must copy verbatim.
+
+This closed a real failure: the template has always demanded Border Radius,
+Shadows and a Spacing Scale, but the scraper only ever produced fonts and
+colours — so the model invented all three from one above-the-fold screenshot. A
+site whose cards, buttons and inputs are all rounded got documented as
+`border-radius: 0px`, because no rounded component was visible in the one image
+it had. Every model tested made this class of error; it was an input problem,
+not a model problem.
+
+Two details worth preserving if you touch that extractor:
+- **0px radius is deliberately not counted.** It's the CSS default, so every
+  icon and wrapper div votes for it and buries the handful of real decisions.
+  An empty `radii` list already means "nothing is rounded".
+- **Hidden and sub-8px elements are filtered out** before counting, or the
+  frequency ranking reflects the DOM rather than the design.
+
+Analyses scanned before this shipped have `style_tokens = null`; `buildContext`
+omits the block entirely rather than asserting anything, so they degrade to
+exactly the old behaviour until re-scanned.
 
 ### Real usage metering
 Billing uses `message.usage` (actual token counts) — `totalInputTokens(usage)` +

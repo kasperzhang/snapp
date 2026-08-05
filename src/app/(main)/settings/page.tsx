@@ -1,26 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CreditCard, LogOut, Zap } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarClock,
+  CreditCard,
+  LogOut,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils/cn";
+import {
+  PLANS,
+  type BillingInterval,
+  type PlanId,
+  type UsageKind,
+} from "@/lib/billing/plans";
+import { PlanCards } from "@/components/billing/PlanCards";
 
 type Billing = {
-  plan: "free" | "pro";
-  usage: Record<"guide" | "analysis" | "scan", { used: number; limit: number }>;
+  plan: PlanId;
+  usage: Record<UsageKind, { used: number; limit: number }>;
+  /** Set to lapse at the end of the paid period — access continues until then. */
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
 };
 
-const METERS: { key: keyof Billing["usage"]; label: string }[] = [
-  { key: "guide", label: "Design guides" },
-  { key: "analysis", label: "Site analyses" },
-  { key: "scan", label: "Deep scans" },
+const formatDate = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
+type TabId = "profile" | "plan" | "account";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "plan", label: "Plan" },
+  { id: "account", label: "Account" },
 ];
 
-export default function SettingsPage() {
+// Single-site guides and Mixes share one pool, so there are two meters, not
+// three. Scans are effectively unlimited on paid plans — the cap exists to
+// bound a scripted account, not to ration the feature — so it reads that way.
+const METERS: { key: UsageKind; label: string }[] = [
+  { key: "guide", label: "Design guides" },
+  { key: "scan", label: "Site scans" },
+];
+
+function SettingsInner() {
   const router = useRouter();
   const supabase = createClient();
 
@@ -30,7 +64,22 @@ export default function SettingsPage() {
   const [nameLoaded, setNameLoaded] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
   const [billing, setBilling] = useState<Billing | null>(null);
-  const [billingBusy, setBillingBusy] = useState(false);
+  // Which button is mid-redirect — several can be on screen at once now.
+  const [billingBusy, setBillingBusy] = useState<PlanId | "portal" | null>(null);
+  const [billingInterval, setBillingInterval] =
+    useState<BillingInterval>("monthly");
+
+  // Tab lives in the URL so the over-limit prompts can land straight on the
+  // plans instead of dropping people on the profile form to hunt for it.
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const tab: TabId = TABS.some((t) => t.id === tabParam)
+    ? (tabParam as TabId)
+    : "profile";
+  const setTab = (next: TabId) =>
+    router.replace(next === "profile" ? "/settings" : `/settings?tab=${next}`, {
+      scroll: false,
+    });
 
   useEffect(() => {
     let alive = true;
@@ -68,15 +117,33 @@ export default function SettingsPage() {
     setTimeout(() => setNameSaved(false), 2000);
   };
 
-  const goBilling = async (endpoint: "checkout" | "portal") => {
+  // Checks out at whichever interval the PlanCards toggle is showing — the
+  // price on screen and the price charged have to be the same one.
+  const goCheckout = async (plan: PlanId) => {
     try {
-      setBillingBusy(true);
-      const res = await fetch(`/api/billing/${endpoint}`, { method: "POST" });
+      setBillingBusy(plan);
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ plan, interval: billingInterval }),
+      });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-      else setBillingBusy(false);
+      else setBillingBusy(null);
     } catch {
-      setBillingBusy(false);
+      setBillingBusy(null);
+    }
+  };
+
+  const goPortal = async () => {
+    try {
+      setBillingBusy("portal");
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else setBillingBusy(null);
+    } catch {
+      setBillingBusy(null);
     }
   };
 
@@ -104,7 +171,27 @@ export default function SettingsPage() {
             Your profile, plan, and account.
           </p>
 
-          {/* Profile */}
+          {/* Tabs. Three short sections would not justify this on their own —
+              the Plan tab is what needs the room, now that it carries a full
+              comparison rather than two unlabelled buy buttons. */}
+          <div className="mt-7 flex gap-1 border-b border-[var(--border)]">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={cn(
+                  "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
+                  tab === t.id
+                    ? "border-[var(--brand)] font-medium text-[var(--foreground)]"
+                    : "border-transparent text-[var(--text-secondary)] hover:text-[var(--foreground)]"
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "profile" && (
           <section className="mt-8 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
               Profile
@@ -147,85 +234,112 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Plan & usage */}
-          <section className="mt-5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
-            <div className="flex items-center justify-between">
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                Plan &amp; usage
-              </p>
-              {billing && (
-                <span
-                  className={cn(
-                    "rounded px-2 py-0.5 font-[family-name:var(--font-display)] text-[11px] font-semibold uppercase tracking-wide",
-                    billing.plan === "pro"
-                      ? "bg-[var(--brand)] text-white"
-                      : "bg-[var(--border)] text-[var(--text-secondary)]"
-                  )}
-                >
-                  {billing.plan}
-                </span>
-              )}
-            </div>
+          )}
 
-            {billing ? (
-              <div className="mt-5 space-y-4">
-                {METERS.map((m) => {
-                  const { used, limit } = billing.usage[m.key];
-                  const pct = Math.min(100, (used / Math.max(1, limit)) * 100);
-                  return (
-                    <div key={m.key}>
-                      <div className="flex items-baseline justify-between text-sm">
-                        <span className="text-[var(--text-secondary)]">
-                          {m.label}
-                        </span>
-                        <span className="font-mono text-[12px] tabular-nums text-[var(--foreground)]">
-                          {used} / {limit}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--border-light)]">
-                        <div
-                          className="h-full rounded-full bg-[var(--brand)]"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-                <p className="pt-1 text-xs text-[var(--text-muted)]">
-                  Counts reset monthly. Saving bookmarks is always free and
-                  unlimited.
-                </p>
-                <div className="pt-1">
-                  {billing.plan === "pro" ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => goBilling("portal")}
-                      loading={billingBusy}
+          {tab === "plan" && (
+            <>
+              <section className="mt-5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                    Your plan
+                  </p>
+                  {billing && (
+                    <span
+                      className={cn(
+                        "rounded px-2 py-0.5 font-[family-name:var(--font-display)] text-[11px] font-semibold uppercase tracking-wide",
+                        billing.plan === "free"
+                          ? "bg-[var(--border)] text-[var(--text-secondary)]"
+                          : "bg-[var(--brand)] text-white"
+                      )}
                     >
-                      <CreditCard className="h-4 w-4" />
-                      Manage billing
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => goBilling("checkout")}
-                      loading={billingBusy}
-                    >
-                      <Zap className="h-4 w-4" />
-                      Upgrade to Pro — $12/mo
-                    </Button>
+                      {PLANS[billing.plan]?.name ?? billing.plan}
+                    </span>
                   )}
                 </div>
-              </div>
-            ) : (
-              <p className="mt-5 text-sm text-[var(--text-muted)]">
-                Loading usage…
-              </p>
-            )}
-          </section>
 
-          {/* Account */}
+                {billing ? (
+                  <div className="mt-5 space-y-4">
+                    {METERS.map((m) => {
+                      const { used, limit } = billing.usage[m.key];
+                      const pct = Math.min(100, (used / Math.max(1, limit)) * 100);
+                      return (
+                        <div key={m.key}>
+                          <div className="flex items-baseline justify-between text-sm">
+                            <span className="text-[var(--text-secondary)]">
+                              {m.label}
+                            </span>
+                            <span className="font-mono text-[12px] tabular-nums text-[var(--foreground)]">
+                              {used} / {limit}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--border-light)]">
+                            <div
+                              className="h-full rounded-full bg-[var(--brand)]"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="pt-1 text-xs text-[var(--text-muted)]">
+                      Counts reset monthly. Saving bookmarks is always free and
+                      unlimited.
+                    </p>
+
+                    {billing.cancelAtPeriodEnd && (
+                      <div className="flex items-start gap-2.5 rounded-[10px] border border-[var(--border)] bg-[var(--sidebar)] px-3.5 py-3">
+                        <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-secondary)]" />
+                        <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
+                          Your {PLANS[billing.plan]?.name ?? billing.plan} plan is
+                          set to end
+                          {formatDate(billing.currentPeriodEnd)
+                            ? ` on ${formatDate(billing.currentPeriodEnd)}`
+                            : " at the end of this billing period"}
+                          . You keep everything until then — reactivate any time
+                          from Manage billing.
+                        </p>
+                      </div>
+                    )}
+
+                    {billing.plan !== "free" && (
+                      <div className="pt-1">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={goPortal}
+                          loading={billingBusy === "portal"}
+                          disabled={billingBusy !== null}
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Manage billing
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm text-[var(--text-muted)]">
+                    Loading usage…
+                  </p>
+                )}
+              </section>
+
+              {billing && (
+                <section className="mt-5">
+                  <PlanCards
+                    currentPlan={billing.plan}
+                    interval={billingInterval}
+                    onIntervalChange={setBillingInterval}
+                    hasSubscription={billing.plan !== "free"}
+                    onChoose={goCheckout}
+                    onManage={goPortal}
+                    busy={billingBusy}
+                  />
+                </section>
+              )}
+            </>
+          )}
+
+          {tab === "account" && (
           <section className="mt-5 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
               Account
@@ -240,8 +354,18 @@ export default function SettingsPage() {
               </Button>
             </div>
           </section>
+          )}
         </main>
       </ContentPanel>
     </div>
+  );
+}
+
+// useSearchParams needs a Suspense boundary in the app router.
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsInner />
+    </Suspense>
   );
 }

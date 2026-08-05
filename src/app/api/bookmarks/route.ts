@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ilikeContains } from "@/lib/db/filters";
 import { BOOKMARKS_PAGE_SIZE, pageCount } from "@/lib/pagination";
+import { removeScreenshots } from "@/lib/storage/screenshots";
 
 export async function GET(request: NextRequest) {
   try {
@@ -299,6 +300,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    // site_analyses cascades with the bookmark, so collect the screenshot owners
+    // now — once the rows are gone we can't work out which files to reclaim.
+    const { data: analyses } = await supabase
+      .from("site_analyses")
+      .select("id")
+      .eq("bookmark_id", id);
+
     // Delete bookmark (cascade will handle junction tables)
     const { error } = await supabase.from("bookmarks").delete().eq("id", id);
 
@@ -309,6 +317,12 @@ export async function DELETE(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    await removeScreenshots(
+      supabase,
+      user.id,
+      (analyses ?? []).map((a) => a.id as string)
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

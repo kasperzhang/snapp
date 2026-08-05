@@ -3,7 +3,24 @@ import puppeteerFull from "puppeteer";
 import chromium from "@sparticuz/chromium-min";
 import Color from "color";
 import namer from "color-namer";
-import { ExtractedFont, ExtractedColor, ScanResult } from "@/types";
+// `import type` matters beyond style here: these are all interfaces, so they
+// vanish at runtime. A value import leaves Node looking for exports that the
+// compiled module never had, which breaks scripts/scan-preview.mjs.
+import type {
+  ExtractedFont,
+  ExtractedColor,
+  ScanResult,
+  StyleTokens,
+} from "@/types";
+
+const VIEWPORT_WIDTH = 1280;
+const VIEWPORT_HEIGHT = 800;
+
+// How many viewport-height bands of a page get sent to the model. Three covers
+// hero + the first content sections, where a site's component vocabulary
+// (cards, inputs, buttons) actually lives. Each band is ~1,365 image tokens, so
+// this is also the per-scan cost ceiling.
+const MAX_SCREENSHOT_SECTIONS = 3;
 
 // Production Chromium binary for @sparticuz/chromium-min. Defaults to the
 // OFFICIAL Sparticuz release matching the installed `@sparticuz/chromium-min`
@@ -70,7 +87,7 @@ async function getBrowser(): Promise<Browser> {
 
   return puppeteer.launch({
     args: chromium.args,
-    defaultViewport: { width: 1280, height: 800 },
+    defaultViewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT },
     executablePath,
     headless: true,
   });
@@ -409,6 +426,116 @@ async function extractFontsFromPage(page: Page): Promise<ExtractedFont[]> {
     .slice(0, 10);
 }
 
+/**
+ * Reads border-radius, box-shadow and the spacing rhythm off the live DOM.
+ *
+ * These three are demanded by the guide template but were never scraped, so the
+ * model guessed them from one above-the-fold screenshot. One DOM pass covers all
+ * three; elements are classified by tag/role so the guide can say "cards use
+ * 16px" rather than quoting a single global number.
+ */
+async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
+  return page.evaluate(() => {
+    type Bucket = Map<string, { count: number; context: string }>;
+    const radii: Bucket = new Map();
+    const shadows: Bucket = new Map();
+    const spacing = new Map<string, { count: number; property: string }>();
+
+    const classify = (el: Element): string => {
+      const tag = el.tagName.toLowerCase();
+      const cls = (el.getAttribute("class") || "").toLowerCase();
+      if (tag === "button" || el.getAttribute("role") === "button" || /\bbtn\b|button/.test(cls))
+        return "button";
+      if (tag === "input" || tag === "textarea" || tag === "select") return "input";
+      if (tag === "img" || tag === "picture" || tag === "video" || tag === "svg") return "image";
+      if (/card|tile|panel|item/.test(cls)) return "card";
+      return "other";
+    };
+
+    // Only elements that actually render — a hidden element's styles say nothing
+    // about the design, and they badly skew the frequency counts.
+    const visible = Array.from(document.querySelectorAll("*")).filter((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) return false;
+      const s = window.getComputedStyle(el);
+      return s.display !== "none" && s.visibility !== "hidden" && s.opacity !== "0";
+    });
+
+    const bump = (m: Bucket, key: string, context: string) => {
+      const cur = m.get(key);
+      if (cur) {
+        cur.count += 1;
+        if (cur.context === "other" && context !== "other") cur.context = context;
+      } else m.set(key, { count: 1, context });
+    };
+
+    for (const el of visible) {
+      const s = window.getComputedStyle(el);
+      const kind = classify(el);
+
+      // Radius. Rounded corners often differ per corner; take the top-left as
+      // representative but skip elements whose corners disagree wildly.
+      const tl = s.borderTopLeftRadius;
+      if (tl && tl !== "0px" && !tl.includes("%")) {
+        const px = parseFloat(tl);
+        // A pill is any radius at least half the box's shorter side.
+        const r = el.getBoundingClientRect();
+        const isPill = px >= Math.min(r.width, r.height) / 2 - 1;
+        bump(radii, isPill ? "9999px" : `${Math.round(px)}px`, kind);
+      }
+      // 0px is deliberately NOT counted. It's the CSS default, so every icon,
+      // svg and wrapper div votes for it — on a real site that buries the
+      // handful of genuine radius decisions under hundreds of non-decisions,
+      // and tells the model the design is square-cornered when it isn't.
+      // An empty radii list already means "nothing is rounded".
+
+      const sh = s.boxShadow;
+      if (sh && sh !== "none") {
+        bump(shadows, sh, kind === "input" || kind === "image" ? "other" : kind);
+      }
+
+      // Spacing rhythm: the vertical gaps that actually set the page's rhythm.
+      for (const [prop, raw] of [
+        ["padding", s.paddingTop],
+        ["margin", s.marginBottom],
+        ["gap", s.rowGap],
+      ] as const) {
+        const px = parseFloat(raw);
+        if (!Number.isFinite(px) || px <= 0 || px > 400) continue;
+        const key = `${Math.round(px)}px`;
+        const cur = spacing.get(`${prop}:${key}`);
+        if (cur) cur.count += 1;
+        else spacing.set(`${prop}:${key}`, { count: 1, property: prop });
+      }
+    }
+
+    const topRadii = [...radii.entries()]
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 8)
+      .map(([value, d]) => ({
+        value,
+        px: value === "9999px" ? 9999 : parseFloat(value),
+        frequency: d.count,
+        context: d.context,
+      }));
+
+    const topShadows = [...shadows.entries()]
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 6)
+      .map(([value, d]) => ({ value, frequency: d.count, context: d.context }));
+
+    const topSpacing = [...spacing.entries()]
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 12)
+      .map(([k, d]) => {
+        const value = k.split(":")[1];
+        return { value, px: parseFloat(value), frequency: d.count, property: d.property };
+      });
+
+    return { radii: topRadii, shadows: topShadows, spacing: topSpacing };
+  }) as Promise<StyleTokens>;
+}
+
 async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
   const colorData = await page.evaluate(() => {
     const colors: ColorInfo[] = [];
@@ -547,7 +674,7 @@ export async function analyzePage(url: string): Promise<ScanResult> {
     const page = await browser.newPage();
 
     // Set viewport for consistent screenshots
-    await page.setViewport({ width: 1280, height: 800 });
+    await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });
 
     // Set user agent
     await page.setUserAgent(
@@ -570,22 +697,48 @@ export async function analyzePage(url: string): Promise<ScanResult> {
     // Wait a bit for any lazy-loaded content
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Take screenshot
-    const screenshot = await page.screenshot({
-      type: "png",
-      fullPage: false,
-    });
+    // Capture the page as consecutive viewport-height bands rather than one
+    // tall image. `fullPage: true` would be downsampled to ~1568px on the long
+    // edge by the model APIs, so a 6000px page arrives unreadable; bands stay
+    // sharp. WebP q80 keeps each around 120KB (PNG was ~800KB) and both
+    // Anthropic and Gemini accept image/webp.
+    const sections: Buffer[] = [];
+    const pageHeight = await page.evaluate(
+      () => document.documentElement.scrollHeight
+    );
+    const bands = Math.min(
+      MAX_SCREENSHOT_SECTIONS,
+      Math.max(1, Math.ceil(pageHeight / VIEWPORT_HEIGHT))
+    );
 
-    // Extract fonts and colors
-    const [fonts, colors] = await Promise.all([
+    for (let i = 0; i < bands; i++) {
+      const y = i * VIEWPORT_HEIGHT;
+      await page.evaluate((top) => window.scrollTo(0, top), y);
+      // Let lazy-loaded imagery and scroll-triggered animations settle.
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      const shot = await page.screenshot({
+        type: "webp",
+        quality: 80,
+        fullPage: false,
+      });
+      sections.push(Buffer.from(shot));
+    }
+
+    // Style extraction runs after the scroll-through so lazy content is present.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const [fonts, colors, styleTokens] = await Promise.all([
       extractFontsFromPage(page),
       extractColorsFromPage(page),
+      extractStyleTokensFromPage(page),
     ]);
 
     return {
-      screenshot: Buffer.from(screenshot),
+      // The hero doubles as the bookmark card's preview image.
+      screenshot: sections[0] ?? null,
+      sections,
       fonts,
       colors,
+      styleTokens,
     };
   } finally {
     if (browser) {

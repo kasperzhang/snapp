@@ -11,6 +11,7 @@ import {
 import { PreviewPanel } from "./PreviewPanel";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { BookmarkWithRelations, SiteAnalysis } from "@/types";
+import { notifyUsageChanged } from "@/lib/billing/usage-events";
 
 interface SiteAnalysisDialogProps {
   bookmark: BookmarkWithRelations | null;
@@ -82,6 +83,7 @@ export function SiteAnalysisDialog({
       if (response.ok) {
         const data = await response.json();
         setAnalysis(data);
+        notifyUsageChanged(); // a scan was consumed
       } else {
         const error = await response.json();
         setAnalysis((prev) =>
@@ -124,6 +126,7 @@ export function SiteAnalysisDialog({
       if (response.ok) {
         const data = await response.json();
         setAnalysis(data);
+        notifyUsageChanged(); // a guide credit was consumed
       }
     } catch (error) {
       console.error("Error generating prompt:", error);

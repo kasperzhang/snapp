@@ -87,6 +87,40 @@ export interface ExtractedColor {
   context: "background" | "text" | "accent" | "border" | "other";
 }
 
+/* Measured style tokens. The guide template demands Border Radius, Shadows and
+   a Spacing Scale; before these existed the model invented all three from a
+   single above-the-fold screenshot, which is how a site full of rounded cards
+   got documented as "border-radius: 0px". Scraped values are ground truth. */
+
+export interface ExtractedRadius {
+  /** As authored, e.g. "12px" or "9999px". */
+  value: string;
+  /** Numeric px for sorting/rounding; 9999 for fully-round pills. */
+  px: number;
+  frequency: number;
+  context: "button" | "card" | "input" | "image" | "other";
+}
+
+export interface ExtractedShadow {
+  /** Full computed box-shadow string, usable verbatim in CSS. */
+  value: string;
+  frequency: number;
+  context: "card" | "button" | "overlay" | "other";
+}
+
+export interface ExtractedSpacing {
+  value: string;
+  px: number;
+  frequency: number;
+  property: "padding" | "margin" | "gap";
+}
+
+export interface StyleTokens {
+  radii: ExtractedRadius[];
+  shadows: ExtractedShadow[];
+  spacing: ExtractedSpacing[];
+}
+
 export interface DesignTokens {
   tailwind: {
     colors: Record<string, string>;
@@ -112,9 +146,18 @@ export interface SiteAnalysis {
 }
 
 export interface ScanResult {
+  /** Hero section — kept separate for the card preview and for Mix. */
   screenshot: Buffer | null;
+  /**
+   * The page captured as consecutive viewport-height sections, hero first.
+   * A single full-page image gets downsampled to ~1568px on the long edge by
+   * the model APIs, which turns a 6000px page into unreadable mush; separate
+   * sections keep every band at full resolution.
+   */
+  sections: Buffer[];
   fonts: ExtractedFont[];
   colors: ExtractedColor[];
+  styleTokens: StyleTokens;
 }
 
 // Workbench Types

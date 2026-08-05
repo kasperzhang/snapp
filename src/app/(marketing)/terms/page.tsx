@@ -33,23 +33,28 @@ export default function TermsPage() {
         13 years old (or the minimum age of digital consent where you live).
       </p>
 
-      <h2>3. Free plan and Pro subscription</h2>
+      <h2>3. Free plan and paid subscriptions</h2>
       <ul>
         <li>
           <strong>Free</strong> — saving and organizing bookmarks is free and
-          unlimited. Free accounts include a monthly allowance of metered
-          actions (design guides, site analyses, and deep scans).
+          unlimited. Free accounts include a monthly allowance of design guides
+          and site scans.
         </li>
         <li>
-          <strong>Pro</strong> — a paid monthly subscription (currently
-          US$12/month) with much higher monthly allowances. Payments are
-          processed by <strong>Stripe</strong>; we never see or store your
-          card number. Subscriptions renew automatically each month until you
-          cancel. You can cancel anytime from Settings → Manage billing, and
-          you keep Pro until the end of the paid period. See our{" "}
-          <a href="/refunds">refund policy</a>.
+          <strong>Lite</strong> (US$3.99/month or US$10.79/quarter) and{" "}
+          <strong>Pro</strong> (US$9.99/month or US$26.99/quarter) — paid
+          subscriptions with higher monthly allowances of design guides, and
+          site scans high enough that normal use won&apos;t reach them. A design
+          guide is one generation, whether from a single site or a Mix.
         </li>
       </ul>
+      <p>
+        Payments are processed by <strong>Stripe</strong>; we never see or store
+        your card number. Subscriptions renew automatically each billing period
+        until you cancel. You can cancel anytime from Settings → Manage billing,
+        and you keep your plan until the end of the period you&apos;ve paid for.
+        See our <a href="/refunds">refund policy</a>.
+      </p>
       <p>
         We may change prices or allowances going forward; if we do, we&apos;ll
         give existing subscribers reasonable notice before a change affects

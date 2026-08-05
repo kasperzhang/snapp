@@ -44,7 +44,7 @@ const FAQS = [
   },
   {
     q: "What do I get for free?",
-    a: "The whole library: unlimited bookmarks, visual previews, tags, search, and 30 site scans a month. It stays free. Pro adds the Mix — the part that reads your tagged sources and writes the combined design guide.",
+    a: "The whole library: unlimited bookmarks, visual previews, tags, search, and 15 site scans a month. It stays free. You also get one design guide so you can see what the output looks like — after that, Lite is $3.99/month for ten a month and Pro is $9.99 for forty.",
   },
   {
     q: "How is this different from a bookmark manager?",
@@ -94,6 +94,10 @@ export default async function LandingPage() {
   } = await supabase.auth.getUser();
   const loggedIn = !!user;
   const appHref = loggedIn ? "/app" : "/signup";
+  // Pricing CTAs go where the plan can actually be bought. Sending a signed-in
+  // visitor who clicked "Go Pro" to /app just drops them in the product with no
+  // way to pay — Settings is where the plan buttons live.
+  const planHref = loggedIn ? "/settings?tab=plan" : "/signup";
 
   // Emitted from the same array the section renders, so the structured data
   // can't drift from what's actually on the page — which is what earns the
@@ -309,7 +313,11 @@ export default async function LandingPage() {
       <section id="pricing" className="lp-section lp-section-tint">
         <div className="lp-section-inner">
           <p className="lp-eyebrow lp-center">Pricing</p>
-          <h2 className="lp-h2 lp-center">Free to collect. Pro to compose.</h2>
+          <h2 className="lp-h2 lp-center">Free to collect. Paid to compose.</h2>
+          <p className="lp-sub lp-center">
+            A credit is one design guide — from a single site or a Mix of up to
+            eight. Bookmarks and scans never count against it.
+          </p>
           <div className="lp-plans">
             <div className="lp-plan">
               <h3>Free</h3>
@@ -320,27 +328,47 @@ export default async function LandingPage() {
               <ul>
                 <li>Unlimited bookmarks</li>
                 <li>Previews, tags &amp; instant search</li>
-                <li>30 deep site scans a month</li>
-                <li>5 guides to try the Mix</li>
+                <li>15 site scans a month</li>
+                <li>1 design guide, to see what it does</li>
               </ul>
-              <Link href={appHref} className="lp-btn lp-btn-ghost lp-btn-block">
+              <Link href={planHref} className="lp-btn lp-btn-ghost lp-btn-block">
                 {loggedIn ? "Open app" : "Start free"}
               </Link>
             </div>
-            <div className="lp-plan lp-plan-pro">
-              <span className="lp-plan-flag">Pro</span>
-              <h3>Pro</h3>
+            <div className="lp-plan">
+              <h3>Lite</h3>
               <div className="lp-price">
-                $12 <span>/ month</span>
+                $3.99 <span>/ month</span>
               </div>
-              <p className="lp-plan-blurb">The Mix, unlocked.</p>
+              <p className="lp-plan-blurb">
+                For the occasional build. $3.60/mo billed quarterly.
+              </p>
               <ul>
                 <li>Everything in Free</li>
-                <li>200 design guides a month</li>
-                <li>1,000 site analyses a month</li>
+                <li>10 design guides a month</li>
+                <li>Unlimited site scans</li>
+                <li>Mix up to 8 sources</li>
+              </ul>
+              <Link href={planHref} className="lp-btn lp-btn-ghost lp-btn-block">
+                {loggedIn ? "Choose Lite" : "Start free"}
+              </Link>
+            </div>
+            <div className="lp-plan lp-plan-pro">
+              <span className="lp-plan-flag">Most popular</span>
+              <h3>Pro</h3>
+              <div className="lp-price">
+                $9.99 <span>/ month</span>
+              </div>
+              <p className="lp-plan-blurb">
+                For shipping weekly. $9.00/mo billed quarterly.
+              </p>
+              <ul>
+                <li>Everything in Lite</li>
+                <li>40 design guides a month</li>
+                <li>Unlimited site scans</li>
                 <li>Priority generation</li>
               </ul>
-              <Link href={appHref} className="lp-btn lp-btn-primary lp-btn-block">
+              <Link href={planHref} className="lp-btn lp-btn-primary lp-btn-block">
                 {loggedIn ? "Go Pro" : "Start free"}
               </Link>
             </div>

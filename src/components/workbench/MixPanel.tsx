@@ -113,14 +113,12 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const goUpgrade = async () => {
-    try {
-      const res = await fetch("/api/billing/checkout", { method: "POST" });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      /* the error stays visible in the panel */
-    }
+  // Send them to Settings to choose a plan rather than starting checkout for a
+  // hardcoded tier. There are two sellable plans now, so picking one for the
+  // user would either surprise them or be wrong — and it keeps plan ids out of
+  // a component that has no other reason to know about billing.
+  const goUpgrade = () => {
+    window.location.href = "/settings?tab=plan";
   };
 
   return (
@@ -302,7 +300,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
             {overLimit ? (
               <Button size="sm" onClick={goUpgrade}>
                 <Zap className="h-3.5 w-3.5" />
-                Upgrade to Pro
+                See plans
               </Button>
             ) : (
               <Button size="sm" variant="secondary" onClick={runGenerate}>

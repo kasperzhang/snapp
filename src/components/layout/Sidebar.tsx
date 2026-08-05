@@ -27,6 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
 import { cn } from "@/lib/utils/cn";
+import { PLANS, type PlanId, type UsageKind } from "@/lib/billing/plans";
+import { onUsageChanged } from "@/lib/billing/usage-events";
 
 interface SidebarProps {
   userEmail?: string;
@@ -76,8 +78,8 @@ export function Sidebar({
   );
 
   type Billing = {
-    plan: "free" | "pro";
-    usage: Record<"guide" | "analysis" | "scan", { used: number; limit: number }>;
+    plan: PlanId;
+    usage: Record<UsageKind, { used: number; limit: number }>;
   };
   const [billing, setBilling] = useState<Billing | null>(null);
   // Profile display name (falls back to the email prefix while loading /
@@ -86,10 +88,18 @@ export function Sidebar({
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/billing/usage")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => alive && d && setBilling(d))
-      .catch(() => {});
+    const loadUsage = () =>
+      fetch("/api/billing/usage")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => alive && d && setBilling(d))
+        .catch(() => {});
+
+    loadUsage();
+    // Generating a guide or running a scan moves these counters. Without this
+    // the meter kept showing the pre-generation number until something
+    // remounted the sidebar.
+    const off = onUsageChanged(loadUsage);
+
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user || !alive) return;
       const { data } = await supabase
@@ -101,6 +111,7 @@ export function Sidebar({
     });
     return () => {
       alive = false;
+      off();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -110,9 +121,12 @@ export function Sidebar({
     router.push("/login");
   };
 
-  const goBilling = async (endpoint: "checkout" | "portal") => {
+  // Only the portal opens directly from here. Choosing between Lite and Pro
+  // belongs on the settings page where both are priced — this used to POST to
+  // /api/billing/checkout with no plan, which the route now rejects outright.
+  const goPortal = async () => {
     try {
-      const res = await fetch(`/api/billing/${endpoint}`, { method: "POST" });
+      const res = await fetch("/api/billing/portal", { method: "POST" });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
       else alert(data.error || "Something went wrong. Please try again.");
@@ -485,12 +499,12 @@ export function Sidebar({
                     <span
                       className={cn(
                         "font-[family-name:var(--font-display)] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded",
-                        billing.plan === "pro"
-                          ? "bg-[var(--brand)] text-white"
-                          : "bg-[var(--border)] text-[var(--text-secondary)]"
+                        billing.plan === "free"
+                          ? "bg-[var(--border)] text-[var(--text-secondary)]"
+                          : "bg-[var(--brand)] text-white"
                       )}
                     >
-                      {billing.plan}
+                      {PLANS[billing.plan]?.name ?? billing.plan}
                     </span>
                     <span className="text-[var(--text-muted)]">
                       {billing.usage.guide.used}/{billing.usage.guide.limit} guides
@@ -503,15 +517,15 @@ export function Sidebar({
                 <SettingsIcon className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>
-              {billing?.plan === "pro" ? (
-                <DropdownMenuItem onClick={() => goBilling("portal")}>
+              {billing && billing.plan !== "free" ? (
+                <DropdownMenuItem onClick={goPortal}>
                   <CreditCard className="w-4 h-4 mr-2" />
                   Manage billing
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem onClick={() => goBilling("checkout")}>
+                <DropdownMenuItem onClick={() => router.push("/settings?tab=plan")}>
                   <Zap className="w-4 h-4 mr-2" />
-                  Upgrade to Pro
+                  See plans
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={handleSignOut}>

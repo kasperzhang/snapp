@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe/client";
+import { priceIdForLookupKey } from "@/lib/stripe/prices";
+import {
+  PLANS,
+  priceFor,
+  type BillingInterval,
+  type PlanId,
+} from "@/lib/billing/plans";
 
 // Creates a Stripe Checkout session to subscribe the current user to Pro, then
 // returns its URL for the client to redirect to.
@@ -15,10 +22,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const priceId = process.env.STRIPE_PRICE_ID_PRO;
-    if (!priceId) {
+    // Validate the requested tier server-side. A client could otherwise ask for
+    // `studio` (not sellable until BYOK ships) or an interval we don't price.
+    const body = await req.json().catch(() => ({}));
+    const plan = body.plan as PlanId | undefined;
+    const interval = (body.interval ?? "monthly") as BillingInterval;
+
+    if (!plan || !(plan in PLANS) || !PLANS[plan].purchasable) {
       return NextResponse.json(
-        { error: "Pro price is not configured (STRIPE_PRICE_ID_PRO)." },
+        { error: "That plan isn't available." },
+        { status: 400 }
+      );
+    }
+
+    const price = priceFor(plan, interval);
+    if (!price) {
+      return NextResponse.json(
+        { error: `${PLANS[plan].name} has no ${interval} price.` },
+        { status: 400 }
+      );
+    }
+
+    const priceId = await priceIdForLookupKey(price.lookupKey);
+    if (!priceId) {
+      // The plan exists in code but not in Stripe — almost always means
+      // scripts/setup-stripe.mjs hasn't been run against this mode.
+      console.error(`No Stripe price for lookup key ${price.lookupKey}`);
+      return NextResponse.json(
+        { error: "Billing isn't fully configured yet." },
         { status: 500 }
       );
     }

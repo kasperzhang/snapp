@@ -7,7 +7,8 @@
 // - `estimateCostCents` turns an Anthropic `usage` object into an estimated cost.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PLANS, PlanId, UsageKind, MODEL_PRICING } from "./plans";
+import { PLANS, PlanId, UsageKind } from "./plans";
+import { MODEL_PRICING } from "@/lib/ai/models";
 
 /**
  * Which plan a user is on, from the `subscriptions` table. A user counts as Pro
@@ -27,7 +28,12 @@ export async function getUserPlan(
   if (error || !data) return "free";
 
   const active = data.status === "active" || data.status === "trialing";
-  return active && data.plan === "pro" ? "pro" : "free";
+  if (!active) return "free";
+
+  // Trust the webhook's plan id, but never a value we don't have limits for —
+  // an unknown plan should degrade to Free, not crash the usage check.
+  const plan = data.plan as PlanId;
+  return plan in PLANS ? plan : "free";
 }
 
 function monthStartISO(): string {

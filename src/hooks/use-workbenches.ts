@@ -8,6 +8,7 @@ import {
   WorkbenchItemSelection,
   WorkbenchWithItems,
 } from "@/types";
+import { notifyUsageChanged } from "@/lib/billing/usage-events";
 
 // Fired whenever a mix is created/deleted anywhere in the app so every
 // mounted useWorkbenches instance (e.g. the sidebar list) stays in sync.
@@ -225,6 +226,7 @@ export function useWorkbench(id: string | null) {
             }
           : prev
       );
+      notifyUsageChanged(); // a scan was consumed
     } catch {
       setWorkbench((prev) =>
         prev
@@ -282,6 +284,7 @@ export function useWorkbench(id: string | null) {
         onDelta?.(guide);
       } else if (frame.t === "done") {
         updated = frame.workbench as Workbench;
+        notifyUsageChanged(); // a guide credit was consumed
       } else if (frame.t === "err") {
         streamError = frame.message || "Failed to generate guide";
       }
