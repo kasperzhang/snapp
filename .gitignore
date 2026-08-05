@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Blind model-comparison output from scripts/eval-guides.mjs
+/eval-output
