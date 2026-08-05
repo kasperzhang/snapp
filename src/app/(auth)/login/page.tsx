@@ -82,18 +82,28 @@ export default function LoginPage() {
           required
         />
 
-        <Input
-          id="password"
-          label="Password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          disabled={loading}
-          className="h-11"
-          required
-        />
+        <div>
+          <Input
+            id="password"
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
+            className="h-11"
+            required
+          />
+          <p className="mt-1.5 text-right">
+            <Link
+              href="/forgot-password"
+              className="text-[13px] text-[var(--text-secondary)] underline-offset-2 hover:text-[var(--foreground)] hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </p>
+        </div>
 
         {error && (
           <p

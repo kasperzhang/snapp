@@ -37,7 +37,15 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isAuthPage = path.startsWith("/login") || path.startsWith("/signup");
+  // Signed-out-only surfaces.
+  const isAuthPage =
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/forgot-password");
+  // Reachable either way: the recovery link arrives with no session yet (the
+  // page trades its PKCE code client-side), and a signed-in user following a
+  // reset link must not be bounced to /app before they set the new password.
+  const isRecovery = path.startsWith("/reset-password");
   const isCallback = path.startsWith("/callback");
   const isApiRoute = path.startsWith("/api");
   // Public marketing surface — viewable signed-out or signed-in.
@@ -51,7 +59,14 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/for/") ||
     path.startsWith("/blog");
 
-  if (!user && !isAuthPage && !isCallback && !isApiRoute && !isMarketing) {
+  if (
+    !user &&
+    !isAuthPage &&
+    !isCallback &&
+    !isRecovery &&
+    !isApiRoute &&
+    !isMarketing
+  ) {
     // Send signed-out users hitting the app to login.
     const url = request.nextUrl.clone();
     url.pathname = "/login";
