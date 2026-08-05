@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import { AuthCard } from "@/components/auth/AuthCard";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -24,7 +26,7 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -36,6 +38,16 @@ export default function SignupPage() {
 
       if (error) {
         setError(error.message);
+        return;
+      }
+
+      // Whether a confirmation email exists at all is a Supabase project
+      // setting, not something this page can assume. With "Confirm email" off,
+      // signUp returns a live session and no mail is ever sent — showing "check
+      // your email" there is simply false, and the visitor is already signed in.
+      if (data.session) {
+        router.push("/app");
+        router.refresh();
         return;
       }
 
