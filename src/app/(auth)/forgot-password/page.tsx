@@ -51,10 +51,16 @@ export default function ForgotPasswordPage() {
         title="Check your email"
         subtitle={`If ${email} has an account, a reset link is on its way.`}
       >
-        <div className="mb-6 flex items-center gap-2.5 rounded-[10px] bg-[var(--brand-tint)] px-3.5 py-3 text-sm text-[var(--text-secondary)]">
+        <div className="mb-3 flex items-center gap-2.5 rounded-[10px] bg-[var(--brand-tint)] px-3.5 py-3 text-sm text-[var(--text-secondary)]">
           <Check className="h-4 w-4 shrink-0 text-[var(--brand)]" />
           Link sent — it expires in an hour.
         </div>
+        {/* Same first-contact filtering as signup, and worse here: someone
+            locked out of their account has no other way in. */}
+        <p className="mb-6 text-[13px] leading-relaxed text-[var(--text-muted)]">
+          Not there in a minute or two? Check your spam or junk folder — new
+          senders often land there the first time.
+        </p>
         <Link href="/login">
           <Button variant="secondary" className="h-11 w-full">
             Back to sign in

@@ -71,10 +71,18 @@ export default function SignupPage() {
         title="Check your email"
         subtitle={`We sent a confirmation link to ${email}. Click it to activate your account.`}
       >
-        <div className="mb-6 flex items-center gap-2.5 rounded-[10px] bg-[var(--brand-tint)] px-3.5 py-3 text-sm text-[var(--text-secondary)]">
+        <div className="mb-3 flex items-center gap-2.5 rounded-[10px] bg-[var(--brand-tint)] px-3.5 py-3 text-sm text-[var(--text-secondary)]">
           <Check className="h-4 w-4 shrink-0 text-[var(--brand)]" />
           Link sent — it expires in an hour.
         </div>
+        {/* Even with SPF, DKIM and DMARC in order, a domain with no sending
+            history gets filtered — Outlook flags first contact explicitly. This
+            costs nothing to say and saves the signup that would otherwise be
+            abandoned at an apparently-empty inbox. */}
+        <p className="mb-6 text-[13px] leading-relaxed text-[var(--text-muted)]">
+          Not there in a minute or two? Check your spam or junk folder — new
+          senders often land there the first time.
+        </p>
         <Link href="/login">
           <Button variant="secondary" className="h-11 w-full">
             Back to sign in
