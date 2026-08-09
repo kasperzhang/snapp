@@ -605,7 +605,11 @@ export const lpCss = `
 .lp-plan {
   position: relative; background: var(--card);
   border: 1px solid var(--line); border-radius: 18px; padding: 30px 28px;
+  /* Same reason as the in-app plan cards: the feature list takes up the slack
+     so the CTAs align across plans with different numbers of bullets. */
+  display: flex; flex-direction: column;
 }
+.lp-plan ul { flex: 1; }
 .lp-plan-pro { border-color: var(--mocha); box-shadow: 0 24px 60px -20px rgba(141,111,76,0.35); }
 .lp-plan-flag {
   position: absolute; top: -11px; right: 24px;

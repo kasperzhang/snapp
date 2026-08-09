@@ -96,7 +96,10 @@ export function PlanCards({
             <div
               key={id}
               className={cn(
-                "relative rounded-[var(--radius-card)] border p-4",
+                // Column flex so the feature list can absorb the height
+                // difference between plans — otherwise the CTA floats wherever
+                // the copy happens to end and the three buttons never line up.
+                "relative flex flex-col rounded-[var(--radius-card)] border p-4",
                 isCurrent
                   ? "border-[var(--brand)] bg-[var(--brand-tint)]"
                   : highlight
@@ -131,7 +134,7 @@ export function PlanCards({
                   : ""}
               </p>
 
-              <ul className="mt-3 space-y-1.5">
+              <ul className="mt-3 flex-1 space-y-1.5">
                 {featuresFor(id).map((f) => (
                   <li
                     key={f}
