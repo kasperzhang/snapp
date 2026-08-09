@@ -197,7 +197,7 @@ function SettingsInner() {
               Profile
             </p>
             <div className="mt-4 flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--foreground)] text-lg font-semibold text-[var(--background)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-lg font-semibold text-[var(--background)]">
                 {(fullName.trim() || userEmail || "?")[0]?.toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">

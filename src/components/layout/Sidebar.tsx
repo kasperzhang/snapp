@@ -471,7 +471,7 @@ export function Sidebar({
                   collapsed ? "gap-0" : "flex-1 -mx-1 gap-2.5"
                 )}
               >
-                <div className="w-[26px] h-[26px] rounded-full bg-[var(--foreground)] text-[var(--background)] flex items-center justify-center text-[11px] font-semibold shrink-0">
+                <div className="w-[26px] h-[26px] rounded-full bg-[var(--accent)] text-[var(--background)] flex items-center justify-center text-[11px] font-semibold shrink-0">
                   {(displayName?.[0] || userEmail?.[0] || "K").toUpperCase()}
                 </div>
                 <span
