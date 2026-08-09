@@ -579,7 +579,27 @@ export const lpCss = `
 }
 
 /* pricing */
-.lp-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 300px)); gap: 20px; justify-content: center; margin-top: 60px; }
+/* Monthly / quarterly switch above the cards. */
+.lp-toggle-wrap { display: flex; justify-content: center; margin-top: 44px; }
+.lp-toggle {
+  display: inline-flex; gap: 2px; padding: 4px;
+  background: #EFEAE0; border: 1px solid var(--line); border-radius: 999px;
+}
+.lp-toggle button {
+  border: 0; background: transparent; cursor: pointer;
+  padding: 8px 16px; border-radius: 999px;
+  font-size: 13.5px; color: var(--ink-soft);
+  transition: background 160ms ease, color 160ms ease;
+}
+.lp-toggle button:hover { color: var(--ink); }
+.lp-toggle button.is-on {
+  background: var(--card); color: var(--ink); font-weight: 550;
+  box-shadow: 0 1px 2px rgba(34,28,21,0.06);
+}
+.lp-toggle em { font-style: normal; margin-left: 6px; font-size: 11.5px; color: var(--mocha); }
+.lp-price-note { min-height: 17px; margin-top: 4px; font-size: 12px; color: var(--ink-mute); }
+
+.lp-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 300px)); gap: 20px; justify-content: center; margin-top: 28px; }
 @media (max-width: 980px) { .lp-plans { grid-template-columns: repeat(2, minmax(0, 320px)); } }
 @media (max-width: 660px) { .lp-plans { grid-template-columns: minmax(0, 380px); } }
 .lp-plan {

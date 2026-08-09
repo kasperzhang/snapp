@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LogoMark } from "@/components/ui/Logo";
 import { MarketingShell } from "./_shell/MarketingShell";
+import { PricingPlans } from "./_shell/PricingPlans";
 import { TOOL_MARKS } from "@/components/marketing/ToolLogos";
 import { getAllPosts } from "@/lib/blog";
 
@@ -318,61 +319,7 @@ export default async function LandingPage() {
             A credit is one design guide — from a single site or a Mix of up to
             eight. Bookmarks and scans never count against it.
           </p>
-          <div className="lp-plans">
-            <div className="lp-plan">
-              <h3>Free</h3>
-              <div className="lp-price">
-                $0 <span>forever</span>
-              </div>
-              <p className="lp-plan-blurb">The library, always yours.</p>
-              <ul>
-                <li>Unlimited bookmarks</li>
-                <li>Previews, tags &amp; instant search</li>
-                <li>15 site scans a month</li>
-                <li>1 design guide, to see what it does</li>
-              </ul>
-              <Link href={planHref} className="lp-btn lp-btn-ghost lp-btn-block">
-                {loggedIn ? "Open app" : "Start free"}
-              </Link>
-            </div>
-            <div className="lp-plan">
-              <h3>Lite</h3>
-              <div className="lp-price">
-                $3.99 <span>/ month</span>
-              </div>
-              <p className="lp-plan-blurb">
-                For the occasional build. $3.60/mo billed quarterly.
-              </p>
-              <ul>
-                <li>Everything in Free</li>
-                <li>10 design guides a month</li>
-                <li>Unlimited site scans</li>
-                <li>Mix up to 8 sources</li>
-              </ul>
-              <Link href={planHref} className="lp-btn lp-btn-ghost lp-btn-block">
-                {loggedIn ? "Choose Lite" : "Start free"}
-              </Link>
-            </div>
-            <div className="lp-plan lp-plan-pro">
-              <span className="lp-plan-flag">Most popular</span>
-              <h3>Pro</h3>
-              <div className="lp-price">
-                $9.99 <span>/ month</span>
-              </div>
-              <p className="lp-plan-blurb">
-                For shipping weekly. $9.00/mo billed quarterly.
-              </p>
-              <ul>
-                <li>Everything in Lite</li>
-                <li>40 design guides a month</li>
-                <li>Unlimited site scans</li>
-                <li>Priority generation</li>
-              </ul>
-              <Link href={planHref} className="lp-btn lp-btn-primary lp-btn-block">
-                {loggedIn ? "Go Pro" : "Start free"}
-              </Link>
-            </div>
-          </div>
+          <PricingPlans loggedIn={loggedIn} planHref={planHref} />
         </div>
       </section>
 
