@@ -596,12 +596,7 @@ export const lpCss = `
   background: var(--card); color: var(--ink); font-weight: 550;
   box-shadow: 0 1px 2px rgba(34,28,21,0.06);
 }
-.lp-toggle em {
-  font-style: normal; margin-left: 7px;
-  background: var(--mocha); color: #FBFAF7;
-  font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
-  padding: 3px 7px; border-radius: 999px;
-}
+.lp-toggle em { font-style: normal; margin-left: 6px; font-size: 11.5px; color: var(--mocha); }
 .lp-price-note { min-height: 17px; margin-top: 4px; font-size: 12px; color: var(--ink-mute); }
 
 .lp-plans { display: grid; grid-template-columns: repeat(3, minmax(0, 300px)); gap: 20px; justify-content: center; margin-top: 28px; }

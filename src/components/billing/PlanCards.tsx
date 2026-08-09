@@ -76,10 +76,7 @@ export function PlanCards({
             >
               {i === "monthly" ? "Monthly" : "Quarterly"}
               {i === "quarterly" && (
-                // A filled pill, not tinted text. --accent (#6B5335) sits
-                // almost on top of --text-secondary (#5C5346), so coloured type
-                // here just read as more label and the saving went unnoticed.
-                <span className="ml-1.5 rounded-full bg-[var(--brand)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                <span className="ml-1.5 text-[11px] text-[var(--accent)]">
                   save 10%
                 </span>
               )}
