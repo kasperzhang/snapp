@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Layers, Plus, Sparkles } from "lucide-react";
+import { ArrowUp, Layers, Loader2, Plus, Sparkles } from "lucide-react";
 import { useBookmarks, useTags, announceMixesChanged } from "@/hooks";
 import { BookmarkGrid, AddBookmarkDialog, EditBookmarkDialog } from "@/components/bookmark";
 import { SiteAnalysisDialog } from "@/components/analysis";
@@ -10,7 +10,6 @@ import { MixPanel } from "@/components/workbench";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { Pagination } from "@/components/ui/Pagination";
 import { BOOKMARKS_PAGE_SIZE } from "@/lib/pagination";
 import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { createClient } from "@/lib/supabase/client";
@@ -55,13 +54,14 @@ export default function HomePage() {
     if (searchParams.get("compose")) router.replace("/app");
   }, [searchParams, router]);
 
-  const [page, setPage] = useState(1);
-
   const {
     bookmarks,
     total: totalBookmarks,
     libraryTotal,
     loading: bookmarksLoading,
+    loadingMore,
+    hasMore,
+    loadMore,
     fetchMetadata,
     createBookmark,
     updateBookmark,
@@ -70,14 +70,7 @@ export default function HomePage() {
     search: debouncedSearch,
     tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     untagged: untaggedOnly,
-    page,
   });
-
-  // Any change to the filters re-numbers the results, so a held page number
-  // would point somewhere arbitrary — or past the end.
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, selectedTagIds, untaggedOnly]);
 
   // A cold load has nothing to show, so it gets skeletons. A page flip or
   // filter change already has the previous results on screen — swapping those
@@ -86,13 +79,52 @@ export default function HomePage() {
   const firstLoad = bookmarksLoading && bookmarks.length === 0;
   const refreshing = bookmarksLoading && bookmarks.length > 0;
 
+  // Scrolling past the last card pulls the next page in and appends it, so the
+  // library reads as one continuous list. The rail stays for jumping — it
+  // re-anchors and replaces, which is why the two can coexist.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    // root: null is correct even though ContentPanel scrolls internally —
+    // intersection is computed against the viewport with ancestor clipping
+    // applied, so the sentinel registers exactly when it scrolls into sight.
+    // The margin starts the fetch shortly before the sentinel is reached, so
+    // the next rows are usually there by the time you get to them without
+    // firing so early that it loads before you've really scrolled.
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMore();
+      },
+      { rootMargin: "300px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+    // composeActive matters: the sentinel unmounts during compose, so without
+    // it here the observer would never re-attach to the new node afterwards
+    // and scrolling would silently stop loading.
+  }, [hasMore, loadMore, composeActive]);
+
   const gridTopRef = useRef<HTMLDivElement>(null);
-  // Paging from the bottom control would otherwise leave you at the foot of a
-  // fresh page. ContentPanel scrolls internally, so this can't be window.
-  const goToPage = (p: number) => {
-    setPage(p);
+  const scrollToTop = () =>
     gridTopRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-  };
+
+  // Show "back to top" once the top of the grid is off screen. Observing a
+  // marker beats a scroll listener here: ContentPanel scrolls internally, so
+  // there is no window scroll to listen to, and this needs no knowledge of
+  // which ancestor is the scroller.
+  const topMarkerRef = useRef<HTMLDivElement>(null);
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const el = topMarkerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setShowTop(!entry.isIntersecting),
+      { rootMargin: "200px 0px 0px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const { tags, untaggedCount, createTag, refresh: refreshTags } = useTags();
 
@@ -414,6 +446,9 @@ export default function HomePage() {
             )}
             aria-busy={refreshing}
           >
+          {/* Zero-height marker: once this scrolls out of sight the grid is
+              deep enough to be worth offering a way back. */}
+          <div ref={topMarkerRef} aria-hidden className="h-0" />
           <BookmarkGrid
             bookmarks={bookmarks}
             loading={firstLoad}
@@ -451,15 +486,40 @@ export default function HomePage() {
             commentsById={commentsById}
             onCommentChange={changeComment}
           />
+            {/* Sentinel + status line for the append-on-scroll behaviour. Only
+                rendered when the grid is the whole story — during compose the
+                selection is what matters and quietly growing the list under the
+                user would move the cards they're picking from. */}
+            {!composeActive && (hasMore || bookmarks.length > BOOKMARKS_PAGE_SIZE) && (
+              <div ref={sentinelRef} className="py-6 text-center">
+                {loadingMore ? (
+                  <span className="inline-flex items-center gap-2 text-[13px] text-[var(--text-muted)]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Loading more…
+                  </span>
+                ) : !hasMore && bookmarks.length > BOOKMARKS_PAGE_SIZE ? (
+                  <span className="text-[13px] text-[var(--text-muted)]">
+                    That&apos;s everything — {totalBookmarks} bookmarks.
+                  </span>
+                ) : null}
+              </div>
+            )}
           </div>
-          <Pagination
-            page={page}
-            total={totalBookmarks}
-            pageSize={BOOKMARKS_PAGE_SIZE}
-            onPageChange={goToPage}
-          />
+
         </main>
         </div>
+
+        {/* Infinite scroll's own cost is the journey back. Hidden while the mix
+            rail is open, which occupies this corner. */}
+        {showTop && !panelMixId && (
+          <button
+            onClick={scrollToTop}
+            className="pop-in fixed bottom-6 right-6 z-30 inline-flex h-10 items-center gap-2 rounded-full border border-[var(--accent)] bg-[var(--surface)] pl-3.5 pr-4 text-[13px] font-medium text-[var(--accent)] shadow-lg transition-colors hover:bg-[var(--brand-tint)]"
+          >
+            <ArrowUp className="h-4 w-4" />
+            Back to top
+          </button>
+        )}
       </ContentPanel>
 
       {/* The guide rail — generate and iterate without leaving the library */}
