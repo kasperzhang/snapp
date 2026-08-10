@@ -514,7 +514,7 @@ export default function HomePage() {
         {showTop && !panelMixId && (
           <button
             onClick={scrollToTop}
-            className="pop-in fixed bottom-6 right-6 z-30 inline-flex h-10 items-center gap-2 rounded-full border border-[var(--accent)] bg-[var(--surface)] pl-3.5 pr-4 text-[13px] font-medium text-[var(--accent)] shadow-lg transition-colors hover:bg-[var(--brand-tint)]"
+            className="pop-in fixed bottom-6 right-6 z-30 inline-flex h-10 items-center gap-2 rounded-full border border-transparent bg-[var(--surface)] pl-3.5 pr-4 text-[13px] font-medium text-[var(--text-secondary)] shadow-lg transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
           >
             <ArrowUp className="h-4 w-4" />
             Back to top
