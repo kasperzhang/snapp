@@ -102,9 +102,20 @@ The mechanism, traced end to end: Haiku's guide specified an **"Accent Backgroun
 
 ## 6. Root cause: it was a data problem wearing a model problem's costume
 
-The decisive catch came from inspecting an individual claim rather than a score. Haiku's guide for `dstudio.agency` stated **`border-radius: 0px`** — for a site whose cards, buttons and inputs are all visibly rounded.
+The decisive catch came from inspecting an individual claim rather than a score. Haiku's guide for `dstudio.agency` stated:
 
-Investigating that one error reframed the entire evaluation.
+> **Sharp Corners by Default**: Border-radius is 0px for inputs, cards, and most components.
+
+The scanner, once it was actually measuring, reported `8px`, `10px`, `9999px` and `24px` on that site — and **no 0px at all**.
+
+Investigating that one error reframed the entire evaluation. Here is the whole cause, in two images.
+
+| What the model received | What it never saw |
+|---|---|
+| ![Above-the-fold capture of dstudio.agency: hero type and two pill buttons on white](images/dstudio-what-the-model-saw.png) | ![Further down the same page: case-study cards with clearly rounded corners](images/dstudio-what-it-missed.png) |
+| One 1280×800 above-the-fold frame. No card, no input, no container — nothing rounded is visible. | The same page further down. Rounded cards everywhere, measured at 8px and 10px. |
+
+The model wasn't wrong about the image it was given. It was asked to describe components that weren't in it.
 
 The guide template demands five token categories: Colours, Typography, **Border Radius, Shadows, Spacing Scale**. The scraper extracted **two**. Three of the five were being *invented* by the model from a single above-the-fold screenshot — and on that particular site, no rounded component was visible in the one image it received.
 
@@ -114,6 +125,14 @@ Two fixes, both upstream of the model:
 
 - **Measure the tokens.** A DOM pass now reads `border-radius`, `box-shadow` and the spacing rhythm off the live page and presents them to the model as facts to copy, not hints. (Detail that mattered: `0px` radius is deliberately *not* counted — it's the CSS default, so every icon and wrapper div votes for it and buries the handful of real decisions.)
 - **Capture the whole page.** Screenshots became three viewport-height bands instead of one above-the-fold shot. A single full-page capture would have been downsampled to unreadable by the model APIs.
+- **Photograph a finished page, not a loading one.** Scroll-reveal animation is standard on the sites Snapp's users admire, and a fixed delay after scrolling catches it mid-flight:
+
+| Captured mid-animation | After forcing animations to settle |
+|---|---|
+| ![Nexola page section with text half-faded: only the first few words are legible](images/nexola-mid-animation.png) | ![The same section with the full sentence rendered solid](images/nexola-settled.png) |
+| *"Nexola® is a digital agency focused on building"* — the rest of the sentence is transparent. | The full sentence. Same page, same scroll position. |
+
+  Two harms in one frame: the model can't read the copy, **and** those transient mid-fade greys land in the extracted palette as if they were brand colours. Waiting longer only moves the race — the fix was to emulate `prefers-reduced-motion`, then call `document.getAnimations()` and finish each one. (That API covers the Web Animations API, which is what Framer and GSAP actually drive reveals through — a CSS-only override would have missed exactly this case.)
 
 Result on a re-test: every measured value landed in the correct slot, with shadows copied verbatim and correctly attributed. **And the model gap largely closed** — Haiku went from failing to 34/34 with correct values, because the job changed from *invent plausible tokens from a partial image* to *organise measured facts into a template*.
 
