@@ -463,3 +463,22 @@ CREATE POLICY "Users can view their own subscription"
 CREATE TRIGGER update_subscriptions_updated_at
   BEFORE UPDATE ON subscriptions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- PREVIEW FRAMING — which origins permit a live <iframe> on a grid card.
+-- Not user data: one row per origin, shared by everyone. Any signed-in user may
+-- read it; only the service role writes. See migration 0006.
+-- ============================================================================
+
+CREATE TABLE origin_framing (
+  origin TEXT PRIMARY KEY,
+  embeddable BOOLEAN NOT NULL,
+  -- 'ok' | 'x-frame-options' | 'frame-ancestors' | 'unreachable'
+  reason TEXT NOT NULL DEFAULT 'ok',
+  checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE origin_framing ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Signed-in users can read framing verdicts"
+  ON origin_framing FOR SELECT TO authenticated USING (TRUE);

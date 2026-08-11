@@ -58,6 +58,34 @@ export function BookmarkCard({
   const [openPanel, setOpenPanel] = useState<"borrow" | "note" | null>(null);
   const borrowRef = useRef<HTMLDivElement>(null);
 
+  /* A live frame is a whole page load. The grid scrolls forever, so only mount
+     one once the card is near the viewport — and keep it mounted after that,
+     since tearing frames down on scroll-back would reload the site every time.
+     `loading="lazy"` alone isn't enough: support for it on iframes is uneven,
+     and it can't express "close to the viewport" the way rootMargin can. */
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [nearViewport, setNearViewport] = useState(false);
+  const [frameLoaded, setFrameLoaded] = useState(false);
+  // No observer (server render, ancient browser): don't gate at all.
+  const canObserve =
+    typeof IntersectionObserver !== "undefined" && typeof window !== "undefined";
+
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el || nearViewport || !canObserve) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setNearViewport(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "600px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [nearViewport, canObserve]);
+
   // Dismiss the open popover on outside click / Escape.
   useEffect(() => {
     if (!openPanel) return;
@@ -95,17 +123,15 @@ export function BookmarkCard({
         selected && "-translate-y-0.5"
       )}
     >
-      {/* Preview Area */}
-      <div className="relative aspect-[16/10] bg-[var(--border)] overflow-hidden rounded-t-[var(--radius-card)]">
-        {embeddable ? (
-          <iframe
-            src={bookmark.url}
-            title={bookmark.title}
-            className="bookmark-iframe"
-            sandbox="allow-scripts allow-same-origin"
-            loading="lazy"
-          />
-        ) : previewSrc ? (
+      {/* Preview Area. The screenshot is the base layer and the live frame is
+          painted over it once it has loaded — so a framed site never shows an
+          empty box while it boots, and a site that refuses framing simply keeps
+          the picture it already had. */}
+      <div
+        ref={previewRef}
+        className="relative aspect-[16/10] bg-[var(--border)] overflow-hidden rounded-t-[var(--radius-card)]"
+      >
+        {previewSrc ? (
           <img
             src={previewSrc}
             alt={bookmark.title}
@@ -121,6 +147,20 @@ export function BookmarkCard({
               {bookmark.domain.split(".")[0]}
             </span>
           </div>
+        )}
+
+        {embeddable && (nearViewport || !canObserve) && (
+          <iframe
+            src={bookmark.url}
+            title={bookmark.title}
+            className={cn(
+              "bookmark-iframe absolute left-0 top-0",
+              !frameLoaded && "opacity-0"
+            )}
+            sandbox="allow-scripts allow-same-origin"
+            loading="lazy"
+            onLoad={() => setFrameLoaded(true)}
+          />
         )}
       </div>
 

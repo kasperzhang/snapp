@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { assertPublicHttpUrl } from "@/lib/security/ssrf";
 
 /* Which sites will a browser actually let us put in an <iframe>?
@@ -8,54 +9,78 @@ import { assertPublicHttpUrl } from "@/lib/security/ssrf";
    indistinguishable from a working one on the client. The answer only exists
    in the response headers, so we read them here.
 
-   Cached per-origin in module memory — policy is a property of the site, not
-   the page, and it changes about never. */
+   Cached per-origin — policy is a property of the site, not the page, and it
+   changes about never. Two layers:
+     L1  module memory, free but per-instance and lost on every cold start
+     L2  the `origin_framing` table, shared by every instance and every user
+   L2 is what keeps cards from sitting on their screenshots: after the first
+   person ever bookmarks a site, everyone else gets the verdict instantly. */
 
-const TTL_MS = 12 * 60 * 60 * 1000;
-const cache = new Map<string, { value: boolean; at: number }>();
+type Reason = "ok" | "x-frame-options" | "frame-ancestors" | "unreachable";
+type Verdict = { value: boolean; reason: Reason };
 
-function blocksFraming(headers: Headers): boolean {
+// A real refusal is durable; an unreachable host is usually a blip, so it gets
+// retried far sooner rather than pinning a good site to its screenshot for days.
+const TTL_SETTLED_MS = 30 * 24 * 60 * 60 * 1000;
+const TTL_UNREACHABLE_MS = 60 * 60 * 1000;
+
+const memory = new Map<string, { verdict: Verdict; at: number }>();
+
+function ttlFor(reason: Reason) {
+  return reason === "unreachable" ? TTL_UNREACHABLE_MS : TTL_SETTLED_MS;
+}
+
+function fresh(reason: Reason, at: number) {
+  return Date.now() - at < ttlFor(reason);
+}
+
+function readHeaders(headers: Headers): Verdict {
   const xfo = headers.get("x-frame-options")?.toLowerCase() ?? "";
-  if (xfo.includes("deny") || xfo.includes("sameorigin")) return true;
+  if (xfo.includes("deny") || xfo.includes("sameorigin")) {
+    return { value: false, reason: "x-frame-options" };
+  }
 
   const csp = headers.get("content-security-policy")?.toLowerCase() ?? "";
   const directive = csp
     .split(";")
     .map((d) => d.trim())
     .find((d) => d.startsWith("frame-ancestors"));
-  if (!directive) return false;
+  if (!directive) return { value: true, reason: "ok" };
 
   // Anything other than a wildcard is, from our origin, a refusal.
   const sources = directive.replace("frame-ancestors", "").trim();
-  return sources !== "*" && !sources.startsWith("* ");
+  const permissive = sources === "*" || sources.startsWith("* ");
+  return permissive
+    ? { value: true, reason: "ok" }
+    : { value: false, reason: "frame-ancestors" };
 }
 
-async function checkOrigin(origin: string): Promise<boolean> {
-  const hit = cache.get(origin);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.value;
-
-  let value = false;
+async function probe(origin: string): Promise<Verdict> {
   try {
     const res = await fetch(origin, {
       method: "GET",
       redirect: "follow",
       signal: AbortSignal.timeout(6000),
       headers: {
+        /* Deliberately a real browser UA. We are predicting what the visitor's
+           Chrome will be served, and sites that 403 unknown agents answered
+           with headers that had nothing to do with their framing policy — which
+           put empty frames on cards for sites that do in fact refuse framing. */
         "user-agent":
-          "Mozilla/5.0 (compatible; Snapp/1.0; +https://www.usesnapp.app)",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        accept: "text/html,application/xhtml+xml",
       },
     });
-    value = !blocksFraming(res.headers);
+    const verdict = readHeaders(res.headers);
     // Don't hold the body open — we only ever wanted the headers.
     await res.body?.cancel();
+    return verdict;
   } catch {
     // Unreachable, slow, or TLS-broken: treat as not embeddable so the card
-    // shows its screenshot rather than an empty frame.
-    value = false;
+    // shows its screenshot rather than an empty frame. Retried within the hour.
+    return { value: false, reason: "unreachable" };
   }
-
-  cache.set(origin, { value, at: Date.now() });
-  return value;
 }
 
 export async function POST(request: NextRequest) {
@@ -94,11 +119,64 @@ export async function POST(request: NextRequest) {
     );
 
     const distinct = [...new Set(origins.values())];
-    const results = await Promise.all(distinct.map((o) => checkOrigin(o)));
-    const byOrigin = new Map(distinct.map((o, i) => [o, results[i]]));
+    const known = new Map<string, Verdict>();
+
+    // L1
+    const unknown = distinct.filter((o) => {
+      const hit = memory.get(o);
+      if (hit && fresh(hit.verdict.reason, hit.at)) {
+        known.set(o, hit.verdict);
+        return false;
+      }
+      return true;
+    });
+
+    // L2 — one round trip for everything memory didn't have.
+    const admin = createAdminClient();
+    let toProbe = unknown;
+    if (unknown.length) {
+      const { data: rows } = await admin
+        .from("origin_framing")
+        .select("origin, embeddable, reason, checked_at")
+        .in("origin", unknown);
+
+      for (const row of rows ?? []) {
+        const reason = row.reason as Reason;
+        const at = new Date(row.checked_at).getTime();
+        if (!fresh(reason, at)) continue;
+        const verdict = { value: row.embeddable, reason };
+        known.set(row.origin, verdict);
+        memory.set(row.origin, { verdict, at });
+      }
+      toProbe = unknown.filter((o) => !known.has(o));
+    }
+
+    if (toProbe.length) {
+      const probed = await Promise.all(toProbe.map((o) => probe(o)));
+      const at = Date.now();
+      toProbe.forEach((o, i) => {
+        known.set(o, probed[i]);
+        memory.set(o, { verdict: probed[i], at });
+      });
+
+      // Write back for every other instance and user. Best-effort: a failed
+      // upsert costs a re-probe later, nothing more.
+      const { error } = await admin.from("origin_framing").upsert(
+        toProbe.map((o, i) => ({
+          origin: o,
+          embeddable: probed[i].value,
+          reason: probed[i].reason,
+          checked_at: new Date(at).toISOString(),
+        })),
+        { onConflict: "origin" }
+      );
+      if (error) console.error("origin_framing upsert failed:", error.message);
+    }
 
     const out: Record<string, boolean> = {};
-    for (const [url, origin] of origins) out[url] = byOrigin.get(origin) ?? false;
+    for (const [url, origin] of origins) {
+      out[url] = known.get(origin)?.value ?? false;
+    }
 
     return NextResponse.json(out);
   } catch (error) {
