@@ -50,8 +50,27 @@ export default function HomePage() {
   // The generate-in-place rail — set right after a mix is created.
   const [panelMixId, setPanelMixId] = useState<string | null>(null);
 
+  /* A page handed over by the extension's save button: /app?add=<url>&title=…
+     Captured at mount, before the effect below strips the query string, so a
+     reload or a shared link can't re-open the dialog. */
+  const [addPrefill] = useState(() => {
+    const url = searchParams.get("add");
+    if (!url) return null;
+    return { url, title: searchParams.get("title") ?? undefined };
+  });
+
+  /* The extension's "Add tags" / "Open" notification buttons land on
+     /app?edit=<id>. The row has to arrive from the bookmarks query before the
+     dialog can show it, so this is held until a match turns up — a save always
+     lands on the first page, so in practice that's the first render with data. */
+  const [pendingEditId, setPendingEditId] = useState(() =>
+    searchParams.get("edit")
+  );
+
   useEffect(() => {
-    if (searchParams.get("compose")) router.replace("/app");
+    if (searchParams.get("compose") || searchParams.get("add") || searchParams.get("edit")) {
+      router.replace("/app");
+    }
   }, [searchParams, router]);
 
   const {
@@ -71,6 +90,14 @@ export default function HomePage() {
     tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
     untagged: untaggedOnly,
   });
+
+  useEffect(() => {
+    if (!pendingEditId) return;
+    const match = bookmarks.find((b) => b.id === pendingEditId);
+    if (!match) return;
+    setEditingBookmark(match);
+    setPendingEditId(null);
+  }, [pendingEditId, bookmarks]);
 
   // A cold load has nothing to show, so it gets skeletons. A page flip or
   // filter change already has the previous results on screen — swapping those
@@ -536,6 +563,7 @@ export default function HomePage() {
         onSubmit={handleAddBookmark}
         onCreateTag={(name) => createTag({ name })}
         fetchMetadata={fetchMetadata}
+        prefill={addPrefill}
         trigger={<button ref={addDialogTriggerRef} className="hidden" />}
       />
 

@@ -28,6 +28,10 @@ interface AddBookmarkDialogProps {
   onCreateTag: (name: string) => Promise<Tag>;
   fetchMetadata: (url: string) => Promise<URLMetadata>;
   trigger?: React.ReactNode;
+  /** A page handed over by the extension (/app?add=…). Opens the dialog with
+      the URL and title already filled, so the only thing left is tagging. Read
+      once, at mount — the page clears the query string straight after. */
+  prefill?: { url: string; title?: string } | null;
 }
 
 export function AddBookmarkDialog({
@@ -36,10 +40,11 @@ export function AddBookmarkDialog({
   onCreateTag,
   fetchMetadata,
   trigger,
+  prefill,
 }: AddBookmarkDialogProps) {
-  const [open, setOpen] = useState(false);
-  const [url, setUrl] = useState("");
-  const [title, setTitle] = useState("");
+  const [open, setOpen] = useState(!!prefill);
+  const [url, setUrl] = useState(prefill?.url ?? "");
+  const [title, setTitle] = useState(prefill?.title ?? "");
   const [description, setDescription] = useState("");
   const [metadata, setMetadata] = useState<URLMetadata | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -60,6 +65,38 @@ export function AddBookmarkDialog({
       setError(null);
     }
   }, [open]);
+
+  /* The extension can give us a URL and a tab title, but not the favicon,
+     og:image or domain the bookmark row wants — so fetch the same metadata the
+     URL field would have fetched on blur. The tab title stays if we already
+     have one: it's what the user was actually looking at. */
+  useEffect(() => {
+    if (!prefill) return;
+    let alive = true;
+
+    const hydrate = async () => {
+      setFetchingMetadata(true);
+      try {
+        const data = await fetchMetadata(prefill.url);
+        if (!alive) return;
+        setMetadata(data);
+        setTitle((current) => current || data.title);
+        setDescription(data.description || "");
+      } catch (err) {
+        // Keep whatever the extension handed over — it's enough to save.
+        console.error("Error fetching metadata for prefill:", err);
+      } finally {
+        if (alive) setFetchingMetadata(false);
+      }
+    };
+    hydrate();
+
+    return () => {
+      alive = false;
+    };
+    // Runs once: `prefill` is captured at mount and the page clears it after.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUrlBlur = async () => {
     if (!url) return;
