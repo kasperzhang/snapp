@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Blind model-comparison output from scripts/eval-guides.mjs
 /eval-output
+
+# Chrome regenerates this whenever the extension is loaded unpacked
+extension/_metadata/

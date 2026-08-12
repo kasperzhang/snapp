@@ -4,7 +4,7 @@ import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { BookmarkCard } from "./BookmarkCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Bookmark } from "lucide-react";
-import { useEmbeddable } from "@/hooks";
+import { useEmbeddable, useSnappExtension } from "@/hooks";
 
 interface BookmarkGridProps {
   bookmarks: BookmarkWithRelations[];
@@ -65,9 +65,16 @@ export function BookmarkGrid({
   commentsById,
   onCommentChange,
 }: BookmarkGridProps) {
-  // Which of these sites permit framing. Answered asynchronously; until it
-  // arrives every card shows its screenshot.
-  const embeddable = useEmbeddable(bookmarks.map((b) => b.url));
+  /* Which of these sites permit framing. Answered asynchronously; until it
+     arrives every card shows its screenshot.
+
+     With the extension installed the question is moot — it strips the headers
+     that refuse framing, so everything is embeddable and we don't spend a
+     round trip finding out. */
+  const hasExtension = useSnappExtension();
+  const embeddable = useEmbeddable(
+    hasExtension ? [] : bookmarks.map((b) => b.url)
+  );
 
   if (loading) {
     return (
@@ -105,7 +112,7 @@ export function BookmarkGrid({
         <BookmarkCard
           key={bookmark.id}
           bookmark={bookmark}
-          embeddable={embeddable[bookmark.url]}
+          embeddable={hasExtension || embeddable[bookmark.url]}
           onEdit={() => onEdit?.(bookmark)}
           onDelete={() => onDelete?.(bookmark.id)}
           onAnalyze={() => onAnalyze?.(bookmark)}
