@@ -14,11 +14,18 @@
 
 const PROD_ORIGIN = "https://www.usesnapp.app";
 
+/* Emptied by scripts/build-extension.mjs when packing for the Chrome Web
+   Store. A published build must not treat localhost as Snapp: users of this
+   extension run their own dev servers, and matching them would mean injecting
+   into someone's unrelated local app. Keep this array on one line — the build
+   script replaces it by pattern and verifies no "localhost" survives. */
+const DEV_PATTERNS = ["http://localhost/*"];
+
 // Snapp tabs, in the order we'd rather reuse them.
 const SNAPP_TAB_PATTERNS = [
   "https://www.usesnapp.app/*",
   "https://usesnapp.app/*",
-  "http://localhost/*",
+  ...DEV_PATTERNS,
 ];
 
 /* Every Snapp page reports its own origin as it loads (origin-report.js), so

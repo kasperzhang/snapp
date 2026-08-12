@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Chrome regenerates this whenever the extension is loaded unpacked
 extension/_metadata/
+
+# Chrome Web Store build output
+dist/

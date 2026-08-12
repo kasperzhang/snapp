@@ -9,7 +9,7 @@ const CONTACT_EMAIL = "kasperzhang.ai@gmail.com";
 
 export default function PrivacyPage() {
   return (
-    <LegalShell title="Privacy Policy" effective="July 16, 2026">
+    <LegalShell title="Privacy Policy" effective="August 12, 2026">
       <p>
         This policy explains what snapp collects, why, and what happens to
         it. The short version: we collect what&apos;s needed to run a
@@ -106,20 +106,61 @@ export default function PrivacyPage() {
         affects your data, we&apos;ll notify you as the law requires.
       </p>
 
-      <h2>7. Children</h2>
+      <h2>7. The browser extension</h2>
+      <p>
+        The Snapp browser extension is optional, and the app works without
+        it. It is deliberately narrow, so it&apos;s worth being exact about
+        what it does and does not do.
+      </p>
+      <ul>
+        <li>
+          <strong>When you click save</strong> — and only then — it reads the
+          address and title of the tab you&apos;re on and sends those two
+          things to snapp to create the bookmark. It does not read the
+          page&apos;s contents.
+        </li>
+        <li>
+          <strong>It does not track your browsing.</strong> Pages you visit
+          without clicking save are never recorded, sent anywhere, or read.
+          There is no analytics or telemetry in the extension.
+        </li>
+        <li>
+          <strong>Live previews</strong> — on snapp&apos;s own pages, the
+          extension removes the response headers that would stop a site from
+          being displayed inside a preview card. This applies only to frames
+          snapp itself embeds, never to pages you browse normally, and it
+          collects nothing.
+        </li>
+        <li>
+          <strong>On snapp&apos;s pages</strong> it records which snapp
+          address you use, so the save button knows where to send bookmarks.
+          That is stored locally in your browser.
+        </li>
+        <li>
+          <strong>Permissions</strong> — the extension asks for access to all
+          sites because you may save any page and preview any site. That
+          access is used for the two purposes above and nothing else.
+        </li>
+      </ul>
+      <p>
+        Bookmarks created through the extension are covered by the rest of
+        this policy, exactly as if you had added them in the app.
+      </p>
+
+      <h2>8. Children</h2>
       <p>
         snapp isn&apos;t directed at children under 13 and we don&apos;t
         knowingly collect their data.
       </p>
 
-      <h2>8. Changes</h2>
+      <h2>9. Changes</h2>
       <p>
         If this policy changes materially, we&apos;ll notify you before the
         change takes effect. The effective date above always reflects the
         current version.
       </p>
 
-      <h2>9. Contact</h2>
+      <h2>10. Contact</h2>
       <p>
         Privacy questions and requests:{" "}
         <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
