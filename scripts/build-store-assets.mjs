@@ -14,7 +14,7 @@ import fs from "node:fs";
 import sharp from "sharp";
 
 const OUT = "extension/store-assets";
-fs.mkdirSync(OUT, { recursive: true });
+fs.mkdirSync(`${OUT}/variants`, { recursive: true });
 
 // Brand, from src/app/globals.css
 const INK = "#221C15";
@@ -54,6 +54,68 @@ await render(
    considered for featuring. Dark, because these sit on a white store surface
    and everything else there is light. Minimal text: the store prints the name
    and summary next to it anyway, so repeating them wastes the space. */
+/* Tagline candidates, rendered small-tile-size so they can be compared as
+   pictures rather than as sentences. The chosen one gets promoted into the
+   real tiles below. All four are the landing page's own voice — the store
+   forbids superlative claims ("best", "#1") in promo art anyway. */
+const CANDIDATES = {
+  a: { lines: ["Keep the sites you wish", "you'd made."], size: 21 },
+  b: { lines: ["For designers, and the people", "building with AI."], size: 19 },
+  c: { lines: ["Your agent writes the code.", "You bring the taste."], size: 19, em: "taste." },
+  d: { lines: ["Make it look like that."], size: 24, em: "that." },
+};
+
+/* Text is laid out by hand here, so the only guard against a line running off
+   the canvas is arithmetic: Avenir Next averages a hair over half its point
+   size per character in mixed case, and the tile has 344px between the margins.
+   Overflowing silently is the failure mode — b did exactly that on the first
+   pass — so it's checked rather than eyeballed. */
+const SAFE_WIDTH = 344;
+function fits(line, size) {
+  return line.length * size * 0.53 <= SAFE_WIDTH;
+}
+
+for (const [key, { lines, size, em }] of Object.entries(CANDIDATES)) {
+  for (const line of lines) {
+    if (!fits(line, size)) {
+      throw new Error(
+        `variant ${key}: "${line}" is too wide at ${size}px — shorten it or drop a point size`
+      );
+    }
+  }
+
+  const rows = lines
+    .map((line, i) => {
+      const html = em
+        ? line.replace(
+            em,
+            `<tspan font-style="italic" fill="${BRAND}">${em}</tspan>`
+          )
+        : line;
+      return `<text x="48" y="${210 + i * (size + 8)}" font-family="${DISPLAY}" font-size="${size}" font-weight="500" fill="${TINT}" opacity="0.74">${html}</text>`;
+    })
+    .join("");
+
+  await render(
+    `variants/tagline-${key}`,
+    440,
+    280,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280">
+       <defs>
+         <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+           <stop offset="0" stop-color="${BRAND}" stop-opacity="0.30"/>
+           <stop offset="1" stop-color="${BRAND}" stop-opacity="0"/>
+         </radialGradient>
+       </defs>
+       <rect width="440" height="280" fill="${INK}"/>
+       <rect x="150" y="-190" width="480" height="480" fill="url(#glow)"/>
+       <g transform="translate(48,46) scale(1.8)">${mark(CREAM, BRAND)}</g>
+       <text x="48" y="176" font-family="${DISPLAY}" font-size="40" font-weight="600" fill="${CREAM}">snapp</text>
+       ${rows}
+     </svg>`
+  );
+}
+
 await render(
   "small-promo-tile",
   440,
@@ -67,9 +129,10 @@ await render(
      </defs>
      <rect width="440" height="280" fill="${INK}"/>
      <rect x="150" y="-190" width="480" height="480" fill="url(#glow)"/>
-     <g transform="translate(48,52) scale(1.9)">${mark(CREAM, BRAND)}</g>
-     <text x="48" y="188" font-family="${DISPLAY}" font-size="42" font-weight="600" fill="${CREAM}">Snapp</text>
-     <text x="48" y="222" font-family="${DISPLAY}" font-size="18" font-weight="500" fill="${TINT}" opacity="0.70">Bookmarks that stay alive</text>
+     <g transform="translate(48,46) scale(1.8)">${mark(CREAM, BRAND)}</g>
+     <text x="48" y="176" font-family="${DISPLAY}" font-size="40" font-weight="600" fill="${CREAM}">snapp</text>
+     <text x="48" y="210" font-family="${DISPLAY}" font-size="19" font-weight="500" fill="${TINT}" opacity="0.74">Your agent writes the code.</text>
+     <text x="48" y="237" font-family="${DISPLAY}" font-size="19" font-weight="500" fill="${TINT}" opacity="0.74">You bring the <tspan font-style="italic" fill="${BRAND}">taste.</tspan></text>
    </svg>`
 );
 
@@ -89,9 +152,10 @@ await render(
      </defs>
      <rect width="1400" height="560" fill="${INK}"/>
      <rect x="740" y="-330" width="1220" height="1220" fill="url(#glow)"/>
-     <g transform="translate(120,168) scale(3.4)">${mark(CREAM, BRAND)}</g>
-     <text x="340" y="272" font-family="${DISPLAY}" font-size="82" font-weight="600" fill="${CREAM}">Snapp</text>
-     <text x="344" y="332" font-family="${DISPLAY}" font-size="30" font-weight="500" fill="${TINT}" opacity="0.70">Bookmarks that stay alive — not screenshots of them</text>
+     <g transform="translate(122,232) scale(3.4)">${mark(CREAM, BRAND)}</g>
+     <text x="340" y="262" font-family="${DISPLAY}" font-size="76" font-weight="600" fill="${CREAM}">Your agent writes the code.</text>
+     <text x="340" y="348" font-family="${DISPLAY}" font-size="76" font-weight="600" fill="${CREAM}">You bring the <tspan font-style="italic" fill="${BRAND}">taste.</tspan></text>
+     <text x="344" y="410" font-family="${DISPLAY}" font-size="27" font-weight="500" fill="${TINT}" opacity="0.62">snapp — the bookmark app for designers and the people building with AI</text>
    </svg>`
 );
 
