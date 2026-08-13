@@ -19,7 +19,7 @@
 
 // Keep in sync with `version` in manifest.json. Chrome APIs, including
 // runtime.getManifest(), are unavailable in the MAIN world.
-const VERSION = "0.5.0";
+const VERSION = "0.6.0";
 
 window.__snappExtension = VERSION;
 

@@ -48,7 +48,17 @@ export async function POST(request: NextRequest) {
       parsed = await assertPublicHttpUrl(url);
     } catch (e) {
       if (e instanceof SsrfError) {
-        return NextResponse.json({ error: e.message }, { status: 400 });
+        /* The guard's own wording ("Host not allowed") is aimed at us, not at
+           somebody who just pressed a button. The overwhelmingly common way to
+           hit this is saving a page on localhost or a LAN address — which is
+           worth saying plainly, because it's a sensible thing to have tried. */
+        return NextResponse.json(
+          {
+            error:
+              "Snapp can't save pages that only exist on your own machine or network.",
+          },
+          { status: 400 }
+        );
       }
       throw e;
     }

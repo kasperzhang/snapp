@@ -95,6 +95,7 @@ function snappToast({ status, label, domain, bookmarkId }) {
   const root = host.attachShadow({ mode: "closed" });
 
   const created = status === "created";
+  const failed = status === "error";
   root.innerHTML = `
     <style>
       @keyframes in { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }
@@ -107,10 +108,11 @@ function snappToast({ status, label, domain, bookmarkId }) {
         color:#221C15; animation:in .18s ease-out;
       }
       .dot { width:8px; height:8px; border-radius:50%; background:#8D6F4C; flex:none }
+      .dot.bad { background:#B4462F }
       .text { min-width:0 }
       .title { font-weight:600 }
       .sub { color:#7A6E5F; font-weight:400; font-size:12px; margin-top:2px;
-             max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+             max-width:280px; overflow:hidden; text-overflow:ellipsis }
       .acts { display:flex; gap:6px; margin-left:4px }
       button {
         font:500 12px/1 inherit; color:#6B5335; cursor:pointer;
@@ -122,20 +124,27 @@ function snappToast({ status, label, domain, bookmarkId }) {
       .close:hover { background:none; color:#221C15 }
     </style>
     <div class="card">
-      <span class="dot"></span>
+      <span class="dot${failed ? " bad" : ""}"></span>
       <div class="text">
-        <div class="title">${created ? "Saved to Snapp" : "Already in Snapp"}</div>
+        <div class="title">${
+          failed
+            ? "Couldn't save"
+            : created
+              ? "Saved to Snapp"
+              : "Already in Snapp"
+        }</div>
         <div class="sub">${label || domain || ""}</div>
       </div>
       <div class="acts">
-        <button data-act="open">${created ? "Add tags" : "Open"}</button>
+        ${failed ? "" : `<button data-act="open">${created ? "Add tags" : "Open"}</button>`}
         ${created ? '<button data-act="undo">Undo</button>' : ""}
         <button data-act="dismiss" class="close" aria-label="Dismiss">✕</button>
       </div>
     </div>`;
 
   const close = () => host.remove();
-  const timer = setTimeout(close, 6000);
+  // A failure needs longer than a confirmation: there's something to read.
+  const timer = setTimeout(close, failed ? 9000 : 6000);
 
   root.querySelectorAll("button").forEach((b) =>
     b.addEventListener("click", () => {
@@ -233,12 +242,24 @@ async function saveCurrentTab() {
   }
 
   if (!res.ok) {
-    console.error("[Snapp] Save failed:", res.status, res.statusText);
     const body = await res.json().catch(() => ({}));
-    notify({
-      title: "Couldn't save to Snapp",
-      message: body.error || "Something went wrong. Try again in a moment.",
-    });
+    const message = body.error || "Something went wrong. Try again in a moment.";
+
+    /* A 4xx is the server telling the user something they can act on — a page
+       that can't be saved, a rate limit. Logging that at error level badges the
+       extension with a red "Errors" button in chrome://extensions, which reads
+       as "this thing is broken" for what is a normal, fully explained outcome.
+       Only a genuine server fault earns that. */
+    const log = res.status >= 500 ? console.error : console.warn;
+    log("[Snapp] Save rejected:", res.status, message, tab.url);
+
+    /* Errors take the same route as successes. They used to go to
+       chrome.notifications, which macOS drops in silence when the browser
+       lacks notification permission — so a rejected save looked like a save
+       that did nothing at all, and the only trace was the extension's own
+       Errors page. */
+    const shown = await confirmInPage(tab.id, { status: "error", label: message });
+    if (!shown) notify({ title: "Couldn't save to Snapp", message });
     return;
   }
 
