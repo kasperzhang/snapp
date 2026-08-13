@@ -39,47 +39,66 @@ source treats localhost as Snapp and a published build must not.
 
 ---
 
-## Permission justifications
+## Privacy practices tab
 
-Each of these goes in its own box in the dashboard. Be specific — vague
-justifications are the most common cause of rejection.
+Everything below is required before "Submit for review" turns on. The dashboard
+asks for one box per permission, plus a single-purpose statement, a remote-code
+answer and the data certifications.
 
-**`<all_urls>` (host permission)**
+### Single purpose
 
-> Users can save any page and preview any bookmarked site, so neither set of URLs can be known in advance. The access is used for exactly two things: reading the address and title of the active tab when the user clicks save, and removing framing headers from responses loaded inside preview frames on the extension's own web app. Page content is never read, and no browsing activity is recorded or transmitted.
+> Snapp is a visual bookmark manager. This extension connects the browser to the user's Snapp library, and does two things in service of that: it saves the page the user is currently on to their library when they click the toolbar button, and it lets the bookmark cards in that library render the saved sites as live pages rather than static screenshots. It takes no action on any website unless the user clicks the button, and it does nothing at all for a user without a Snapp account.
 
-**`declarativeNetRequest` / `declarativeNetRequestWithHostAccess`**
+### `<all_urls>` — host permission
 
-> A single static rule removes X-Frame-Options and Content-Security-Policy from responses so that bookmarked sites can be displayed inside preview cards, which the browser would otherwise refuse. The rule is conditioned on resourceTypes ["sub_frame"] and initiatorDomains ["usesnapp.app"], so it can only ever apply to a frame the user's own Snapp library page has embedded. Top-level navigation is untouched, and frames on every other site keep their headers. declarativeNetRequest was chosen over webRequest precisely because the rule is static and auditable.
+> Host access is needed for two things. First, when the user clicks the save button, the extension reads the address and title of the active tab so that page can be added to their Snapp library. Second, it removes framing headers from responses loaded inside the preview frames on the user's own Snapp library page. A user may bookmark and preview any site on the web, so neither set of URLs can be enumerated in advance. Page content is never read, no browsing activity is collected, stored or transmitted, and nothing happens on any site unless the user explicitly clicks the button.
 
-**`tabs`**
+### `declarativeNetRequest`
 
-> To read the address and title of the active tab when the user clicks the save button, and to find or focus an existing Snapp tab instead of opening a duplicate.
+> A single static rule in rules/frame_headers.json removes the X-Frame-Options and Content-Security-Policy response headers so that sites the user has bookmarked can be displayed inside the preview cards on their Snapp library page. Roughly half of all sites otherwise refuse to render in a frame, leaving the user looking at a stale screenshot instead of the real site. The rule is conditioned on resourceTypes ["sub_frame"] and initiatorDomains ["usesnapp.app"], so it can only ever apply to a frame that the user's own Snapp library page embedded. Top-level page loads are never modified and frames on every other website keep their headers. declarativeNetRequest is used rather than webRequest precisely because the rule is static, declarative and auditable.
 
-**`scripting`**
+### `declarativeNetRequestWithHostAccess`
 
-> To display the save confirmation — a small dismissible toast with "Add tags" and "Undo" — in the corner of the page the user just saved. It is injected only in response to the user clicking save, and reads nothing from the page.
+> The modifyHeaders action above applies only where the extension has host access to the request being modified. Bookmarked sites can be any URL, so this variant is used to ensure the rule is evaluated only against requests the user has granted host access for, rather than globally.
 
-**`storage`**
+### `tabs`
 
-> Stores one value locally: the address of the Snapp instance the user last visited, so the save button knows where to send bookmarks. No user data is stored.
+> To read the address and title of the active tab when the user clicks the save button, so that page can be added to their library, and to locate an already-open Snapp tab so the extension can reuse it instead of opening a duplicate. Tab data is not read at any other time, and is never stored or transmitted other than as the bookmark the user asked to create.
 
-**`notifications`**
+### `scripting`
 
-> Fallback confirmation for pages where a toast cannot be injected, such as chrome:// pages and the Web Store.
+> To show the save confirmation — a small dismissible toast displaying the saved page's title, with "Add tags" and "Undo" actions — in the corner of the page the user just saved. The injected function is defined in the extension package, runs only in direct response to the user clicking save, and reads nothing from the page.
+
+### `storage`
+
+> Stores a single value in chrome.storage.local: the origin of the Snapp web app the user last visited, so the save button knows where to send bookmarks. No user data, browsing history or page content is stored.
+
+### `notifications`
+
+> Used only to confirm a save the user just initiated. The confirmation is normally drawn into the page itself; this is the fallback for pages where a script cannot be injected, such as chrome:// pages, the Chrome Web Store and the PDF viewer. A notification is never shown except in direct response to the user clicking save.
+
+### Remote code
+
+Answer **"No, I am not using remote code."** Correct: every line of JavaScript
+is in the package. `chrome.scripting.executeScript` is called with a `func`
+defined in `background.js`, which is packaged code — remote code means script
+fetched or evaluated from a server, and nothing here does that.
 
 ---
 
-## Data usage disclosures
+## Data usage
 
-Tick **only**:
+**Declare "Web history" as collected.** Google defines web history as "the list
+of web pages a user has visited, and data associated with them, such as page
+title" — and a saved bookmark is a page URL plus its title. It is only ever a
+page the user explicitly chose to save, never passive browsing, and the
+justification text above says so. Under-declaring is the dangerous direction:
+it risks takedown after publication, whereas declaring a category you handle
+narrowly costs nothing.
 
-- [x] Website content — *"Personally identifiable information"* → **No**
-- [x] User activity → **No**
-- [x] Web history → **No**
-
-Declare collection of: **the URL and title of a page, at the moment the user
-saves it.** Nothing else.
+Everything else is **No** — no personally identifiable information, health,
+financial, authentication, personal communications, location, user activity or
+website content.
 
 Certify all three:
 
@@ -90,6 +109,9 @@ Certify all three:
 **Privacy policy URL** — `https://www.usesnapp.app/privacy` (section 7 covers
 the extension specifically; reviewers check that the policy actually addresses
 the permissions requested).
+
+**Remember to press "Save draft"** — the dialog's own advice, and the form does
+not autosave.
 
 ---
 
