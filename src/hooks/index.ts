@@ -6,6 +6,10 @@ export {
   useSnappExtensionVersion,
 } from "./use-snapp-extension";
 export {
+  useExtensionPrompt,
+  dismissExtensionPrompt,
+} from "./use-extension-prompt";
+export {
   useWorkbenches,
   useWorkbench,
   announceMixesChanged,

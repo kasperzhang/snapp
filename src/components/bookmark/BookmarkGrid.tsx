@@ -2,6 +2,7 @@
 
 import { BookmarkWithRelations, DesignAspect } from "@/types";
 import { BookmarkCard } from "./BookmarkCard";
+import { ExtensionBanner } from "./ExtensionBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Bookmark } from "lucide-react";
 import { useEmbeddable, useSnappExtension } from "@/hooks";
@@ -106,8 +107,21 @@ export function BookmarkGrid({
     );
   }
 
+  /* How many cards are worse off for the extension being missing. Only sites
+     that actively refused framing count — `undefined` means the check hasn't
+     answered yet, and counting those would make the banner appear and then
+     disagree with itself a second later. */
+  const degradedCount = hasExtension
+    ? 0
+    : bookmarks.filter((b) => embeddable[b.url] === false).length;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div>
+      {/* Not while composing a mix — that's a focused task and the library
+          shouldn't interrupt it. */}
+      {!selectable && <ExtensionBanner degradedCount={degradedCount} />}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {bookmarks.map((bookmark) => (
         <BookmarkCard
           key={bookmark.id}
@@ -133,6 +147,7 @@ export function BookmarkGrid({
           }
         />
       ))}
+      </div>
     </div>
   );
 }

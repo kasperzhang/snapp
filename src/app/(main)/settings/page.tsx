@@ -20,6 +20,7 @@ import {
   type UsageKind,
 } from "@/lib/billing/plans";
 import { PlanCards } from "@/components/billing/PlanCards";
+import { ExtensionRow } from "@/components/settings/ExtensionRow";
 
 type Billing = {
   plan: PlanId;
@@ -192,6 +193,7 @@ function SettingsInner() {
           </div>
 
           {tab === "profile" && (
+            <>
           <section className="mt-8 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-6">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-muted)]">
               Profile
@@ -234,6 +236,8 @@ function SettingsInner() {
             </div>
           </section>
 
+          <ExtensionRow />
+            </>
           )}
 
           {tab === "plan" && (

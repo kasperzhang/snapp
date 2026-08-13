@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check, Link2, Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, ExternalLink, Check, Link2, Plus, Sparkles } from "lucide-react";
 import { BookmarkWithRelations, DESIGN_ASPECTS, DesignAspect } from "@/types";
 import { Card } from "@/components/ui/Card";
 import {
@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
+import { useExtensionPrompt } from "@/hooks";
 import { cn } from "@/lib/utils/cn";
 
 interface BookmarkCardProps {
@@ -66,6 +67,9 @@ export function BookmarkCard({
   const previewRef = useRef<HTMLDivElement>(null);
   const [nearViewport, setNearViewport] = useState(false);
   const [frameLoaded, setFrameLoaded] = useState(false);
+  // Whether we can offer the extension as the fix for a screenshot-only card.
+  const { canInstall, storeUrl } = useExtensionPrompt();
+
   // No observer (server render, ancient browser): don't gate at all.
   const canObserve =
     typeof IntersectionObserver !== "undefined" && typeof window !== "undefined";
@@ -147,6 +151,25 @@ export function BookmarkCard({
               {bookmark.domain.split(".")[0]}
             </span>
           </div>
+        )}
+
+        {/* This card is a screenshot because the site refused to be framed,
+            and the extension would fix it. Shown on hover only, and never in
+            compose mode where the selection overlay owns every click. The
+            badge explains the picture the user is already looking at, so it
+            survives dismissing the banner — it isn't a prompt, it's a label. */}
+        {embeddable === false && canInstall && !selectable && (
+          <a
+            href={storeUrl ?? undefined}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="This site blocks live previews. The Snapp extension turns them on."
+            className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-full bg-[var(--background)]/90 px-2 py-1 text-[10.5px] font-medium text-[var(--text-secondary)] opacity-0 shadow-sm backdrop-blur-sm transition-all hover:text-[var(--accent)] group-hover:opacity-100 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            <Sparkles className="h-2.5 w-2.5" />
+            Make it live
+          </a>
         )}
 
         {embeddable && (nearViewport || !canObserve) && (
