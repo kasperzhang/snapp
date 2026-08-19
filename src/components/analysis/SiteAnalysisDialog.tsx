@@ -190,10 +190,6 @@ export function SiteAnalysisDialog({
                 <PreviewPanel
                   url={bookmark.url}
                   screenshotUrl={analysis?.screenshot_url || null}
-                  onScan={handleScan}
-                  scanning={scanning}
-                  analysisStatus={analysis?.analysis_status || "pending"}
-                  errorMessage={analysis?.error_message || null}
                 />
               </div>
 
@@ -207,6 +203,9 @@ export function SiteAnalysisDialog({
                   analysisStatus={analysis?.analysis_status || "pending"}
                   onGeneratePrompt={handleGeneratePrompt}
                   generating={generating}
+                  onScan={handleScan}
+                  scanning={scanning}
+                  scanError={analysis?.error_message || null}
                 />
               </div>
             </>
