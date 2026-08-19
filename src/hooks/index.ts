@@ -14,3 +14,4 @@ export {
   useWorkbench,
   announceMixesChanged,
 } from "./use-workbenches";
+export { useLiveFrame } from "./use-live-frame";

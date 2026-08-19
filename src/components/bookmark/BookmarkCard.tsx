@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
-import { useExtensionPrompt } from "@/hooks";
+import { useExtensionPrompt, useLiveFrame } from "@/hooks";
 import { cn } from "@/lib/utils/cn";
 
 interface BookmarkCardProps {
@@ -59,36 +59,29 @@ export function BookmarkCard({
   const [openPanel, setOpenPanel] = useState<"borrow" | "note" | null>(null);
   const borrowRef = useRef<HTMLDivElement>(null);
 
-  /* A live frame is a whole page load. The grid scrolls forever, so only mount
-     one once the card is near the viewport — and keep it mounted after that,
-     since tearing frames down on scroll-back would reload the site every time.
-     `loading="lazy"` alone isn't enough: support for it on iframes is uneven,
-     and it can't express "close to the viewport" the way rootMargin can. */
+  /* A live frame is a whole page load — its own renderer, its own JS, still
+     running after you scroll past. The grid loads forever, so frames are both
+     started late and given back once the card is well out of the way, under a
+     shared ceiling. See src/lib/preview/live-frames.ts for the reasoning.
+     `loading="lazy"` can't express any of this: support on iframes is uneven,
+     and it never unloads what it loaded. */
   const previewRef = useRef<HTMLDivElement>(null);
-  const [nearViewport, setNearViewport] = useState(false);
   const [frameLoaded, setFrameLoaded] = useState(false);
   // Whether we can offer the extension as the fix for a screenshot-only card.
   const { canInstall, storeUrl } = useExtensionPrompt();
 
-  // No observer (server render, ancient browser): don't gate at all.
-  const canObserve =
-    typeof IntersectionObserver !== "undefined" && typeof window !== "undefined";
+  const showFrame = useLiveFrame(previewRef, Boolean(embeddable));
 
-  useEffect(() => {
-    const el = previewRef.current;
-    if (!el || nearViewport || !canObserve) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setNearViewport(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "600px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [nearViewport, canObserve]);
+  /* Losing the frame drops us back to the screenshot, so the next one has to
+     fade in again rather than appearing at whatever opacity the last left
+     behind. State-during-render, per React's derived-state docs — the same
+     idiom PreviewPanel uses, and not an effect, because nothing outside React
+     needs synchronising here. */
+  const [framedLast, setFramedLast] = useState(showFrame);
+  if (showFrame !== framedLast) {
+    setFramedLast(showFrame);
+    if (!showFrame) setFrameLoaded(false);
+  }
 
   // Dismiss the open popover on outside click / Escape.
   useEffect(() => {
@@ -172,7 +165,7 @@ export function BookmarkCard({
           </a>
         )}
 
-        {embeddable && (nearViewport || !canObserve) && (
+        {showFrame && (
           <iframe
             src={bookmark.url}
             title={bookmark.title}
