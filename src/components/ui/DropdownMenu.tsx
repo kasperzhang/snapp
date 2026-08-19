@@ -20,7 +20,7 @@ const DropdownMenuContent = forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--foreground)] shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "z-50 min-w-[9rem] overflow-hidden rounded-[13px] border border-[var(--border)] bg-[var(--overlay-surface)] backdrop-blur-[12px] p-[5px] text-[var(--foreground)] shadow-[0_14px_36px_rgba(34,28,21,0.10)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         className
       )}
       {...props}
@@ -33,12 +33,19 @@ const DropdownMenuItem = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Item>,
   ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean;
+    /** Delete and friends — warm red, and it carries its own hover tint. */
+    variant?: "default" | "destructive";
   }
->(({ className, inset, ...props }, ref) => (
+>(({ className, inset, variant = "default", ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-[var(--border)] focus:text-[var(--foreground)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // Icons inherit the row's colour and size, so a caller only picks the
+      // glyph — the menu stays typographically consistent on its own.
+      "relative flex cursor-pointer select-none items-center gap-2.5 rounded-[9px] px-2.5 py-[7px] text-[13.5px] outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:h-[15px] [&_svg]:w-[15px] [&_svg]:shrink-0",
+      variant === "destructive"
+        ? "text-[var(--danger)] focus:bg-[var(--danger-tint)] focus:text-[var(--danger-hover)]"
+        : "text-[var(--text-secondary)] focus:bg-[var(--sidebar-hover)] focus:text-[var(--foreground)]",
       inset && "pl-8",
       className
     )}
@@ -56,7 +63,7 @@ const DropdownMenuLabel = forwardRef<
   <DropdownMenuPrimitive.Label
     ref={ref}
     className={cn(
-      "px-2 py-1.5 text-sm font-semibold text-[var(--text-secondary)]",
+      "px-2.5 py-1.5 text-[12px] font-medium text-[var(--text-muted)]",
       inset && "pl-8",
       className
     )}
@@ -71,7 +78,7 @@ const DropdownMenuSeparator = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-[var(--border)]", className)}
+    className={cn("-mx-[5px] my-[5px] h-px bg-[var(--border)]", className)}
     {...props}
   />
 ));
@@ -86,7 +93,7 @@ const DropdownMenuSubTrigger = forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-[var(--border)] data-[state=open]:bg-[var(--border)]",
+      "flex cursor-default select-none items-center gap-2.5 rounded-[9px] px-2.5 py-[7px] text-[13.5px] text-[var(--text-secondary)] outline-none focus:bg-[var(--sidebar-hover)] focus:text-[var(--foreground)] data-[state=open]:bg-[var(--sidebar-hover)]",
       inset && "pl-8",
       className
     )}
@@ -104,7 +111,7 @@ const DropdownMenuSubContent = forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--foreground)] shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      "z-50 min-w-[9rem] overflow-hidden rounded-[13px] border border-[var(--border)] bg-[var(--overlay-surface)] backdrop-blur-[12px] p-[5px] text-[var(--foreground)] shadow-[0_14px_36px_rgba(34,28,21,0.10)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
       className
     )}
     {...props}

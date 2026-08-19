@@ -30,7 +30,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ghost:
         "bg-transparent text-[var(--foreground)] hover:bg-[var(--border)] active:scale-[0.98]",
       danger:
-        "bg-red-500 text-white hover:bg-red-600 active:scale-[0.98]",
+        "bg-[var(--danger)] text-white hover:bg-[var(--danger-hover)] active:scale-[0.98]",
       outline:
         "bg-transparent text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--foreground)] hover:text-[var(--background)] active:scale-[0.98]",
     };

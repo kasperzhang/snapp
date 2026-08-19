@@ -64,6 +64,24 @@ export function useWorkbenches() {
     return wb as Workbench;
   };
 
+  const renameWorkbench = async (id: string, name: string) => {
+    setWorkbenches((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, name } : w))
+    );
+    const res = await fetch("/api/workbenches", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name }),
+    });
+    if (!res.ok) {
+      // Put the old name back rather than leaving the rail disagreeing with
+      // the mix page about what this thing is called.
+      await refresh();
+      throw new Error("Failed to rename mix");
+    }
+    announceMixesChanged();
+  };
+
   const deleteWorkbench = async (id: string) => {
     const res = await fetch("/api/workbenches", {
       method: "DELETE",
@@ -81,6 +99,7 @@ export function useWorkbenches() {
     error,
     refresh,
     createWorkbench,
+    renameWorkbench,
     deleteWorkbench,
   };
 }

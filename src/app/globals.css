@@ -19,6 +19,17 @@
   --brand-hover: #79603F;
   --brand-tint: #F1EBE0;
 
+  /* Menus and popovers: the landing nav's trick — paper over a blur, so what
+     is underneath is felt but never read. */
+  --overlay-surface: color-mix(in srgb, #FBFAF7 92%, transparent);
+
+  /* Destructive. Tailwind's red-500 is a cool, saturated red that reads as a
+     different design system next to mocha and porcelain — this is the same
+     hue rotated warm so Delete still alarms without breaking the page. */
+  --danger: #B23B2B;
+  --danger-hover: #962F21;
+  --danger-tint: #F7E8E3;
+
   /* Sidebar */
   --sidebar: #F6F3EC;
   --sidebar-border: #E7E1D5;
@@ -47,6 +58,9 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-hover: var(--sidebar-hover);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-tint: var(--danger-tint);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-bricolage);

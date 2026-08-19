@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoMark } from "@/components/ui";
-import { useWorkbenches } from "@/hooks";
 import { Tag, BookmarkWithRelations } from "@/types";
 import {
   DropdownMenu,
@@ -26,6 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
+import { SidebarMixes } from "./SidebarMixes";
 import { cn } from "@/lib/utils/cn";
 import { PLANS, type PlanId, type UsageKind } from "@/lib/billing/plans";
 import { onUsageChanged } from "@/lib/billing/usage-events";
@@ -69,7 +69,6 @@ export function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
-  const { workbenches } = useWorkbenches();
 
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -284,34 +283,49 @@ export function Sidebar({
             <span className={cn(labelReveal, "flex-1 text-left")}>Bookmarks</span>
           </Link>
 
-          <button
-            className={navItem(wbActive)}
-            title={collapsed ? "Mixes" : undefined}
-            onClick={() => {
-              if (collapsed) router.push("/mix");
-              else setWbExpanded((v) => !v);
-            }}
-          >
-            <span className={iconWrap}>
-              <Briefcase className="w-[15px] h-[15px]" />
-            </span>
-            <span
-              className={cn(
-                "flex items-center flex-1 min-w-0 pr-2.5 transition-opacity duration-200 ease-in-out",
-                collapsed ? "opacity-0" : "opacity-100 delay-[120ms]"
-              )}
+          {/* Section header. New mix is its own control here rather than the
+              first row of the list — it isn't a mix, and it was holding the
+              slot the eye goes to for the most recent one. */}
+          <div className={navItem(wbActive)}>
+            <button
+              className="flex items-center flex-1 min-w-0 h-full cursor-pointer"
+              title={collapsed ? "Mixes" : undefined}
+              onClick={() => {
+                if (collapsed) router.push("/mix");
+                else setWbExpanded((v) => !v);
+              }}
             >
-              <span className="flex-1 text-left whitespace-nowrap">
-                Mixes
+              <span className={iconWrap}>
+                <Briefcase className="w-[15px] h-[15px]" />
               </span>
-              <ChevronDown
+              <span
                 className={cn(
-                  "w-2.5 h-2.5 transition-transform duration-300 shrink-0",
-                  wbExpanded && "rotate-180"
+                  "flex items-center flex-1 min-w-0 transition-opacity duration-200 ease-in-out",
+                  collapsed ? "opacity-0" : "opacity-100 delay-[120ms]"
                 )}
-              />
-            </span>
-          </button>
+              >
+                <span className="flex-1 text-left whitespace-nowrap">
+                  Mixes
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "w-2.5 h-2.5 mr-2 transition-transform duration-300 shrink-0",
+                    wbExpanded && "rotate-180"
+                  )}
+                />
+              </span>
+            </button>
+            {/* Unmounted when collapsed, so the row stays a clean 40x40. */}
+            {!collapsed && (
+              <button
+                onClick={startNewWorkbench}
+                title="New mix"
+                className="shrink-0 flex items-center justify-center w-6 h-6 mr-1.5 rounded-md text-[var(--text-muted)] hover:bg-[var(--border)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
           {/* Workbench list — height animates via grid-template-rows */}
           <div
@@ -321,37 +335,7 @@ export function Sidebar({
             )}
           >
             <div className="overflow-hidden min-h-0">
-              <div className="flex flex-col gap-px pt-1 pb-0.5 ml-3.5 border-l border-[var(--border)]">
-                <button
-                  onClick={startNewWorkbench}
-                  className="flex items-center gap-2 ml-2 px-2.5 py-[7px] rounded-lg text-[13px] text-[var(--foreground)] font-medium hover:bg-[var(--sidebar-hover)] transition-colors whitespace-nowrap"
-                >
-                  <Plus className="w-3.5 h-3.5 shrink-0" />
-                  <span>New mix</span>
-                </button>
-                {workbenches.map((w) => {
-                  const active = pathname === `/mix/${w.id}`;
-                  return (
-                    <Link
-                      key={w.id}
-                      href={`/mix/${w.id}`}
-                      className={cn(
-                        "flex items-center gap-2 ml-2 px-2.5 py-[7px] rounded-lg text-[13px] transition-colors",
-                        active
-                          ? "bg-[var(--sidebar-hover)] text-[var(--foreground)] font-medium"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--foreground)]"
-                      )}
-                    >
-                      <span className="flex-1 truncate">{w.name}</span>
-                      {w.item_count != null && (
-                        <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)]">
-                          {w.item_count}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
+              <SidebarMixes />
             </div>
           </div>
         </div>
@@ -489,12 +473,12 @@ export function Sidebar({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {userEmail && (
-                <div className="px-2 py-1.5 text-sm text-[var(--text-secondary)] truncate max-w-[220px]">
+                <div className="px-2.5 py-1.5 text-[12.5px] text-[var(--text-muted)] truncate max-w-[220px]">
                   {userEmail}
                 </div>
               )}
               {billing && (
-                <div className="px-2 pb-2 mb-1 border-b border-[var(--border)]">
+                <div className="px-2.5 pb-2 mb-1 border-b border-[var(--border)]">
                   <div className="flex items-center gap-1.5 text-[11px] mb-1">
                     <span
                       className={cn(
@@ -514,22 +498,22 @@ export function Sidebar({
                 </div>
               )}
               <DropdownMenuItem onClick={() => router.push("/settings")}>
-                <SettingsIcon className="w-4 h-4 mr-2" />
+                <SettingsIcon />
                 Settings
               </DropdownMenuItem>
               {billing && billing.plan !== "free" ? (
                 <DropdownMenuItem onClick={goPortal}>
-                  <CreditCard className="w-4 h-4 mr-2" />
+                  <CreditCard />
                   Manage billing
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem onClick={() => router.push("/settings?tab=plan")}>
-                  <Zap className="w-4 h-4 mr-2" />
+                  <Zap />
                   See plans
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={handleSignOut}>
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut />
                 Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>

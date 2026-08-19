@@ -236,7 +236,7 @@ export function BookmarkCard({
                   window.open(bookmark.url, "_blank", "noopener,noreferrer");
                 }}
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
+                <ExternalLink />
                 Visit site
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -245,7 +245,7 @@ export function BookmarkCard({
                   navigator.clipboard.writeText(bookmark.url);
                 }}
               >
-                <Link2 className="w-4 h-4 mr-2" />
+                <Link2 />
                 Copy link
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -254,7 +254,7 @@ export function BookmarkCard({
                   onEdit?.();
                 }}
               >
-                <Pencil className="w-4 h-4 mr-2" />
+                <Pencil />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -263,9 +263,9 @@ export function BookmarkCard({
                   e.stopPropagation();
                   onDelete?.();
                 }}
-                className="text-red-500 focus:text-red-500"
+                variant="destructive"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
