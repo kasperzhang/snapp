@@ -507,11 +507,354 @@ export const lpCss = `
 }
 .bv-opt {
   display: flex; align-items: center; gap: 9px;
-  font-size: 12.5px; padding: 7px 9px; border-radius: 8px; color: var(--ink-soft);
+  font-size: 12.5px; padding: 7px 9px; border-radius: 9px;
+  color: var(--ink-soft);
+  /* Transparent at rest so turning a row on can't nudge the others. */
+  border: 1px solid transparent;
 }
-.bv-opt i { width: 7px; height: 7px; border-radius: 50%; }
-.bv-opt span { margin-left: auto; color: var(--mocha); font-weight: 650; font-size: 11px; }
-.bv-on { background: var(--mocha-tint); color: var(--ink); font-weight: 550; }
+/* Two selected rows sat flush and read as one lumpy slab with a seam down it.
+   A hairline of space is all it takes for them to read as two chosen things. */
+.bv-opt + .bv-opt { margin-top: 3px; }
+.bv-opt i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--hue, var(--ink));
+  opacity: 0.45;
+}
+.bv-opt span { margin-left: auto; font-size: 11px; font-weight: 650; }
+/* Selected is a tint of the aspect's own hue, the same move the app's chips
+   make — so "typography" is one colour wherever you meet it, and the two on
+   rows differ from each other instead of being one beige block. */
+.bv-on {
+  background: color-mix(in srgb, var(--hue) 11%, transparent);
+  border-color: color-mix(in srgb, var(--hue) 32%, transparent);
+  color: var(--ink);
+  font-weight: 550;
+}
+.bv-on i { opacity: 1; }
+.bv-on span { color: color-mix(in srgb, var(--hue) 72%, var(--ink)); }
+
+/* ── before / after ──────────────────────────────────────────────────────
+   Two mockups of the same page. Centred and symmetrical, this read like a
+   comparison chart — so it's staged instead: the guided one is larger, lifted
+   and overlapping, the unguided one sits behind and below it. The layout makes
+   the argument before anyone reads a word of it. */
+.ba-head {
+  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px;
+  align-items: end;
+}
+.ba-head-body { margin-top: 0; padding-bottom: 4px; }
+@media (max-width: 900px) { .ba-head { grid-template-columns: 1fr; gap: 18px; } }
+
+.ba { position: relative; display: grid; grid-template-columns: 1fr 1fr; margin-top: 46px; }
+.ba-side { margin: 0; min-width: 0; }
+/* Behind and below — what you're moving away from. Narrower than its column so
+   the panel in front only clips its edge; overlapping a whole card of content
+   reads as a mistake, not as depth. */
+.ba-before {
+  grid-column: 1 / span 1; width: 92%;
+  transform: rotate(-1.2deg) translateY(26px);
+  z-index: 1;
+}
+/* In front, larger, reaching back across the gutter — where you end up. */
+.ba-after {
+  grid-column: 2 / span 1; width: 112%; margin-left: -12%;
+  transform: rotate(0.9deg) translateY(-12px);
+  z-index: 3;
+}
+.ba-cap {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px;
+  margin: 0 4px 11px; font-size: 12.5px;
+}
+.ba-cap b { font-weight: 600; color: var(--ink); }
+.ba-cap span { font-family: var(--mono); font-size: 10.5px; color: var(--ink-mute); }
+.ba-mock {
+  height: 452px; overflow: hidden; position: relative;
+  border-radius: 14px; padding: 22px;
+  display: flex; flex-direction: column;
+}
+@media (max-width: 900px) {
+  .ba { grid-template-columns: 1fr; gap: 26px; margin-top: 34px; }
+  .ba-before, .ba-after {
+    grid-column: 1; width: 100%; margin-left: 0; transform: none;
+  }
+}
+
+/* The unguided one.
+
+   Not a strawman: this is competent. Pale blue-violet wash, heavy black sans,
+   a highlighter phrase, a red strike-through, one blue button. Nothing here is
+   broken — it's the house style of every AI-built landing page shipped this
+   year, which is the actual problem. It has the same components as the panel
+   opposite, element for element, so the only variable is the system. */
+.sl {
+  background:
+    radial-gradient(90% 70% at 0% 0%, #E8EEFF 0%, transparent 62%),
+    radial-gradient(80% 70% at 100% 100%, #F0E9FF 0%, transparent 60%),
+    #FAFBFD;
+  border: 1px solid #E6EAF2; border-radius: 18px;
+  color: #0B1220; padding: 14px 16px 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.sl-nav { display: flex; align-items: center; gap: 14px; }
+.sl-logo {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; letter-spacing: -0.02em;
+}
+.sl-logo i { font-style: normal; color: #2F55F0; font-size: 8px; }
+.sl-nav-links { display: flex; gap: 12px; flex: 1; }
+.sl-nav-links i { font-style: normal; font-size: 9px; color: #5A6478; }
+.sl-nav-btns { display: flex; align-items: center; gap: 6px; }
+.sl-nav-btns i, .sl-field i.sl-blue {
+  font-style: normal; font-size: 8.5px; font-weight: 600;
+  padding: 5px 11px; border-radius: 8px; white-space: nowrap;
+}
+.sl-ghost { border: 1px solid #E2E7F0; background: #fff; color: #0B1220; }
+.sl-blue { background: #2F55F0; color: #fff; box-shadow: 0 4px 10px -4px rgba(47,85,240,0.75); }
+
+.sl-hero { text-align: center; padding-top: 14px; }
+.sl-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 8.5px; font-weight: 600; color: #3B62F6;
+  background: #EEF3FF; border-radius: 999px; padding: 4px 10px;
+}
+.sl-badge i { font-style: normal; font-size: 7.5px; }
+.sl-h {
+  margin: 10px auto 0; max-width: 13em;
+  font-size: 22px; font-weight: 800; line-height: 1.16; letter-spacing: -0.035em;
+}
+.sl-h em {
+  font-style: normal;
+  background: linear-gradient(92deg, #7C4DF0, #3B62F6);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.sl-h s { text-decoration: none; position: relative; }
+.sl-h s::after {
+  content: ""; position: absolute; left: -2%; right: -2%; top: 54%;
+  height: 2.5px; border-radius: 2px; background: #E0453A;
+  transform: rotate(-1.6deg);
+}
+.sl-sub {
+  margin: 11px auto 0; max-width: 30em;
+  font-size: 10px; line-height: 1.55; color: #5A6478;
+}
+.sl-field {
+  display: flex; align-items: center; gap: 8px; margin: 16px auto 0;
+  max-width: 290px; background: #fff; border: 1px solid #E2E7F0;
+  border-radius: 11px; padding: 4px 4px 4px 12px;
+  font-size: 9.5px; color: #98A2B3;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.05);
+}
+.sl-field span { flex: 1; text-align: left; }
+.sl-field-icon { font-style: normal; font-size: 9px; color: #98A2B3; }
+.sl-formnote { margin-top: 8px; font-size: 8px; color: #98A2B3; }
+
+/* Same chip row, in the other idiom: no mask, no marquee — just a centred
+   wrap of white pills, which is what you get by default. */
+.sl-chips {
+  display: flex; flex-wrap: nowrap; gap: 6px;
+  margin: 16px 0 22px; width: max-content;
+}
+.sl-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #fff; border: 1px solid #E6EAF2; border-radius: 999px;
+  padding: 5px 11px; font-size: 8.5px; color: #5A6478; white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+.sl-chip i { font-style: normal; font-size: 7.5px; }
+
+.sl-board {
+  margin: auto 12px 0; padding: 13px 15px 0;
+  background: #fff; border: 1px solid #E6EAF2; border-radius: 14px;
+  box-shadow: 0 10px 26px -14px rgba(16,24,40,0.22);
+}
+.sl-board-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-bottom: 10px; border-bottom: 1px solid #EDF1F7;
+}
+.sl-board-title {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 9px; font-weight: 600; color: #0B1220;
+}
+.sl-board-title i {
+  width: 5px; height: 5px; border-radius: 999px; background: #2BA37A;
+}
+.sl-board-meta {
+  font-size: 7.5px; letter-spacing: 0.05em; text-transform: uppercase; color: #98A2B3;
+}
+.sl-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 12px; text-align: left; }
+.sl-col-head {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 7.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #3B62F6; margin-bottom: 8px;
+}
+.sl-col-head span:last-child { color: #98A2B3; font-weight: 500; }
+.sl-card {
+  border: 1px solid #E6EAF2; border-radius: 10px; background: #FCFDFF;
+  padding: 8px 9px; margin-bottom: 6px;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+}
+.sl-card b {
+  display: block; font-size: 9px; font-weight: 600; line-height: 1.35;
+  color: #0B1220; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sl-card span {
+  display: flex; align-items: center; gap: 6px; margin-top: 6px;
+  font-size: 7.5px; color: #667085;
+}
+.sl-card i {
+  font-style: normal; background: #EEF3FF; color: #3B62F6;
+  border-radius: 999px; padding: 2px 6px; font-weight: 600;
+}
+
+/* The guided one — Midnight Ledger, applied.
+
+   Values transcribed from the page the guide actually produced, scaled to the
+   panel: near-black canvas under a warm radial glow, Archivo-class display at
+   weight 500 (never black), a dim second line, one lime spent on the single
+   most important action, pill everything, borders in place of shadows. */
+.gd {
+  background: #0A0A0A; border: 1px solid #23241C; border-radius: 18px;
+  color: #F5F5F0; padding: 14px 16px 0; position: relative;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+.gd-glow {
+  position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+  width: 130%; height: 300px; pointer-events: none;
+  background: radial-gradient(ellipse at center, #191A12 0%, rgba(10,10,10,0) 68%);
+}
+.gd-nav { position: relative; display: flex; align-items: center; gap: 14px; }
+.gd-logo {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 11px; font-weight: 600; letter-spacing: -0.01em;
+}
+.gd-logo i { font-style: normal; color: #D4F547; font-size: 8px; }
+.gd-nav-links { display: flex; gap: 12px; flex: 1; }
+.gd-nav-links i { font-style: normal; font-size: 9px; color: #9A9A9A; }
+.gd-nav-btns { display: flex; align-items: center; gap: 6px; }
+.gd-nav-btns i, .gd-field i.gd-lime {
+  font-style: normal; font-size: 8.5px; font-weight: 500;
+  padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+}
+.gd-ghost { border: 1px solid #3A3A3A; color: #F5F5F0; }
+.gd-lime { background: #D4F547; color: #0A0A0A; font-weight: 600; }
+
+.gd-hero { position: relative; text-align: center; padding-top: 14px; }
+.gd-eyebrow {
+  font-size: 7.5px; font-weight: 500; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #7E7E7E;
+}
+/* Huge, but weight 500 — the discipline the guide is specific about. */
+.gd-h {
+  margin-top: 10px;
+  font-family: var(--font-space-grotesk), "Archivo", sans-serif;
+  font-size: 30px; font-weight: 500; line-height: 1.02; letter-spacing: -0.028em;
+  color: #F5F5F0;
+}
+.gd-h em { font-style: normal; color: #D4F547; }
+.gd-caret {
+  display: inline-block; width: 0.055em; height: 0.72em; margin-left: 0.06em;
+  background: #D4F547; vertical-align: baseline;
+  animation: lpBlink 1.1s steps(1) infinite;
+}
+/* The second line drops away rather than shouting twice. */
+.gd-h2 {
+  margin-top: 4px;
+  font-family: var(--font-space-grotesk), "Archivo", sans-serif;
+  font-size: 18px; font-weight: 500; letter-spacing: -0.02em; color: #6B6B66;
+}
+.gd-sub {
+  margin: 11px auto 0; max-width: 30em;
+  font-size: 10px; line-height: 1.6; color: #9A9A9A;
+}
+.gd-field {
+  display: flex; align-items: center; gap: 8px; margin: 16px auto 0;
+  max-width: 280px; background: #161616; border: 1px solid #2A2A2A;
+  border-radius: 999px; padding: 4px 4px 4px 13px;
+  font-size: 9.5px; color: #6E6E6E;
+}
+.gd-field span { flex: 1; text-align: left; }
+.gd-field-icon { font-style: normal; font-size: 9px; color: #6E6E6E; }
+.gd-formnote { margin-top: 8px; font-size: 8px; color: #6E6E6E; }
+
+/* The chip row: overflowing, edge-faded, exactly as the guide describes. */
+.gd-marquee {
+  position: relative; margin: 16px 0 22px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.gd-chips { display: flex; gap: 7px; width: max-content; }
+.gd-chip {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  background: rgba(22,22,22,0.7); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px; padding: 6px 12px;
+  font-size: 9px; color: #C9C9C9; white-space: nowrap;
+}
+.gd-chip i { font-style: normal; color: #8A8A8A; font-size: 7.5px; }
+
+/* The product surface: a dark card with an internal glow, cropped by the
+   panel edge — never a full-bleed light panel. */
+/* Inset from the panel's edges, not bled to them — it's a card floating on
+   the canvas, the way the guide's own page stages it, and only the bottom
+   runs past the frame. */
+.gd-board {
+  margin: auto 12px 0; padding: 13px 15px 0;
+  border: 1px solid #23241C; border-radius: 16px;
+  background: linear-gradient(180deg, #17180F 0%, #131313 42%, #101010 100%);
+  box-shadow: 0 0 80px rgba(212,245,71,0.05);
+}
+.gd-board-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-bottom: 10px; border-bottom: 1px solid #232323;
+}
+.gd-board-title {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 9px; color: #9A9A9A;
+}
+.gd-board-title i {
+  width: 5px; height: 5px; border-radius: 999px; background: #D4F547;
+  box-shadow: 0 0 8px rgba(212,245,71,0.6);
+}
+.gd-board-meta {
+  font-size: 7.5px; letter-spacing: 0.05em; text-transform: uppercase; color: #6E6E6E;
+}
+.gd-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 12px; text-align: left; }
+.gd-col-head {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 7.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #8A8A8A; margin-bottom: 8px;
+}
+.gd-col-head span:last-child { color: #5C5C5C; }
+.gd-card {
+  border: 1px solid #232323; border-radius: 10px; background: #141414;
+  padding: 8px 9px; margin-bottom: 6px;
+}
+.gd-card b {
+  display: block; font-size: 9px; font-weight: 400; line-height: 1.35;
+  color: #E8E8E2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gd-card span {
+  display: flex; align-items: center; gap: 6px; margin-top: 6px;
+  font-size: 7.5px; color: #7E7E7E;
+}
+.gd-card i {
+  font-style: normal; border: 1px solid #2F2F2F; border-radius: 999px;
+  padding: 2px 6px;
+}
+
+/* The copy action rides in the guided panel's caption, pushed to the panel's
+   own right edge — the guide belongs to that panel, and it's the only thing
+   on this page a visitor can take away without signing up. */
+.ba-cap-after { justify-content: space-between; }
+.ba-copy {
+  margin-left: auto; flex: none;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em;
+  color: var(--ink); background: var(--card);
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px;
+  cursor: pointer; white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.ba-copy:hover { border-color: var(--ink-mute); transform: translateY(-1px); }
 
 /* dark section */
 .lp-dark {

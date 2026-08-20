@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { LogoMark } from "@/components/ui/Logo";
 import { MarketingShell } from "./_shell/MarketingShell";
 import { PricingPlans } from "./_shell/PricingPlans";
+import { CopyGuideButton } from "./_shell/CopyGuideButton";
 import { TOOL_MARKS } from "@/components/marketing/ToolLogos";
 import { getAllPosts } from "@/lib/blog";
 
@@ -251,6 +252,45 @@ export default async function LandingPage() {
           <div className="lp-col-visual">
             <GuideDocument large />
           </div>
+        </div>
+      </section>
+
+      {/* ── Before / after ───────────────────────────────────── */}
+      <section className="lp-section lp-section-tint">
+        <div className="lp-section-inner">
+          <div className="ba-head">
+            <div>
+              <p className="lp-eyebrow">The difference</p>
+              <h2 className="lp-h2">
+                Same agent, same model. One of them read the guide.
+              </h2>
+            </div>
+            <p className="lp-body ba-head-body">
+              Designing a site shouldn&apos;t take fifty rounds of prompting.
+              Hand your agent one guide — the palette, the type, the spacing,
+              the shapes — and it stops guessing from the first message.
+            </p>
+          </div>
+
+          <div className="ba">
+            <figure className="ba-side ba-before">
+              <figcaption className="ba-cap">
+                <b>Without a guide</b>
+                <span>&ldquo;make it look modern&rdquo;</span>
+              </figcaption>
+              <SlopMock />
+            </figure>
+
+            <figure className="ba-side ba-after">
+              <figcaption className="ba-cap ba-cap-after">
+                <b>With your guide</b>
+                <span>midnight ledger</span>
+                <CopyGuideButton />
+              </figcaption>
+              <GuidedMock />
+            </figure>
+          </div>
+
         </div>
       </section>
 
@@ -814,6 +854,215 @@ function LibraryVignette() {
   );
 }
 
+/* The two halves of the before/after.
+
+   Both render the same page — same headline, same three cards, same buttons —
+   because the claim is about design, not copy. If the words changed too, the
+   comparison would be doing the work the guide is supposed to do.
+
+   The left one is drawn from what every model reaches for unprompted: a
+   violet gradient, a glass card, a badge with a sparkle in it, three feature
+   tiles with emoji. It's a caricature only in how quickly it arrives. */
+const GD_CHIPS = [
+  "Plan this week's sprint",
+  "Flag the blockers",
+  "Sync the team",
+  "Draft the standup",
+  "Summarize the retro",
+];
+
+const GD_COLUMNS: { label: string; count: string; cards: string[][] }[] = [
+  {
+    label: "Now",
+    count: "3",
+    cards: [
+      ["Billing retry queue", "Kestrel", "2d left"],
+      ["Onboarding drop-off", "Ana", "in review"],
+    ],
+  },
+  {
+    label: "Next",
+    count: "2",
+    cards: [
+      ["Q3 roadmap draft", "Sam", "Mon"],
+      ["Funnel tracking", "Kestrel", "Tue"],
+    ],
+  },
+  {
+    label: "Shipped",
+    count: "4",
+    cards: [
+      ["Auth rate limits", "Ana", "Fri"],
+      ["Dark mode", "Sam", "Thu"],
+    ],
+  },
+];
+
+function SlopMock() {
+  return (
+    <div className="ba-mock sl">
+      <header className="sl-nav">
+        <span className="sl-logo">
+          <i>◆</i> Northwind
+        </span>
+        <span className="sl-nav-links">
+          <i>Product</i>
+          <i>Pricing</i>
+          <i>Changelog</i>
+        </span>
+        <span className="sl-nav-btns">
+          <i className="sl-ghost">Sign in</i>
+          <i className="sl-blue">Get started</i>
+        </span>
+      </header>
+
+      <section className="sl-hero">
+        <span className="sl-badge">
+          <i>✦</i> Northwind — Your AI-powered workspace copilot
+        </span>
+        <h3 className="sl-h">
+          Every project should ship in <em>one sprint</em> —{" "}
+          <s>not one quarter</s>
+        </h3>
+        <p className="sl-sub">
+          It&apos;s 2026 — your roadmap should plan itself. Northwind reads the
+          work, writes the plan, and keeps the team honest.
+        </p>
+        <div className="sl-field">
+          <i className="sl-field-icon">✉</i>
+          <span>you@company.com</span>
+          <i className="sl-blue">Get started free →</i>
+        </div>
+        <p className="sl-formnote">Free for teams up to 5. No card required.</p>
+      </section>
+
+      <div className="sl-chips">
+        {GD_CHIPS.map((c) => (
+          <span key={c} className="sl-chip">
+            <i>✨</i>
+            {c}
+          </span>
+        ))}
+      </div>
+
+      <div className="sl-board">
+        <div className="sl-board-head">
+          <span className="sl-board-title">
+            <i />
+            Sprint 24 — Northwind
+          </span>
+          <span className="sl-board-meta">Auto-planned 4m ago</span>
+        </div>
+        <div className="sl-cols">
+          {GD_COLUMNS.map((col) => (
+            <div key={col.label} className="sl-col">
+              <div className="sl-col-head">
+                <span>{col.label}</span>
+                <span>{col.count}</span>
+              </div>
+              {col.cards.map(([title, owner, meta]) => (
+                <div key={title} className="sl-card">
+                  <b>{title}</b>
+                  <span>
+                    <i>{owner}</i>
+                    {meta}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Northwind, as Midnight Ledger builds it. Transcribed from the full page the
+   guide produced — same structure, same values, scaled to fit the panel:
+   lime diamond mark, restrained-weight Archivo-class display, the dim second
+   line, the marquee chip row, and the auto-planned sprint board. */
+function GuidedMock() {
+  return (
+    <div className="ba-mock gd">
+      <span className="gd-glow" aria-hidden />
+
+      <header className="gd-nav">
+        <span className="gd-logo">
+          <i>◆</i> Northwind
+        </span>
+        <span className="gd-nav-links">
+          <i>Product</i>
+          <i>Pricing</i>
+          <i>Changelog</i>
+        </span>
+        <span className="gd-nav-btns">
+          <i className="gd-ghost">Sign in</i>
+          <i className="gd-lime">Get access</i>
+        </span>
+      </header>
+
+      <section className="gd-hero">
+        <p className="gd-eyebrow">Workspace copilot</p>
+        <h3 className="gd-h">
+          Every project ships in <em>one sprint</em>
+          <b className="gd-caret" aria-hidden />
+        </h3>
+        <p className="gd-h2">not one quarter.</p>
+        <p className="gd-sub">
+          It&apos;s 2026 — your roadmap should plan itself. Northwind reads the
+          work, writes the plan, and keeps the team honest.
+        </p>
+        <div className="gd-field">
+          <i className="gd-field-icon">✉</i>
+          <span>you@company.com</span>
+          <i className="gd-lime">Get access</i>
+        </div>
+        <p className="gd-formnote">Free for teams up to 5. No card required.</p>
+      </section>
+
+      <div className="gd-marquee">
+        <div className="gd-chips">
+          {GD_CHIPS.map((c) => (
+            <span key={c} className="gd-chip">
+              <i>✦</i>
+              {c}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="gd-board">
+        <div className="gd-board-head">
+          <span className="gd-board-title">
+            <i />
+            Sprint 24 — Northwind
+          </span>
+          <span className="gd-board-meta">Auto-planned 4m ago</span>
+        </div>
+        <div className="gd-cols">
+          {GD_COLUMNS.map((col) => (
+            <div key={col.label} className="gd-col">
+              <div className="gd-col-head">
+                <span>{col.label}</span>
+                <span>{col.count}</span>
+              </div>
+              {col.cards.map(([title, owner, meta]) => (
+                <div key={title} className="gd-card">
+                  <b>{title}</b>
+                  <span>
+                    <i>{owner}</i>
+                    {meta}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BorrowVignette() {
   const objekt = sites()[0];
   return (
@@ -839,8 +1088,14 @@ function BorrowVignette() {
           ["Color", false],
           ["Motion & Scroll", false],
         ].map(([label, on]) => (
-          <div key={label as string} className={`bv-opt${on ? " bv-on" : ""}`}>
-            <i style={{ background: chipHue(label as string) }} />
+          <div
+            key={label as string}
+            className={`bv-opt${on ? " bv-on" : ""}`}
+            style={
+              { "--hue": chipHue(label as string) } as React.CSSProperties
+            }
+          >
+            <i />
             {label}
             <span>{on ? "✓" : ""}</span>
           </div>
