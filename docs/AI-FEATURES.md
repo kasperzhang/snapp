@@ -108,13 +108,28 @@ from Site B") and conflicts resolved *with stated reasoning*. This forces genuin
 synthesis instead of a list of quotes, and lets the designer trace every decision
 back to their own picks.
 
-### The vibecoding payoff: Paste-Ready Agent Prompt
-Both guides end with a **"Paste-Ready Agent Prompt"** section — a self-contained
-~200-word fenced block written as direct commands, designed to be pasted verbatim
-into Claude Code / Cursor / v0. The full guide is the reference; this block is the
-action. It's what turns Snapp output from "documentation" into "the first prompt
-of a vibecoding session." Keep it self-contained: it must work without the rest of
-the document.
+### The vibecoding payoff: the document *is* the prompt
+Both guides open with one normative line under the title — "Build to this spec.
+Every value below is normative; where it is silent, choose the option most
+consistent with the Design Philosophy." — and end with **Design Tokens**, the
+decisions rendered as CSS variables plus a couple of component snippets. Paste the
+whole thing into Claude Code / Cursor / v0 and it's the first prompt of a
+vibecoding session.
+
+This replaced a closing **"Paste-Ready Agent Prompt"** block (~200 words, written
+as direct commands) and a **Quick Reference** cheat-sheet. Both were removed on
+purpose, and re-adding either is a regression:
+
+- They restated decisions already made above, so a drifting model could produce a
+  summary that contradicts the body — two sources of truth in one document.
+- The paste-ready block was a lossy compression of a guide the reader already had
+  in full, and nothing marked what it had dropped.
+- Being last, it was what truncation ate first (see `max_tokens` below).
+
+Design Tokens survives the cut because it is a *translation*, not a restatement:
+`--accent: #D4F547` is a value an agent applies without interpreting, which is
+what makes two runs of the same guide land the same way. It must never introduce a
+decision that isn't already stated in prose above it.
 
 ---
 
@@ -133,8 +148,10 @@ The Mix `LEAD` prompt (~1K tokens) sits *below* the cacheable minimum — a
 ### `max_tokens: 12000` — measured, not guessed
 Was 8000. Across six real sites Sonnet's natural length for this template is
 **7,700–8,500 tokens**, so an 8000 cap sat exactly on the model's output length
-and truncated roughly half of all guides — usually severing the Paste-Ready
-Agent Prompt, the single most useful section. At ~85s per 8,000 tokens, 12000
+and truncated roughly half of all guides — usually severing the closing section.
+(Those two closing sections have since been cut, so natural length is ~1,500-2,000
+tokens shorter; the cap stays at 12000 because a cap costs nothing unspent and
+truncation is the expensive failure.) At ~85s per 8,000 tokens, 12000
 lands near 120s, well inside the 300s ceiling. `scripts/eval-guides.mjs` reports
 `⚠ TRUNCATED` per generation; if that starts appearing again, tighten the
 output-format skeleton rather than raising the cap further.
@@ -283,5 +300,6 @@ streaming largely defuses.
       under `max_tokens`, and `max_tokens` × worst-case tokens/sec under 300s.
 - [ ] Test with a noisy real site (marketing page with ads/trackers), not just
       clean portfolio sites — that's where "trust the screenshot" earns its keep.
-- [ ] The Paste-Ready Agent Prompt must remain self-contained; paste it into
-      Claude Code yourself and see if the result resembles the source site.
+- [ ] Paste the whole guide into Claude Code yourself and see if the result
+      resembles the source site. Don't reintroduce a summary or a paste-ready
+      block to make that easier — see "the document *is* the prompt" above.

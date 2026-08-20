@@ -389,7 +389,9 @@ export default function HomePage() {
                   {selectedIds.size === 1 ? "source" : "sources"}
                 </b>
                 {" · "}
-                {aspectCount} {aspectCount === 1 ? "aspect" : "aspects"} tagged
+                {aspectCount === 0
+                  ? "untagged — blends their overall feel"
+                  : `${aspectCount} ${aspectCount === 1 ? "aspect" : "aspects"} tagged`}
               </span>
               <span className="flex-1" />
               <GuideCredits className="hidden sm:inline" />

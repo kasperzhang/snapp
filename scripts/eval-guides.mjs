@@ -321,7 +321,7 @@ fs.writeFileSync(path.join(OUT, "_KEY.json"), JSON.stringify(key, null, 2));
 
 console.log(`\nDone. Read ${OUT}/guide-*.md WITHOUT opening _KEY.json.`);
 console.log("Score each on: template compliance, specificity (real hex/px, no hedging),");
-console.log("does it match the screenshot, and is the Paste-Ready Agent Prompt usable.");
+console.log("does it match the screenshot, and are the Design Tokens buildable as-is.");
 console.log(`Then open ${OUT}/_KEY.json to see which model wrote which.\n`);
 
 for (const model of MODELS) {

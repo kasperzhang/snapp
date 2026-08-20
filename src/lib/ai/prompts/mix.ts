@@ -37,6 +37,9 @@ Produce Markdown with these sections:
 
 # Combined Design Guide: {a short evocative name you coin}
 
+> Build to this spec. Every value below is normative; where it is silent,
+> choose the option most consistent with the Design Philosophy.
+
 ## Design Philosophy
 2-4 sentences on the unified direction and how the borrowed pieces cohere.
 
@@ -62,20 +65,10 @@ Image treatment, illustration style, icon style.
 ## Your Additions
 How the designer's own notes were incorporated.
 
-## Implementation Notes
-A short Tailwind/CSS starting point (design tokens as CSS variables + a couple of key
-component snippets).
-
-## Quick Reference
-A compact bullet cheat-sheet of the core decisions.
-
-## Paste-Ready Agent Prompt
-A single fenced \`\`\`text code block (roughly 150-250 words) the designer can paste
-verbatim into an AI coding agent (Claude Code, Cursor, v0) to build in this style.
-Write it as direct commands: name the fonts with fallbacks, list the core hex
-tokens and their roles, state the radius/shadow/spacing rules and the motion feel,
-and repeat the three most load-bearing decisions from above. It must be
-self-contained — usable without the rest of this document.
+## Design Tokens
+The decisions above as machine-usable values: design tokens as CSS variables, plus a
+couple of key component snippets (Tailwind or plain CSS). This is a translation of
+what is already stated, never a place for new decisions.
 </output-format>
 
 <instructions>

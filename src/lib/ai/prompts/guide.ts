@@ -45,6 +45,9 @@ Generate a COMPLETE design system specification based on the extracted data. Thi
 <output-format>
 # Design Style: [Give it a memorable 2-3 word name that captures the aesthetic]
 
+> Build to this spec. Every value below is normative; where it is silent,
+> choose the option most consistent with the Design Philosophy.
+
 ## Design Philosophy
 
 ### Core Principle
@@ -461,32 +464,6 @@ It should NOT feel like:
 - [Anti-description 2]
 - [Anti-description 3]
 - [Anti-description 4]
-
----
-
-## Quick Reference Card
-
-| Element | Value |
-|---------|-------|
-| Primary Font | [value] |
-| Body Font | [value] |
-| Primary Color | [hex] |
-| Accent Color | [hex] |
-| Border Radius | [value] |
-| Base Spacing | [value] |
-| Shadow Style | [description] |
-| Animation Speed | [value] |
-
----
-
-## Paste-Ready Agent Prompt
-
-A single fenced \`\`\`text code block (roughly 150-250 words) the reader can paste
-verbatim into an AI coding agent (Claude Code, Cursor, v0) to build in this style.
-Write it as direct commands: name the fonts with fallbacks, list the core hex
-tokens and their roles, state the radius/shadow/spacing rules and the motion feel,
-and repeat the three most load-bearing Bold Choices. It must be self-contained —
-usable without the rest of this document.
 
 </output-format>
 

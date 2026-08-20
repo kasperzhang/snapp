@@ -129,10 +129,12 @@ export async function POST(request: NextRequest) {
     // `checkUsageLimit` already resolved the plan, so routing is free here.
     const model = resolveModel("guide", limit.plan);
 
-    // 12000, not 8000. Sonnet's natural length for this template is 7,700-8,500
+    // 12000, not 8000. Sonnet's natural length for this template was 7,700-8,500
     // tokens, so an 8000 cap truncated roughly half of all guides — measured
-    // across 6 real sites — usually severing the Paste-Ready Agent Prompt at the
-    // very end, which is the most useful part. At ~85s per 8,000 tokens, 12000
+    // across 6 real sites — severing whatever closed the document. The two
+    // closing sections have since been cut (see lib/guide-sections), so natural
+    // length is shorter now; the cap stays because an unspent cap costs nothing
+    // and truncation is the expensive failure. At ~85s per 8,000 tokens, 12000
     // lands near 120s, comfortably inside the 300s ceiling.
     const message = await anthropic.messages.create({
       model: model.id,

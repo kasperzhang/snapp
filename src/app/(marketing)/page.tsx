@@ -308,8 +308,9 @@ export default async function LandingPage() {
             </p>
             <ul className="lp-feature-list">
               <li>
-                <strong>Save in one paste.</strong> Drop a URL; snapp grabs the
-                preview, favicon, fonts and colors.
+                <strong>Save in one click.</strong> The Chrome extension saves
+                the page you&apos;re on — or paste a URL. Either way snapp
+                grabs the preview, favicon, fonts and colors.
               </li>
               <li>
                 <strong>Organize by feel.</strong> Tags like &ldquo;dark &amp;
@@ -813,8 +814,8 @@ function GuideDocument({ large = false }: { large?: boolean }) {
       {/* The guide keeps going — the panel scrolls in the real app. */}
       <div className="bd-more">
         {large
-          ? "+ Motion & Effects · Imagery & Iconography · Your Additions · Implementation Notes · Quick Reference · Paste-Ready Agent Prompt"
-          : "+ 7 more sections"}
+          ? "+ Motion & Effects · Imagery & Iconography · Your Additions · Design Tokens"
+          : "+ 5 more sections"}
       </div>
     </div>
   );

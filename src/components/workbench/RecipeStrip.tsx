@@ -19,9 +19,13 @@ export function RecipeStrip({ items }: { items: WorkbenchItem[] }) {
 
   if (rows.length === 0) {
     return (
-      <p className="mb-6 rounded-[var(--radius-card)] border border-dashed border-[var(--border)] px-4 py-3 text-[13px] text-[var(--text-secondary)]">
-        Nothing marked yet — tag what to borrow from each source below, and the
-        recipe shows up here.
+      <p className="mb-6 rounded-[var(--radius-card)] border border-dashed border-[var(--border)] px-4 py-3 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+        Nothing marked — so every source contributes its{" "}
+        <span className="font-medium text-[var(--foreground)]">
+          overall feel
+        </span>{" "}
+        and the guide blends them whole. Tag aspects below to borrow specific
+        things from specific sites instead.
       </p>
     );
   }
