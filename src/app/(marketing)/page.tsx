@@ -823,33 +823,60 @@ function GuideDocument({ large = false }: { large?: boolean }) {
 
 /* ── Section vignettes (closeups of the same world) ── */
 
+/* The paragraph beside this makes one claim no competitor can echo: everyone
+   else files links away like receipts, snapp keeps them like references. So
+   the vignette shows exactly that — a dead list of URLs on one side, the same
+   sites as things you'd recognise on the other. The old version illustrated
+   the search bullet, which is the third and smallest of the three. */
+const RECEIPTS = [
+  "https://grove.earth/",
+  "pulse.fm — Pulse",
+  "paperandtype.com/ab…",
+  "grove.earth/menu",
+  "(untitled) — 2 days ago",
+  "https://www.pulse.fm/re…",
+];
+
 function LibraryVignette() {
   const picks = sites().filter((s) =>
-    ["grove.earth", "pulse.fm", "paperandtype.com"].includes(s.domain)
+    ["grove.earth", "pulse.fm"].includes(s.domain)
   );
   return (
     <div className="lv">
-      <div className="lv-search">
-        <span>⌘K</span> that dark site with the acid green…
+      <div className="lv-side lv-receipts">
+        <p className="lv-label">Every other bookmark tool</p>
+        <ul className="lv-list">
+          {RECEIPTS.map((r) => (
+            <li key={r}>
+              <i />
+              {r}
+            </li>
+          ))}
+        </ul>
       </div>
-      <div className="lv-row">
-        {picks.map((s, i) => (
-          <div key={s.domain} className={`mk-card lv-card lv-card-${i}${s.domain === "pulse.fm" ? " lv-hit" : ""}`}>
-            {s.thumb}
-            <div className="mk-meta">
-              <span className="mk-favicon" style={{ background: s.tone }}>
-                {s.name[0]}
-              </span>
-              <div>
-                <b>{s.name}</b>
-                <span>{s.domain}</span>
+
+      <div className="lv-side lv-refs">
+        <p className="lv-label lv-label-snapp">snapp</p>
+        <div className="lv-stack">
+          {picks.map((s, i) => (
+            <div key={s.domain} className={`mk-card lv-card lv-card-${i}`}>
+              {s.thumb}
+              <div className="mk-meta">
+                <span className="mk-favicon" style={{ background: s.tone }}>
+                  {s.name[0]}
+                </span>
+                <div>
+                  <b>{s.name}</b>
+                  <span>{s.domain}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
       <span className="lp-note lv-note" aria-hidden>
-        found it ↑
+        they&apos;re references ↗
       </span>
     </div>
   );

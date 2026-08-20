@@ -479,59 +479,42 @@ export const lpCss = `
 }
 .lp-aspect i { width: 8px; height: 8px; border-radius: 50%; }
 
-/* library vignette */
-.lv { position: relative; padding-top: 26px; }
-.lv-search {
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 6;
-  display: flex; align-items: center; gap: 10px; white-space: nowrap;
-  background: var(--ink); color: var(--paper);
-  border-radius: 12px; padding: 12px 18px; font-size: 13.5px;
-  box-shadow: 0 16px 40px -8px rgba(34,28,21,0.4);
+/* library vignette — receipts on the left, references on the right.
+   The dead column is deliberately dull: grey, flat, monospaced, no images.
+   Nothing about it is exaggerated except that you've seen it a hundred
+   times and could not tell one row from another. */
+.lv {
+  position: relative;
+  display: grid; grid-template-columns: 0.82fr 1fr; gap: 26px; align-items: start;
 }
-.lv-search span { font-family: var(--mono); font-size: 10.5px; border: 1px solid rgba(251,250,247,0.3); border-radius: 5px; padding: 2px 6px; }
-.lv-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding-top: 26px; }
-.lv-card-0 { transform: rotate(-1.5deg) translateY(8px); }
-.lv-card-2 { transform: rotate(1.8deg) translateY(4px); }
-.lv-hit { box-shadow: 0 0 0 2px var(--mocha), 0 14px 34px -10px rgba(141,111,76,0.45); }
-.lv-note { position: absolute; bottom: -30px; right: 16%; transform: rotate(-2deg); animation: none; opacity: 1; }
-@media (max-width: 560px) { .lv-row { grid-template-columns: repeat(2, 1fr); } .lv-row .mk-card:nth-child(3) { display: none; } }
-
-/* borrow vignette */
-.bv { display: flex; gap: 18px; align-items: center; justify-content: center; }
-.bv-card { width: min(46%, 230px); flex-shrink: 0; transform: rotate(-1.5deg); }
-.bv-menu {
-  background: var(--card); border: 1px solid var(--line); border-radius: 13px;
-  padding: 12px 13px; width: min(50%, 230px);
-  box-shadow: 0 18px 44px -12px rgba(34,28,21,0.18);
-  transform: rotate(0.8deg);
+.lv-label {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-mute); margin-bottom: 12px;
 }
-.bv-opt {
+.lv-label-snapp { color: var(--mocha); }
+.lv-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.lv-list li {
   display: flex; align-items: center; gap: 9px;
-  font-size: 12.5px; padding: 7px 9px; border-radius: 9px;
-  color: var(--ink-soft);
-  /* Transparent at rest so turning a row on can't nudge the others. */
-  border: 1px solid transparent;
+  font-family: var(--mono); font-size: 11.5px; color: #A9A396;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* Two selected rows sat flush and read as one lumpy slab with a seam down it.
-   A hairline of space is all it takes for them to read as two chosen things. */
-.bv-opt + .bv-opt { margin-top: 3px; }
-.bv-opt i {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--hue, var(--ink));
-  opacity: 0.45;
+.lv-list li i {
+  width: 11px; height: 11px; flex: none;
+  border: 1px solid #D6CFC1; border-radius: 3px;
 }
-.bv-opt span { margin-left: auto; font-size: 11px; font-weight: 650; }
-/* Selected is a tint of the aspect's own hue, the same move the app's chips
-   make — so "typography" is one colour wherever you meet it, and the two on
-   rows differ from each other instead of being one beige block. */
-.bv-on {
-  background: color-mix(in srgb, var(--hue) 11%, transparent);
-  border-color: color-mix(in srgb, var(--hue) 32%, transparent);
-  color: var(--ink);
-  font-weight: 550;
+/* The list fades out rather than ending — there are always more of them. */
+.lv-list li:nth-child(4) { opacity: 0.72; }
+.lv-list li:nth-child(5) { opacity: 0.5; }
+.lv-list li:nth-child(6) { opacity: 0.3; }
+
+.lv-stack { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.lv-card-0 { transform: rotate(-1.5deg) translateY(10px); }
+.lv-card-1 { transform: rotate(1.8deg); }
+.lv-note { position: absolute; bottom: -34px; right: 4%; transform: rotate(-2deg); animation: none; opacity: 1; }
+@media (max-width: 700px) {
+  .lv { grid-template-columns: 1fr; gap: 32px; }
+  .lv-note { display: none; }
 }
-.bv-on i { opacity: 1; }
-.bv-on span { color: color-mix(in srgb, var(--hue) 72%, var(--ink)); }
 
 /* ── before / after ──────────────────────────────────────────────────────
    Two mockups of the same page. Centred and symmetrical, this read like a
