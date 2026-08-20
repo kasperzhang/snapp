@@ -72,6 +72,11 @@ export const lpCss = `
 }
 .lp-body-dark { color: #B7AB97; }
 .lp-center { text-align: center; margin-left: auto; margin-right: auto; }
+/* Section subtitle — smaller than .lp-body, used under centred headings. */
+.lp-sub {
+  margin-top: 14px; font-size: 15.5px; line-height: 1.6;
+  color: var(--ink-soft); max-width: 38em;
+}
 
 .lp-btn {
   display: inline-block;
@@ -515,6 +520,43 @@ export const lpCss = `
   .lv { grid-template-columns: 1fr; gap: 32px; }
   .lv-note { display: none; }
 }
+
+/* borrow vignette */
+.bv { display: flex; gap: 18px; align-items: center; justify-content: center; }
+.bv-card { width: min(46%, 230px); flex-shrink: 0; transform: rotate(-1.5deg); }
+.bv-menu {
+  background: var(--card); border: 1px solid var(--line); border-radius: 13px;
+  padding: 12px 13px; width: min(50%, 230px);
+  box-shadow: 0 18px 44px -12px rgba(34,28,21,0.18);
+  transform: rotate(0.8deg);
+}
+.bv-opt {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 12.5px; padding: 7px 9px; border-radius: 9px;
+  color: var(--ink-soft);
+  /* Transparent at rest so turning a row on can't nudge the others. */
+  border: 1px solid transparent;
+}
+/* Two selected rows sat flush and read as one lumpy slab with a seam down it.
+   A hairline of space is all it takes for them to read as two chosen things. */
+.bv-opt + .bv-opt { margin-top: 3px; }
+.bv-opt i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--hue, var(--ink));
+  opacity: 0.45;
+}
+.bv-opt span { margin-left: auto; font-size: 11px; font-weight: 650; }
+/* Selected is a tint of the aspect's own hue, the same move the app's chips
+   make — so "typography" is one colour wherever you meet it, and the two on
+   rows differ from each other instead of being one beige block. */
+.bv-on {
+  background: color-mix(in srgb, var(--hue) 11%, transparent);
+  border-color: color-mix(in srgb, var(--hue) 32%, transparent);
+  color: var(--ink);
+  font-weight: 550;
+}
+.bv-on i { opacity: 1; }
+.bv-on span { color: color-mix(in srgb, var(--hue) 72%, var(--ink)); }
 
 /* ── before / after ──────────────────────────────────────────────────────
    Two mockups of the same page. Centred and symmetrical, this read like a

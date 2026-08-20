@@ -58,7 +58,7 @@ const FAQS = [
   },
   {
     q: "What does the guide actually contain?",
-    a: "A design philosophy, typography with real font stacks, a colour section with hex values and roles, layout and spacing, components, motion, imagery, implementation notes, a quick-reference sheet, and a paste-ready prompt for your agent.",
+    a: "A design philosophy, typography with real font stacks, a colour section with hex values and roles, layout and spacing, components, motion, imagery, and a design-token block — CSS variables and component snippets your agent can apply without interpreting. The whole document is the prompt: paste it in as it is.",
   },
 ];
 
@@ -74,7 +74,7 @@ const PHASES = [
   {
     n: "02",
     verb: "Save",
-    line: "Paste the URL. snapp keeps the preview, the favicon, and reads the fonts and colours behind it.",
+    line: "One click from the extension, or paste the URL. snapp keeps the preview, the favicon, and reads the fonts and colours behind it.",
   },
   {
     n: "03",
