@@ -15,3 +15,4 @@ export {
   announceMixesChanged,
 } from "./use-workbenches";
 export { useLiveFrame } from "./use-live-frame";
+export { useBilling, guidesLeft, type Billing } from "./use-billing";

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sparkles, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { GuideCredits, LimitNotice } from "@/components/billing";
 import { ColorPalette } from "./ColorPalette";
 import { FontList } from "./FontList";
 import { DesignTokensExport } from "./DesignTokensExport";
@@ -19,6 +20,8 @@ interface AnalysisPanelProps {
   onScan: () => void;
   scanning: boolean;
   scanError: string | null;
+  guideError: string | null;
+  guideOverLimit: boolean;
 }
 
 interface CollapsibleSectionProps {
@@ -65,6 +68,8 @@ export function AnalysisPanel({
   onScan,
   scanning,
   scanError,
+  guideError,
+  guideOverLimit,
 }: AnalysisPanelProps) {
   const hasData = analysisStatus === "completed" && (fonts || colors);
 
@@ -141,16 +146,23 @@ export function AnalysisPanel({
               </div>
             </div>
           ) : (
-            <Button
-              onClick={onGeneratePrompt}
-              loading={generating}
-              disabled={generating}
-              variant="secondary"
-              className="w-full"
-            >
-              <Sparkles className="w-4 h-4" />
-              Generate with Claude
-            </Button>
+            <div className="space-y-2.5">
+              <Button
+                onClick={onGeneratePrompt}
+                loading={generating}
+                disabled={generating}
+                variant="secondary"
+                className="w-full"
+              >
+                <Sparkles className="w-4 h-4" />
+                Generate with Claude
+              </Button>
+              {guideError ? (
+                <LimitNotice message={guideError} overLimit={guideOverLimit} />
+              ) : (
+                <GuideCredits className="block text-center" />
+              )}
+            </div>
           )}
         </CollapsibleSection>
 

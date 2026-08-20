@@ -29,6 +29,12 @@ export function SiteAnalysisDialog({
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [generating, setGenerating] = useState(false);
+  /* Why a guide didn't happen. This used to be dropped on the floor: the
+     handler only looked at response.ok, so hitting the monthly limit — the one
+     refusal every free account meets — stopped the spinner and said nothing.
+     `overLimit` is what turns the message into a way out. */
+  const [genError, setGenError] = useState<string | null>(null);
+  const [overLimit, setOverLimit] = useState(false);
 
   const fetchOrCreateAnalysis = useCallback(async () => {
     if (!bookmark) return;
@@ -116,6 +122,8 @@ export function SiteAnalysisDialog({
     if (!analysis) return;
 
     setGenerating(true);
+    setGenError(null);
+    setOverLimit(false);
     try {
       const response = await fetch("/api/analysis/generate", {
         method: "POST",
@@ -127,9 +135,15 @@ export function SiteAnalysisDialog({
         const data = await response.json();
         setAnalysis(data);
         notifyUsageChanged(); // a guide credit was consumed
+        return;
       }
+
+      const body = await response.json().catch(() => ({}));
+      setGenError(body.error || "Couldn't write the guide. Try again.");
+      setOverLimit(response.status === 402);
     } catch (error) {
       console.error("Error generating prompt:", error);
+      setGenError("Couldn't reach the server. Check your connection.");
     } finally {
       setGenerating(false);
     }
@@ -203,6 +217,8 @@ export function SiteAnalysisDialog({
                   analysisStatus={analysis?.analysis_status || "pending"}
                   onGeneratePrompt={handleGeneratePrompt}
                   generating={generating}
+                  guideError={genError}
+                  guideOverLimit={overLimit}
                   onScan={handleScan}
                   scanning={scanning}
                   scanError={analysis?.error_message || null}

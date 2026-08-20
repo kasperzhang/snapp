@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoMark } from "@/components/ui";
+import { useBilling } from "@/hooks";
 import { Tag, BookmarkWithRelations } from "@/types";
 import {
   DropdownMenu,
@@ -27,8 +28,7 @@ import {
 } from "@/components/ui/DropdownMenu";
 import { SidebarMixes } from "./SidebarMixes";
 import { cn } from "@/lib/utils/cn";
-import { PLANS, type PlanId, type UsageKind } from "@/lib/billing/plans";
-import { onUsageChanged } from "@/lib/billing/usage-events";
+import { PLANS } from "@/lib/billing/plans";
 
 interface SidebarProps {
   userEmail?: string;
@@ -76,29 +76,13 @@ export function Sidebar({
     pathname.startsWith("/mix")
   );
 
-  type Billing = {
-    plan: PlanId;
-    usage: Record<UsageKind, { used: number; limit: number }>;
-  };
-  const [billing, setBilling] = useState<Billing | null>(null);
+  const billing = useBilling();
   // Profile display name (falls back to the email prefix while loading /
   // when unset).
   const [displayName, setDisplayName] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
-    const loadUsage = () =>
-      fetch("/api/billing/usage")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => alive && d && setBilling(d))
-        .catch(() => {});
-
-    loadUsage();
-    // Generating a guide or running a scan moves these counters. Without this
-    // the meter kept showing the pre-generation number until something
-    // remounted the sidebar.
-    const off = onUsageChanged(loadUsage);
-
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user || !alive) return;
       const { data } = await supabase
@@ -110,7 +94,6 @@ export function Sidebar({
     });
     return () => {
       alive = false;
-      off();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

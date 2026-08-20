@@ -30,6 +30,7 @@ import {
   RecipeStrip,
   SourceCard,
 } from "@/components/workbench";
+import { GuideCredits, LimitNotice } from "@/components/billing";
 import { timeAgo } from "@/lib/utils/time";
 import { cn } from "@/lib/utils/cn";
 
@@ -55,6 +56,8 @@ export default function WorkbenchEditorPage() {
 
   const [userEmail, setUserEmail] = useState<string>();
   const [genError, setGenError] = useState<string | null>(null);
+  // A 402 isn't a failure to fix, it's a plan to change — it gets a way out.
+  const [overLimit, setOverLimit] = useState(false);
   // The guide as it streams in, before it's saved and handed back.
   const [partial, setPartial] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -137,11 +140,14 @@ export default function WorkbenchEditorPage() {
 
   const handleGenerate = async () => {
     setGenError(null);
+    setOverLimit(false);
     setPartial("");
     try {
       await generate(setPartial);
     } catch (e) {
-      setGenError(e instanceof Error ? e.message : "Failed to generate guide");
+      const err = e as Error & { status?: number };
+      setGenError(err.message || "Failed to generate guide");
+      setOverLimit(err.status === 402);
     } finally {
       setPartial("");
     }
@@ -210,6 +216,7 @@ export default function WorkbenchEditorPage() {
                 />
 
                 <div className="ml-auto flex shrink-0 items-center gap-2">
+                  <GuideCredits className="hidden md:inline" />
                   {generateButton}
 
                   <DropdownMenu>
@@ -263,13 +270,18 @@ export default function WorkbenchEditorPage() {
                 </span>
               </p>
 
+              {genError && (
+                <LimitNotice
+                  message={genError}
+                  overLimit={overLimit}
+                  className="mt-2 max-w-md"
+                />
+              )}
+
               {(!allResolved && items.length > 0) ||
-              (allResolved && completedCount < items.length) ||
-              genError ? (
+              (allResolved && completedCount < items.length) ? (
                 <p className="mt-1 text-[12.5px] text-[var(--text-secondary)]">
-                  {genError ? (
-                    <span className="text-[var(--danger)]">{genError}</span>
-                  ) : !allResolved ? (
+                  {!allResolved ? (
                     <span className="inline-flex items-center gap-1.5">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       Scanning sources — {completedCount} of {items.length} done

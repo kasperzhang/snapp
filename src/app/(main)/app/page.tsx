@@ -4,11 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUp, Layers, Loader2, Plus, Sparkles } from "lucide-react";
 import { useBookmarks, useTags, announceMixesChanged } from "@/hooks";
-import { BookmarkGrid, AddBookmarkDialog, EditBookmarkDialog } from "@/components/bookmark";
+import {
+  BookmarkGrid,
+  AddBookmarkDialog,
+  EditBookmarkDialog,
+  ExtensionInvite,
+} from "@/components/bookmark";
 import { SiteAnalysisDialog } from "@/components/analysis";
 import { MixPanel } from "@/components/workbench";
 import { Sidebar, ContentPanel } from "@/components/layout";
 import { Button } from "@/components/ui/Button";
+import { GuideCredits } from "@/components/billing";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BOOKMARKS_PAGE_SIZE } from "@/lib/pagination";
 import { BookmarkWithRelations, DesignAspect } from "@/types";
@@ -386,6 +392,7 @@ export default function HomePage() {
                 {aspectCount} {aspectCount === 1 ? "aspect" : "aspects"} tagged
               </span>
               <span className="flex-1" />
+              <GuideCredits className="hidden sm:inline" />
               <Button variant="ghost" size="sm" onClick={cancelCompose}>
                 Cancel
               </Button>
@@ -499,10 +506,13 @@ export default function HomePage() {
               !composeActive &&
               !debouncedSearch &&
               selectedTagIds.length === 0 ? (
-                <Button onClick={handleAddClick}>
-                  <Plus className="w-4 h-4" />
-                  Add your first bookmark
-                </Button>
+                <div className="flex flex-col items-center gap-3">
+                  <Button onClick={handleAddClick}>
+                    <Plus className="w-4 h-4" />
+                    Add your first bookmark
+                  </Button>
+                  <ExtensionInvite className="max-w-[19rem] text-center" />
+                </div>
               ) : undefined
             }
             selectable={composeActive}
