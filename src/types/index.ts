@@ -115,10 +115,40 @@ export interface ExtractedSpacing {
   property: "padding" | "margin" | "gap";
 }
 
+/* Motion, measured rather than imagined.
+   A screenshot is one moment, so nothing about timing is visible in it — which
+   is why the Motion & Effects section used to be the most confidently invented
+   part of every guide, handing over easing curves and millisecond values with
+   nothing behind them. These come off the live page. */
+export interface ExtractedTransition {
+  /** As authored, e.g. "150ms ease-out". */
+  value: string;
+  /** What it animates: "background-color", "transform", "opacity"… */
+  property: string;
+  frequency: number;
+  /** button / input / card / image / other */
+  context: string;
+}
+
+export interface ExtractedAnimation {
+  /** e.g. "600ms ease-out" or "34s linear, looping". */
+  value: string;
+  frequency: number;
+}
+
+export interface MotionTokens {
+  transitions: ExtractedTransition[];
+  animations: ExtractedAnimation[];
+  /** `scroll-behavior: smooth` on the root or body. */
+  smoothScroll: boolean;
+}
+
 export interface StyleTokens {
   radii: ExtractedRadius[];
   shadows: ExtractedShadow[];
   spacing: ExtractedSpacing[];
+  /** Absent on analyses scanned before motion was measured. */
+  motion?: MotionTokens;
 }
 
 export interface DesignTokens {

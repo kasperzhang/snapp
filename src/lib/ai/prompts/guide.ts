@@ -280,6 +280,11 @@ xl:   1280px  - [what changes]
 
 ## Effects & Animation
 
+Use the Measured Motion values above exactly — durations and easing curves are
+facts, and a screenshot cannot show motion, so anything not measured is a guess.
+If none were measured, say the design animates nothing rather than inventing a
+plausible timing scale.
+
 ### Motion Philosophy
 [2-3 sentences describing the animation approach - fast/slow, bouncy/smooth, minimal/expressive]
 
@@ -517,6 +522,26 @@ ${
         .map((s) => `- ${s.value} on ${s.context} elements (${s.frequency} occurrences)`)
         .join("\n")
     : "- None detected (this design uses no shadows)"
+}
+
+**Measured Motion** (a screenshot cannot show motion; these came off the live page):
+${
+  styleTokens.motion &&
+  (styleTokens.motion.transitions.length || styleTokens.motion.animations.length)
+    ? [
+        ...styleTokens.motion.transitions.map(
+          (t) => `- ${t.value} on ${t.property} (${t.context}, ${t.frequency} occurrences)`
+        ),
+        ...styleTokens.motion.animations.map(
+          (a) => `- animation ${a.value} (${a.frequency} occurrences)`
+        ),
+        styleTokens.motion.smoothScroll ? "- smooth scrolling is enabled" : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : styleTokens.motion
+      ? "- None detected: this design animates nothing. Say so; do not propose a timing scale."
+      : "- Not measured for this scan."
 }
 
 **Measured Spacing** (the page's real rhythm — derive the scale from these):

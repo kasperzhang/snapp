@@ -48,6 +48,16 @@ for (const x of st.radii) console.log(`  ${x.value.padEnd(9)} ${x.context} (${x.
 console.log(`\nSHADOWS (${st.shadows.length}):`);
 for (const x of st.shadows) console.log(`  ${x.context.padEnd(8)} ${x.value.slice(0, 68)} (${x.frequency})`);
 
+const m = st.motion;
+if (m) {
+  console.log(`\nMOTION — transitions (${m.transitions.length}), animations (${m.animations.length}), smooth scroll: ${m.smoothScroll}`);
+  for (const t of m.transitions)
+    console.log(`  ${t.value.padEnd(22)} on ${t.property} — ${t.context} (${t.frequency})`);
+  for (const a of m.animations) console.log(`  anim ${a.value} (${a.frequency})`);
+} else {
+  console.log("\nMOTION: not measured");
+}
+
 console.log(`\nSPACING (${st.spacing.length}):`);
 for (const x of st.spacing) console.log(`  ${x.value.padEnd(7)} ${x.property} (${x.frequency})`);
 

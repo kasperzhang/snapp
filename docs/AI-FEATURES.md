@@ -119,6 +119,32 @@ contributes its overall feel — it should still be described accurately.
 Screenshot bands scale with source count (3 each at ≤2 sources, hero only
 beyond) so an eight-source mix still fits in one request.
 
+### Motion is measured, not imagined
+A screenshot is one moment, so nothing about timing is visible in it — which made
+Motion & Effects the most confidently invented section in both guides. They handed
+over easing curves and millisecond values with nothing behind them; one of them
+even said so ("no motion is directly observable in static screenshots, but…").
+
+The scanner now reads it off the live page: `transition-duration` /
+`-timing-function` / `-property` from computed styles, frequency-ranked like
+radii, plus every animation seen through `document.getAnimations()`. Two details
+make it work:
+
+- **Capture runs under `prefers-reduced-motion: reduce`** so screenshots aren't
+  caught mid-reveal. A site that honours the preference zeroes its own
+  transitions under it, so the emulation is switched off before measuring —
+  otherwise we would faithfully record that the design has no motion.
+- **`finishAnimations()` destroys the evidence**, and it runs repeatedly through
+  the scroll-through. Each animation is recorded *before* it is frozen, which is
+  the only moment a scroll-triggered reveal is observable — by extraction time
+  they have all finished and left `getAnimations()`. This is what makes Framer
+  and GSAP sites measurable at all.
+
+Known limit: a site whose JS reads `prefers-reduced-motion` once at init won't
+animate during capture no matter what we flip afterwards, so JS-driven motion can
+still be under-reported. Under-reporting is the safe direction — the prompt says
+to state that a design animates nothing rather than invent a timing scale.
+
 ### Source attribution requirement
 Mix requires decisions be attributed ("headings follow Site A; the accent comes
 from Site B") and conflicts resolved *with stated reasoning*. This forces genuine

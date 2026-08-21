@@ -68,6 +68,10 @@ Buttons, cards, inputs, nav — shapes, radii, borders, shadows, states.
 
 ## Motion & Effects
 Animations, transitions, hover/scroll behaviors, and their feel. Note the source.
+Where transitions or animations were measured, use those durations and easing
+curves exactly — they are facts, and a screenshot cannot show motion, so anything
+not measured is a guess. If none were measured, say the design animates nothing
+rather than proposing a plausible-sounding scale.
 
 ## Imagery & Iconography
 Image treatment, illustration style, icon style.
@@ -191,6 +195,33 @@ export function sourceText(item: ItemForPrompt): string {
         .map((sp) => `${sp.value} ${sp.property}`)
         .join(", ")}`
     );
+  }
+
+  /* Motion is the one thing a screenshot genuinely cannot show, so it used to
+     be written from vibes — plausible easing curves and millisecond values with
+     nothing behind them. These come off the live page. */
+  const mo = t?.motion;
+  if (mo) {
+    if (mo.transitions.length) {
+      lines.push(
+        `Measured transitions (real values, do not invent others): ${mo.transitions
+          .map((x) => `${x.value} on ${x.property} (${x.context})`)
+          .join("; ")}`
+      );
+    }
+    if (mo.animations.length) {
+      lines.push(
+        `Measured animations: ${mo.animations
+          .map((a) => `${a.value} ×${a.frequency}`)
+          .join("; ")}`
+      );
+    }
+    if (mo.smoothScroll) lines.push("Measured: smooth scrolling is enabled.");
+    if (!mo.transitions.length && !mo.animations.length) {
+      lines.push(
+        "Measured motion: none — this site animates nothing. Say so rather than proposing timings."
+      );
+    }
   }
 
   if (sel.comment?.trim()) {

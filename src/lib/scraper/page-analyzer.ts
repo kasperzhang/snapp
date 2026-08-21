@@ -455,6 +455,12 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
     const radii: Bucket = new Map();
     const shadows: Bucket = new Map();
     const spacing = new Map<string, { count: number; property: string }>();
+    // key: "duration easing|property" so one row reads "150ms ease-out on
+    // background-color" rather than collapsing every property into one number.
+    const transitions = new Map<
+      string,
+      { count: number; value: string; property: string; context: string }
+    >();
 
     /* What kind of thing is this, for "8px on inputs, 16px on cards"?
        Class names alone answered "other" for nearly everything: hashed and
@@ -526,6 +532,51 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
       // and tells the model the design is square-cornered when it isn't.
       // An empty radii list already means "nothing is rounded".
 
+      /* Transitions are the only part of motion a static page will admit to:
+         the duration and curve are sitting in the computed style whether or
+         not anything is moving right now. Zero-duration entries are the CSS
+         default on every element, so counting those would bury the handful of
+         real decisions exactly as 0px radii used to. */
+      /* Splitting on every comma tears `cubic-bezier(0.16, 1, 0.3, 1)` into
+         four fragments and pairs them with the wrong properties, so the depth
+         counter keeps parenthesised easings intact. */
+      const splitTop = (v: string) => {
+        const out: string[] = [];
+        let depth = 0;
+        let cur = "";
+        for (const ch of v) {
+          if (ch === "(") depth++;
+          else if (ch === ")") depth--;
+          if (ch === "," && depth === 0) {
+            out.push(cur.trim());
+            cur = "";
+          } else cur += ch;
+        }
+        if (cur.trim()) out.push(cur.trim());
+        return out;
+      };
+      const dur = splitTop(s.transitionDuration);
+      const ease = splitTop(s.transitionTimingFunction);
+      const props = splitTop(s.transitionProperty);
+      dur.forEach((d, i) => {
+        const ms = d.endsWith("ms") ? parseFloat(d) : parseFloat(d) * 1000;
+        /* Under one frame is not a decision anyone made: it's either the
+           reduced-motion reset (0.01ms) or a rounding artefact, and neither is
+           motion a person would notice. */
+        if (!ms || ms < 16) return;
+        const prop = props[i] ?? props[0] ?? "all";
+        if (prop === "none") return;
+        const value = `${Math.round(ms)}ms ${ease[i] ?? ease[0] ?? "ease"}`;
+        const key = `${value}|${prop}`;
+        const cur = transitions.get(key);
+        if (cur) {
+          cur.count += 1;
+          if (cur.context === "other" && kind !== "other") cur.context = kind;
+        } else {
+          transitions.set(key, { count: 1, value, property: prop, context: kind });
+        }
+      });
+
       const sh = s.boxShadow;
       if (sh && sh !== "none") {
         bump(shadows, sh, kind === "input" || kind === "image" ? "other" : kind);
@@ -569,7 +620,60 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
         return { value, px: parseFloat(value), frequency: d.count, property: d.property };
       });
 
-    return { radii: topRadii, shadows: topShadows, spacing: topSpacing };
+    /* Running animations, read straight off the Web Animations API — this
+       covers CSS animations, CSS transitions and anything Framer or GSAP is
+       driving. An infinite iteration count is a marquee or a spinner, which is
+       a different design decision from a one-shot reveal, so it's kept. */
+    const anims = new Map<string, number>(
+      Object.entries(
+        (window as unknown as { __snappMotion?: Record<string, number> })
+          .__snappMotion ?? {}
+      )
+    );
+    for (const a of document.getAnimations()) {
+      try {
+        const t = a.effect?.getTiming?.();
+        if (!t) continue;
+        const ms = typeof t.duration === "number" ? Math.round(t.duration) : 0;
+        if (!ms) continue;
+        const loop = t.iterations === Infinity;
+        const label = `${ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`} ${
+          t.easing ?? "linear"
+        }${loop ? ", looping" : ""}`;
+        anims.set(label, (anims.get(label) ?? 0) + 1);
+      } catch {
+        /* an animation that refuses to describe itself */
+      }
+    }
+
+    const rootScroll = window.getComputedStyle(document.documentElement).scrollBehavior;
+    const bodyScroll = window.getComputedStyle(document.body).scrollBehavior;
+
+    const topTransitions = [...transitions.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8)
+      .map((t) => ({
+        value: t.value,
+        property: t.property,
+        frequency: t.count,
+        context: t.context,
+      }));
+
+    const topAnimations = [...anims.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([value, frequency]) => ({ value, frequency }));
+
+    return {
+      radii: topRadii,
+      shadows: topShadows,
+      spacing: topSpacing,
+      motion: {
+        transitions: topTransitions,
+        animations: topAnimations,
+        smoothScroll: rootScroll === "smooth" || bodyScroll === "smooth",
+      },
+    };
   }) as Promise<StyleTokens>;
 }
 
@@ -852,7 +956,31 @@ async function finishAnimations(page: Page): Promise<void> {
   try {
     await withTimeout(
       page.evaluate(() => {
+        /* Record before freezing. This runs repeatedly through the capture, so
+           it is the only place a scroll-triggered reveal is ever observable —
+           by extraction time every one of them has been finished and dropped
+           from getAnimations(). Framer, GSAP and friends drive their reveals
+           through this API, so without this the busiest sites measured as the
+           stillest. */
+        const seen: Record<string, number> = ((
+          window as unknown as { __snappMotion?: Record<string, number> }
+        ).__snappMotion ??= {});
         for (const animation of document.getAnimations()) {
+          try {
+            const t = animation.effect?.getTiming?.();
+            const ms =
+              t && typeof t.duration === "number" ? Math.round(t.duration) : 0;
+            if (ms) {
+              const label = `${
+                ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`
+              } ${t?.easing ?? "linear"}${
+                t?.iterations === Infinity ? ", looping" : ""
+              }`;
+              seen[label] = (seen[label] ?? 0) + 1;
+            }
+          } catch {
+            /* an animation that refuses to describe itself */
+          }
           try {
             // Looping animations (spinners, marquees) never "finish" — calling
             // finish() on one throws. They look the same at any moment anyway.
@@ -993,6 +1121,17 @@ export async function analyzePage(
     }
 
     phase("bands", t0);
+
+    /* Screenshots want the page still, so the capture above runs under
+       prefers-reduced-motion: reduce. Motion has to be measured with it off —
+       a site that honours the preference zeroes its own transitions under it,
+       and we would faithfully record that the design has no motion. The page
+       is already loaded; flipping the media feature just re-evaluates CSS. */
+    await page
+      .emulateMediaFeatures([
+        { name: "prefers-reduced-motion", value: "no-preference" },
+      ])
+      .catch(() => {});
 
     // Style extraction runs after the scroll-through so lazy content is present.
     // Each walks the whole DOM, which on a very large page is slow enough to
