@@ -48,7 +48,13 @@ Produce Markdown with these sections:
 Font families (with fallbacks), scale, weights, and usage. Note the source.
 
 ## Color & Background
-Palette with hex values, roles (bg/surface/text/accent/border), and the background
+Palette with hex values, and for EACH one a role (bg / surface / text / accent /
+border) plus, where the evidence supports it, where it must NOT be used. Measuring
+that a colour exists does not tell you what it is for: a colour that appears only
+in imagery is not a link colour, and an accent used sparsely is not a CTA colour.
+Say so explicitly — "decorative only, never on an interactive control" is a more
+useful line than another hex. Use the measured ink exactly; if the darkest measured
+text is #141413, the text colour is #141413 and not #000000. Then the background
 treatment (solid, gradient, texture). Note the source.
 
 ## Layout & Spacing
@@ -75,6 +81,10 @@ gradients, glassmorphism, an all-purpose rounded corner, a default blue button, 
 as icons — and constraints the measurements prove, e.g. no shadows were detected.
 Skip any line that could appear in any other design guide; "not a generic template"
 says nothing.
+
+Close the section with "**Non-negotiable:**" and the three decisions above that must
+survive any adaptation — the ones where trading them away would make the result stop
+being this design. State each as a rule, not a preference.
 
 ## Design Tokens
 The decisions above as machine-usable values: design tokens as CSS variables, plus a

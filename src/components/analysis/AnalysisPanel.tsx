@@ -1,9 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import {
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Copy,
+  Check,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { GuideCredits, LimitNotice } from "@/components/billing";
+import { renderMarkdown } from "@/lib/markdown";
 import { ColorPalette } from "./ColorPalette";
 import { FontList } from "./FontList";
 import { DesignTokensExport } from "./DesignTokensExport";
@@ -73,6 +81,14 @@ export function AnalysisPanel({
 }: AnalysisPanelProps) {
   const hasData = analysisStatus === "completed" && (fonts || colors);
 
+  const [copied, setCopied] = useState(false);
+  const copyGuide = async () => {
+    if (!designPrompt) return;
+    await navigator.clipboard.writeText(designPrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   /* Scanning is metered, so the button is only prominent (primary) until the
      first scan has produced something. It lives on this side because this is
      the panel it fills — the preview needs no scan to show a page. */
@@ -140,13 +156,57 @@ export function AnalysisPanel({
         {/* AI Design Guide Section */}
         <CollapsibleSection title="Design guide" defaultOpen={!!designPrompt}>
           {designPrompt ? (
-            <div className="prose prose-sm max-w-none">
-              <div className="p-3 bg-[var(--border)] rounded-lg text-sm text-[var(--foreground)] whitespace-pre-wrap max-h-64 overflow-y-auto">
-                {designPrompt}
+            <div className="space-y-3">
+              {/* Rendered, not dumped. This panel was printing "## Design
+                  Philosophy" and "**bold**" as literal characters — the same
+                  thing the mix pane used to do. */}
+              <div
+                className="guide-prose max-h-[420px] overflow-y-auto rounded-[10px] bg-[var(--background)] p-4"
+                dangerouslySetInnerHTML={{
+                  __html: renderMarkdown(designPrompt),
+                }}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={copyGuide}
+                  className="flex-1"
+                >
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  {copied ? "Copied" : "Copy for your agent"}
+                </Button>
+                {/* Regenerating was impossible once a guide existed — the
+                    button it lived in had been replaced by the guide. */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onGeneratePrompt}
+                  loading={generating}
+                  disabled={generating}
+                  title="Write a new guide (uses a credit)"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
               </div>
+              {guideError && (
+                <LimitNotice message={guideError} overLimit={guideOverLimit} />
+              )}
             </div>
           ) : (
             <div className="space-y-2.5">
+              {/* What the button does, before it's pressed. It spends a metered
+                  credit, so "Generate with Claude" alone was asking people to
+                  pay to find out. */}
+              <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+                Reads this page&apos;s fonts, colours and screenshots and writes
+                one design spec — hex values, type scale, spacing, components —
+                to paste into Cursor, Claude Code or v0.
+              </p>
               <Button
                 onClick={onGeneratePrompt}
                 loading={generating}
