@@ -90,6 +90,10 @@ async function getBrowser(): Promise<Browser> {
     defaultViewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT },
     executablePath,
     headless: true,
+    // Default is 180s — the same order as the whole function budget, so a CDP
+    // call that never answers takes the platform down with it instead of
+    // surfacing as an error we can handle.
+    protocolTimeout: 30_000,
   });
 }
 
@@ -679,23 +683,55 @@ async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
  * Animations API, which is what Framer, GSAP and friends drive their reveals
  * through — so this catches the ones a CSS-only override would miss.
  */
+/* Anything talking to a browser page can hang: a webfont that never resolves,
+   a CDP call that never answers, a DOM walk over a page with 40,000 nodes.
+   Puppeteer's own timeouts don't cover page.evaluate, so an unbounded await
+   here means the platform kills the function and the caller sees a 504 — the
+   same failure mode the navigation timeout used to cause, one level down.
+   Every step that touches the page goes through this. */
+function withTimeout<T>(
+  work: Promise<T>,
+  ms: number,
+  label: string
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    work.finally(() => clearTimeout(timer)),
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${label} timed out after ${ms}ms`)),
+        ms
+      );
+    }),
+  ]);
+}
+
+/** Phase timings, so a slow scan says where it went in the logs. */
+function phase(label: string, startedAt: number) {
+  console.log(`[scan] ${label}: ${Date.now() - startedAt}ms`);
+}
+
 async function finishAnimations(page: Page): Promise<void> {
   try {
-    await page.evaluate(() => {
-      for (const animation of document.getAnimations()) {
-        try {
-          // Looping animations (spinners, marquees) never "finish" — calling
-          // finish() on one throws. They look the same at any moment anyway.
-          const iterations = animation.effect?.getTiming?.().iterations;
-          if (iterations === Infinity) continue;
-          animation.finish();
-        } catch {
-          /* some animations refuse to be finished; leave them */
+    await withTimeout(
+      page.evaluate(() => {
+        for (const animation of document.getAnimations()) {
+          try {
+            // Looping animations (spinners, marquees) never "finish" — calling
+            // finish() on one throws. They look the same at any moment anyway.
+            const iterations = animation.effect?.getTiming?.().iterations;
+            if (iterations === Infinity) continue;
+            animation.finish();
+          } catch {
+            /* some animations refuse to be finished; leave them */
+          }
         }
-      }
-    });
+      }),
+      4_000,
+      "finishAnimations"
+    );
   } catch {
-    /* page navigated or closed mid-call — the capture will still work */
+    /* page navigated, closed, or too busy — the capture still works */
   }
 }
 
@@ -711,11 +747,22 @@ export async function analyzePage(
 ): Promise<ScanResult> {
   const deadline = opts.deadline ?? Date.now() + 150_000;
   const left = () => deadline - Date.now();
+  /* Every bound is also clamped to the time actually remaining, so the sum of
+     the individual limits can never exceed the whole. Fixed timeouts alone add
+     up to more than the budget on a page that trips all of them at once. */
+  const bound = <T,>(work: Promise<T>, ms: number, label: string) =>
+    withTimeout(work, Math.max(1_000, Math.min(ms, left() - 3_000)), label);
   let browser: Browser | null = null;
 
   try {
-    browser = await getBrowser();
+    const t0 = Date.now();
+    // Cold start pulls the Chromium binary over the network; it is not free
+    // and it is not bounded by anything else here.
+    browser = await bound(getBrowser(), 30_000, "browser launch");
+    phase("launch", t0);
     const page = await browser.newPage();
+    // Bounds waitForNetworkIdle and friends without repeating a number.
+    page.setDefaultTimeout(15_000);
 
     // Set viewport for consistent screenshots
     await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });
@@ -738,8 +785,10 @@ export async function analyzePage(
     // failing here returns a real error rather than a platform timeout.
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: Math.max(8_000, Math.min(25_000, left() - 20_000)),
+      timeout: Math.max(5_000, Math.min(25_000, left() - 30_000)),
     });
+
+    phase("goto", t0);
 
     // Try to wait for network idle, but don't fail if it times out
     try {
@@ -755,9 +804,15 @@ export async function analyzePage(
     // Webfonts render as fallback — or as nothing at all under font-display:
     // block — until they load. Both misreport the typography we're here to read.
     try {
-      await page.evaluate(() => document.fonts.ready.then(() => undefined));
+      await bound(
+        page.evaluate(() => document.fonts.ready.then(() => undefined)),
+        6_000,
+        "fonts.ready"
+      );
     } catch {
-      /* older engines without the Font Loading API */
+      /* older engines without the Font Loading API — or a font request that
+         never settles, which on a font-heavy build means document.fonts.ready
+         never resolves and this await would otherwise hang forever */
     }
 
     await finishAnimations(page);
@@ -792,21 +847,38 @@ export async function analyzePage(
       // so settle once more before the shutter.
       await new Promise((resolve) => setTimeout(resolve, 250));
       await finishAnimations(page);
-      const shot = await page.screenshot({
-        type: "webp",
-        quality: 80,
-        fullPage: false,
-      });
+      const shot = await bound(
+        page.screenshot({ type: "webp", quality: 80, fullPage: false }),
+        12_000,
+        `screenshot band ${i}`
+      );
       sections.push(Buffer.from(shot));
     }
 
+    phase("bands", t0);
+
     // Style extraction runs after the scroll-through so lazy content is present.
-    await page.evaluate(() => window.scrollTo(0, 0));
+    // Each walks the whole DOM, which on a very large page is slow enough to
+    // matter — and a screenshot with no palette still beats no scan at all, so
+    // none of these is allowed to sink the capture.
+    await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
     const [fonts, colors, styleTokens] = await Promise.all([
-      extractFontsFromPage(page),
-      extractColorsFromPage(page),
-      extractStyleTokensFromPage(page),
+      bound(extractFontsFromPage(page), 12_000, "fonts").catch((e) => {
+        console.warn("[scan] font extraction skipped:", e.message);
+        return [] as ExtractedFont[];
+      }),
+      bound(extractColorsFromPage(page), 12_000, "colors").catch((e) => {
+        console.warn("[scan] color extraction skipped:", e.message);
+        return [] as ExtractedColor[];
+      }),
+      bound(extractStyleTokensFromPage(page), 12_000, "tokens").catch(
+        (e) => {
+          console.warn("[scan] token extraction skipped:", e.message);
+          return {} as StyleTokens;
+        }
+      ),
     ]);
+    phase("extract", t0);
 
     return {
       // The hero doubles as the bookmark card's preview image.
@@ -817,8 +889,10 @@ export async function analyzePage(
       styleTokens,
     };
   } finally {
+    // A wedged browser must not hold the function open past its deadline; the
+    // sandbox is torn down with the invocation either way.
     if (browser) {
-      await browser.close();
+      await withTimeout(browser.close(), 5_000, "browser close").catch(() => {});
     }
   }
 }

@@ -17,7 +17,26 @@ import {
    with its own HTML error page, which the client then tried to parse as JSON.
    The scan hands itself a deadline 20s inside this so it always returns. */
 export const maxDuration = 180;
-const SCAN_BUDGET_MS = (maxDuration - 20) * 1000;
+/* The whole invocation must finish inside maxDuration, so the work is divided:
+   the browser gets everything except a reserve for uploading what it captured.
+   A capture that can't be saved is the same as no capture. */
+const HARD_DEADLINE_MS = (maxDuration - 12) * 1000;
+const UPLOAD_RESERVE_MS = 45_000;
+
+/* Storage calls are the last thing standing between a finished scan and a
+   saved one, and they are just as capable of hanging as the browser was. */
+function withTimeout<T>(work: Promise<T>, ms: number, label: string) {
+  let timer: ReturnType<typeof setTimeout>;
+  return Promise.race([
+    Promise.resolve(work).finally(() => clearTimeout(timer)),
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${label} timed out after ${ms}ms`)),
+        ms
+      );
+    }),
+  ]);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,8 +108,9 @@ export async function POST(request: NextRequest) {
 
     try {
       // Perform the page analysis
+      const deadline = Date.now() + HARD_DEADLINE_MS;
       const scanResult = await analyzePage(url, {
-        deadline: Date.now() + SCAN_BUDGET_MS,
+        deadline: deadline - UPLOAD_RESERVE_MS,
       });
 
       // Upload every captured band. Section 0 is the hero and keeps the bare
@@ -98,12 +118,17 @@ export async function POST(request: NextRequest) {
       const screenshotUrls: string[] = [];
       for (const [i, band] of scanResult.sections.entries()) {
         const fileName = screenshotPath(user.id, analysis_id, undefined, i);
-        const { error: uploadError } = await supabase.storage
-          .from(SCREENSHOT_BUCKET)
-          .upload(fileName, band, {
+        const { error: uploadError } = await withTimeout(
+          supabase.storage.from(SCREENSHOT_BUCKET).upload(fileName, band, {
             contentType: SCREENSHOT_CONTENT_TYPE,
             upsert: true,
-          });
+          }),
+          Math.max(2_000, Math.min(20_000, deadline - Date.now())),
+          `upload band ${i}`
+        ).catch((e) => {
+          console.warn("[scan]", e.message);
+          return { error: e };
+        });
         if (uploadError) break; // keep whatever uploaded; a partial set still works
         const { data: urlData } = supabase.storage
           .from(SCREENSHOT_BUCKET)
@@ -125,7 +150,12 @@ export async function POST(request: NextRequest) {
               screenshotPath(user.id, analysis_id, "png", i),
             ]),
         ];
-        await supabase.storage.from(SCREENSHOT_BUCKET).remove(stale);
+        // Housekeeping only — never worth failing or delaying a scan for.
+        await withTimeout(
+          supabase.storage.from(SCREENSHOT_BUCKET).remove(stale),
+          Math.max(1_000, Math.min(10_000, deadline - Date.now())),
+          "stale cleanup"
+        ).catch(() => {});
       }
 
       // Generate design tokens
