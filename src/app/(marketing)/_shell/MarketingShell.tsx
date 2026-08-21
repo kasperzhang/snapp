@@ -89,7 +89,18 @@ export async function MarketingShell({
             ·{" "}
             <Link href="/refunds" className="lp-footer-link">
               Refunds
-            </Link>
+            </Link>{" "}
+            ·{" "}
+            {/* The people most likely to hit a wall are the ones who couldn't
+                sign up, and the in-app report is behind the login they never
+                got through. A plain mailto needs no JavaScript and works on
+                every page this shell renders. */}
+            <a
+              href="mailto:kasperzhang.ai@gmail.com?subject=snapp%20bug%20report&body=What%20happened%3F%0A%0A%0AWhat%20did%20you%20expect%20instead%3F%0A%0A%0AWhich%20page%20and%20browser%3F%0A"
+              className="lp-footer-link"
+            >
+              Report a bug
+            </a>
           </p>
         </div>
       </footer>
