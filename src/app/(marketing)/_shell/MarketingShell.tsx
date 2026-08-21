@@ -63,45 +63,80 @@ export async function MarketingShell({
 
       <footer className="lp-footer">
         <div className="lp-footer-inner">
-          <Link href="/" className="lp-wordmark lp-wordmark-sm">
-            <span className="lp-logo-tile">
-              <LogoMark />
-            </span>
-            <span>snapp</span>
-          </Link>
-          <p className="lp-footer-spec">
-            This page&apos;s guide — porcelain{" "}
-            <i className="lp-swatch-i" style={{ background: "#FBFAF7" }} /> #FBFAF7 ·
-            espresso <i className="lp-swatch-i" style={{ background: "#221C15" }} />{" "}
-            #221C15 · mocha{" "}
-            <i className="lp-swatch-i" style={{ background: "#8D6F4C" }} /> #8D6F4C ·
-            set in Bricolage Grotesque &amp; Geist. Guided by snapp.
-          </p>
-          <p className="lp-footer-copy">
-            © {new Date().getFullYear()} snapp ·{" "}
-            <Link href="/terms" className="lp-footer-link">
-              Terms
-            </Link>{" "}
-            ·{" "}
-            <Link href="/privacy" className="lp-footer-link">
-              Privacy
-            </Link>{" "}
-            ·{" "}
-            <Link href="/refunds" className="lp-footer-link">
-              Refunds
-            </Link>{" "}
-            ·{" "}
-            {/* The people most likely to hit a wall are the ones who couldn't
-                sign up, and the in-app report is behind the login they never
-                got through. A plain mailto needs no JavaScript and works on
-                every page this shell renders. */}
-            <a
-              href="mailto:kasperzhang.ai@gmail.com?subject=snapp%20bug%20report&body=What%20happened%3F%0A%0A%0AWhat%20did%20you%20expect%20instead%3F%0A%0A%0AWhich%20page%20and%20browser%3F%0A"
-              className="lp-footer-link"
+          {/* Brand and wayfinding. The old footer had no navigation at all —
+              a wordmark, one long caption and a legal row — so the page simply
+              ended, with nowhere to go from the bottom of it. */}
+          <div className="lp-footer-brand">
+            <Link href="/" className="lp-wordmark lp-wordmark-sm">
+              <span className="lp-logo-tile">
+                <LogoMark />
+              </span>
+              <span>snapp</span>
+            </Link>
+            <p>
+              Keep the sites you wish you&apos;d made. Turn them into one design
+              guide your agent follows.
+            </p>
+            <Link
+              href={loggedIn ? "/app" : "/signup"}
+              className="lp-btn lp-btn-primary lp-btn-sm"
             >
-              Report a bug
-            </a>
+              {loggedIn ? "Open snapp" : "Start free"}
+            </Link>
+          </div>
+
+          <nav className="lp-footer-nav">
+            <div>
+              <h3>Product</h3>
+              <a href={anchors ? "#library" : "/#library"}>Library</a>
+              <a href={anchors ? "#mix" : "/#mix"}>The Mix</a>
+              <a href={anchors ? "#pricing" : "/#pricing"}>Pricing</a>
+              <Link href="/blog">Blog</Link>
+            </div>
+            <div>
+              <h3>Company</h3>
+              <Link href="/terms">Terms</Link>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/refunds">Refunds</Link>
+              {/* The people most likely to hit a wall are the ones who never
+                  got through signup, and the in-app reporter is behind it. A
+                  plain mailto needs no JavaScript and rides on every surface
+                  this shell renders. */}
+              <a href="mailto:kasperzhang.ai@gmail.com?subject=snapp%20bug%20report&body=What%20happened%3F%0A%0A%0AWhat%20did%20you%20expect%20instead%3F%0A%0A%0AWhich%20page%20and%20browser%3F%0A">
+                Report a bug
+              </a>
+            </div>
+          </nav>
+        </div>
+
+        {/* The page printing its own guide is the most on-brand thing here, and
+            it was set as a caption running off the edge. It gets the treatment
+            a real guide section gets: an eyebrow, swatches as chips, the type
+            credit on its own line. */}
+        <div className="lp-footer-guide">
+          <p className="lp-eyebrow">This page&apos;s guide</p>
+          <div className="lp-footer-swatches">
+            {[
+              ["#FBFAF7", "porcelain"],
+              ["#221C15", "espresso"],
+              ["#8D6F4C", "mocha"],
+            ].map(([hex, name]) => (
+              <span key={hex} className="lp-footer-swatch">
+                <i style={{ background: hex }} />
+                {hex}
+                <b>{name}</b>
+              </span>
+            ))}
+          </div>
+          <p className="lp-footer-type">
+            Bricolage Grotesque display · Geist body · Geist Mono data — guided
+            by snapp
           </p>
+        </div>
+
+        <div className="lp-footer-legal">
+          <span>© {new Date().getFullYear()} snapp</span>
+          <span>Made for people who point at things.</span>
         </div>
       </footer>
     </div>

@@ -1002,21 +1002,69 @@ export const lpCss = `
 /* closer + footer */
 .lp-closer { text-align: center; padding: 130px 28px; }
 .lp-closer-h { margin-bottom: 38px; }
-.lp-footer { border-top: 1px solid var(--line); padding: 34px 28px; }
+/* ── footer ──────────────────────────────────────────────────────────────
+   Three bands: brand and navigation, then the page's own guide, then the
+   legal line. It used to be a wordmark, one caption running to the edge and
+   a row of links — no wayfinding at all, so the page just stopped. */
+.lp-footer { border-top: 1px solid var(--line); padding: 64px 28px 30px; }
 .lp-footer-inner {
   max-width: 1120px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 56px; align-items: start;
+}
+.lp-footer-brand p {
+  margin: 16px 0 20px; max-width: 30em;
+  font-size: 14px; line-height: 1.65; color: var(--ink-soft);
 }
 .lp-wordmark-sm { font-size: 15px; }
 .lp-wordmark-sm .lp-logo-tile { width: 22px; height: 22px; border-radius: 6px; }
 .lp-wordmark-sm .lp-logo-tile svg { width: 11px; height: 11px; }
-.lp-footer-spec { font-family: var(--mono); font-size: 10.5px; color: var(--ink-mute); line-height: 2; }
-.lp-swatch-i {
-  display: inline-block; width: 9px; height: 9px; border-radius: 3px;
-  border: 1px solid var(--line); vertical-align: -1px; margin: 0 1px;
+
+.lp-footer-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.lp-footer-nav h3 {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--ink-mute); margin-bottom: 14px;
 }
-.lp-footer-copy { font-size: 12px; color: var(--ink-mute); }
-.lp-footer-link:hover { color: var(--ink); }
+.lp-footer-nav a {
+  display: block; font-size: 14px; color: var(--ink-soft);
+  padding: 5px 0; transition: color 0.15s ease;
+}
+.lp-footer-nav a:hover { color: var(--ink); }
+
+/* The page printing its own guide — the most on-brand thing in the footer,
+   and previously a caption. Given the treatment a guide section gets. */
+.lp-footer-guide {
+  max-width: 1120px; margin: 56px auto 0;
+  padding-top: 26px; border-top: 1px solid var(--line);
+}
+.lp-footer-guide .lp-eyebrow { margin-bottom: 14px; }
+.lp-footer-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.lp-footer-swatch {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 12px 5px 7px; background: var(--card);
+  font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+}
+.lp-footer-swatch i {
+  width: 14px; height: 14px; border-radius: 5px;
+  border: 1px solid var(--line);
+}
+.lp-footer-swatch b { font-family: var(--body); font-weight: 400; color: var(--ink-mute); }
+.lp-footer-type {
+  margin-top: 14px; font-family: var(--mono);
+  font-size: 11px; color: var(--ink-mute);
+}
+.lp-footer-legal {
+  max-width: 1120px; margin: 34px auto 0;
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  font-size: 12px; color: var(--ink-mute);
+}
+
+@media (max-width: 820px) {
+  .lp-footer { padding-top: 48px; }
+  .lp-footer-inner { grid-template-columns: 1fr; gap: 36px; }
+  .lp-footer-guide { margin-top: 40px; }
+}
 
 /* ── motion ── */
 .lp-rise { opacity: 0; transform: translateY(16px); animation: lpRise 0.75s cubic-bezier(0.22,1,0.36,1) forwards; }
