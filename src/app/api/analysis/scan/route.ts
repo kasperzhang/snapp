@@ -11,7 +11,13 @@ import {
   screenshotPath,
 } from "@/lib/storage/screenshots";
 
-export const maxDuration = 60; // Vercel function timeout
+/* 180s, not 60. A heavy Framer or Webflow build routinely needs 40-70s to
+   reach domcontentloaded, scroll-capture three bands and settle its
+   animations; at 60 the platform killed the function mid-scan and answered
+   with its own HTML error page, which the client then tried to parse as JSON.
+   The scan hands itself a deadline 20s inside this so it always returns. */
+export const maxDuration = 180;
+const SCAN_BUDGET_MS = (maxDuration - 20) * 1000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,7 +89,9 @@ export async function POST(request: NextRequest) {
 
     try {
       // Perform the page analysis
-      const scanResult = await analyzePage(url);
+      const scanResult = await analyzePage(url, {
+        deadline: Date.now() + SCAN_BUDGET_MS,
+      });
 
       // Upload every captured band. Section 0 is the hero and keeps the bare
       // path, so screenshot_url still points at it for card previews and Mix.

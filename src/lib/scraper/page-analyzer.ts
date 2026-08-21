@@ -699,7 +699,18 @@ async function finishAnimations(page: Page): Promise<void> {
   }
 }
 
-export async function analyzePage(url: string): Promise<ScanResult> {
+/* A wall-clock deadline for the whole scan, so no single step can spend the
+   function's entire budget. Puppeteer's own timeouts used to be the only
+   guard, and the navigation one was set to exactly the platform limit — so a
+   slow site was killed by Vercel at the same second Puppeteer would have
+   thrown, and the caller got a 504 HTML page where it expected JSON instead of
+   a real error it could show. Everything below stays strictly inside it. */
+export async function analyzePage(
+  url: string,
+  opts: { deadline?: number } = {}
+): Promise<ScanResult> {
+  const deadline = opts.deadline ?? Date.now() + 150_000;
+  const left = () => deadline - Date.now();
   let browser: Browser | null = null;
 
   try {
@@ -721,10 +732,13 @@ export async function analyzePage(url: string): Promise<ScanResult> {
       { name: "prefers-reduced-motion", value: "reduce" },
     ]);
 
-    // Navigate to URL - use domcontentloaded for faster loading, then wait for network
+    // Navigate to URL - use domcontentloaded for faster loading, then wait for
+    // network. Capped well under the remaining budget: a site that can't reach
+    // domcontentloaded in 25s is not going to produce a usable screenshot, and
+    // failing here returns a real error rather than a platform timeout.
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeout: Math.max(8_000, Math.min(25_000, left() - 20_000)),
     });
 
     // Try to wait for network idle, but don't fail if it times out
@@ -763,6 +777,9 @@ export async function analyzePage(url: string): Promise<ScanResult> {
     );
 
     for (let i = 0; i < bands; i++) {
+      // Extraction and upload still have to happen. A partial capture — one
+      // band plus real fonts and colors — is worth far more than a timeout.
+      if (i > 0 && left() < 25_000) break;
       const y = i * VIEWPORT_HEIGHT;
       await page.evaluate((top) => window.scrollTo(0, top), y);
       // Give IntersectionObserver a beat to fire and lazy images to start...

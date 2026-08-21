@@ -72,6 +72,16 @@ export function SiteAnalysisDialog({
     }
   }, [open, bookmark, fetchOrCreateAnalysis]);
 
+  /* Said in the page, where the person who pressed Scan is looking. */
+  const scanFailureMessage = (status: number) => {
+    if (status === 504 || status === 502 || status === 503)
+      return "The scan timed out — this site is unusually heavy to load. Try again, or open it and save a lighter page.";
+    if (status === 402)
+      return "You've used this month's scans.";
+    if (status === 429) return "Too many scans at once — give it a moment.";
+    return "Couldn't scan this page. Try again.";
+  };
+
   const handleScan = async () => {
     if (!analysis || !bookmark) return;
 
@@ -91,13 +101,17 @@ export function SiteAnalysisDialog({
         setAnalysis(data);
         notifyUsageChanged(); // a scan was consumed
       } else {
-        const error = await response.json();
+        /* Not every failure is ours to format. A platform timeout answers with
+           an HTML error page, and parsing that as JSON threw a SyntaxError
+           that buried the real cause — the console said "Unexpected token 'A'"
+           when the truth was a 504. */
+        const body = await response.json().catch(() => null);
         setAnalysis((prev) =>
           prev
             ? {
                 ...prev,
                 analysis_status: "error",
-                error_message: error.error || "Failed to scan page",
+                error_message: body?.error || scanFailureMessage(response.status),
               }
             : null
         );
@@ -109,7 +123,8 @@ export function SiteAnalysisDialog({
           ? {
               ...prev,
               analysis_status: "error",
-              error_message: "Failed to scan page",
+              error_message:
+                "Couldn't reach the server to scan this page. Check your connection and try again.",
             }
           : null
       );
