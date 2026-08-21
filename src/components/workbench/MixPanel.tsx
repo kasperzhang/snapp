@@ -14,7 +14,8 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { useWorkbench } from "@/hooks";
+import { useWorkbench, useWorkbenches } from "@/hooks";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { WorkbenchItem } from "@/types";
 import { StreamingGuide } from "./StreamingGuide";
@@ -36,11 +37,13 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
     scanItem,
     generate,
   } = useWorkbench(workbenchId);
+  const { deleteWorkbench } = useWorkbenches();
 
   const [genError, setGenError] = useState<string | null>(null);
   const [overLimit, setOverLimit] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   // The guide as it streams in, before it's saved and handed back on workbench.
   const [partial, setPartial] = useState("");
   const autoScanned = useRef<Set<string>>(new Set());
@@ -241,7 +244,7 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
             </div>
             <div className="border-t border-[var(--border)] px-5 py-3.5">
               {genError && (
-                <p className="mb-2 text-xs text-red-500">{genError}</p>
+                <p className="mb-2 text-xs text-[var(--danger)]">{genError}</p>
               )}
               <div className="flex items-center gap-2">
                 <Button size="sm" onClick={handleCopy} className="flex-1">
@@ -293,20 +296,33 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
           />
         ) : genError || failedEarlier ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
-            <AlertCircle className="h-6 w-6 text-red-500" />
+            <AlertCircle className="h-6 w-6 text-[var(--danger)]" />
             <p className="text-sm text-[var(--text-secondary)]">
               {genError ?? "That generation didn't finish."}
             </p>
-            {overLimit ? (
-              <Button size="sm" onClick={goUpgrade}>
-                <Zap className="h-3.5 w-3.5" />
-                See plans
+            <div className="flex items-center gap-2">
+              {overLimit ? (
+                <Button size="sm" onClick={goUpgrade}>
+                  <Zap className="h-3.5 w-3.5" />
+                  See plans
+                </Button>
+              ) : (
+                <Button size="sm" variant="secondary" onClick={runGenerate}>
+                  Try again
+                </Button>
+              )}
+              {/* A mix is created before its guide is written, so a failed run
+                  leaves one behind. Without a way out of this screen, a run of
+                  failures becomes a library of empty mixes to clean up by
+                  hand — offered here, where the failure happened. */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirmDiscard(true)}
+              >
+                Discard mix
               </Button>
-            ) : (
-              <Button size="sm" variant="secondary" onClick={runGenerate}>
-                Try again
-              </Button>
-            )}
+            </div>
           </div>
         ) : completed.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
@@ -325,6 +341,17 @@ export function MixPanel({ workbenchId, onClose }: MixPanelProps) {
           />
         )}
       </div>
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        title="Discard this mix?"
+        description="The sources and everything you tagged on them go with it. Your bookmarks stay in the library."
+        confirmLabel="Discard"
+        onConfirm={async () => {
+          await deleteWorkbench(workbenchId);
+          onClose();
+        }}
+      />
     </aside>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Layers, Trash2, Sparkles } from "lucide-react";
+import { Layers, Trash2, Sparkles, AlertCircle, Circle } from "lucide-react";
 import { Workbench } from "@/types";
 import { Card } from "@/components/ui/Card";
 
@@ -28,12 +28,32 @@ export function WorkbenchCard({ workbench, onDelete }: WorkbenchCardProps) {
             </p>
           </div>
         </div>
-        {workbench.guide_status === "completed" && (
-          <span className="inline-flex items-center gap-1 mt-4 text-xs text-[var(--text-secondary)]">
-            <Sparkles className="w-3.5 h-3.5" />
-            Guide ready
-          </span>
-        )}
+        {/* Every state is named. A mix whose generation failed used to render
+            exactly like one you simply hadn't opened yet — which is how a run
+            of failures becomes a list of identical cards nobody can triage. */}
+        <span className="inline-flex items-center gap-1 mt-4 text-xs text-[var(--text-secondary)]">
+          {workbench.guide_status === "completed" ? (
+            <>
+              <Sparkles className="w-3.5 h-3.5" />
+              Guide ready
+            </>
+          ) : workbench.guide_status === "error" ? (
+            <>
+              <AlertCircle className="w-3.5 h-3.5 text-[var(--danger)]" />
+              Generation failed
+            </>
+          ) : workbench.guide_status === "generating" ? (
+            <>
+              <Sparkles className="w-3.5 h-3.5" />
+              Writing…
+            </>
+          ) : (
+            <>
+              <Circle className="w-3.5 h-3.5" />
+              No guide yet
+            </>
+          )}
+        </span>
       </Link>
       {onDelete && (
         <button
