@@ -10,6 +10,7 @@ import {
 } from "@/lib/billing/limits";
 import { rateLimit } from "@/lib/ratelimit";
 import {
+  debugGenerationError,
   describeGenerationError,
   logGenerationError,
 } from "@/lib/ai/errors";
@@ -190,6 +191,7 @@ export async function POST(request: NextRequest) {
           error,
           "Couldn't start the guide. Try again."
         ),
+        debug: debugGenerationError(error),
       },
       { status: 500 }
     );

@@ -154,6 +154,7 @@ export function SiteAnalysisDialog({
       }
 
       const body = await response.json().catch(() => ({}));
+      if (body?.debug) console.error("[snapp] generation failed —", body.debug);
       setGenError(body.error || "Couldn't write the guide. Try again.");
       setOverLimit(response.status === 402);
     } catch (error) {

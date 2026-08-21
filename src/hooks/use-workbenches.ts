@@ -307,6 +307,8 @@ export function useWorkbench(id: string | null) {
         notifyUsageChanged(); // a guide credit was consumed
       } else if (frame.t === "err") {
         streamError = frame.message || "Failed to generate guide";
+        // The page shows a sentence; the console gets the cause.
+        if (frame.debug) console.error("[snapp] generation failed —", frame.debug);
         // The model finished and only the save failed — hold on to the text so
         // the panel can still show it and let someone copy it.
         if (typeof frame.guide === "string" && frame.guide) {

@@ -15,6 +15,7 @@ import {
 } from "@/lib/billing/limits";
 import { rateLimit } from "@/lib/ratelimit";
 import {
+  debugGenerationError,
   describeGenerationError,
   logGenerationError,
 } from "@/lib/ai/errors";
@@ -34,7 +35,7 @@ type GuideFrame =
   /* `guide` rides along when the model finished and only the save failed —
      the text exists, it cost a credit, and dropping it on the floor while
      telling someone to "try again" spends a second one for nothing. */
-  | { t: "err"; message: string; guide?: string };
+  | { t: "err"; message: string; guide?: string; debug?: string };
 
 
 export async function POST(request: NextRequest) {
@@ -229,6 +230,7 @@ export async function POST(request: NextRequest) {
               message:
                 "Your guide was written, but saving it failed. It's here — copy it now, because a retry costs another credit.",
               guide: designGuide,
+              debug: debugGenerationError(updateError),
             });
             return;
           }
@@ -247,6 +249,7 @@ export async function POST(request: NextRequest) {
           send(controller, {
             t: "err",
             message: describeGenerationError(err),
+            debug: debugGenerationError(err),
           });
         } finally {
           try {

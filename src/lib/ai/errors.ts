@@ -64,6 +64,24 @@ export function describeGenerationError(
   return fallback;
 }
 
+/* A single-line description of what actually failed, for the browser console.
+   Never rendered — the UI keeps its sentence — but the person debugging is
+   usually looking at the console anyway, and three round trips of "it says the
+   generic message again" is worse than showing the status and message that
+   produced it. Contains nothing secret: these are API and database errors, not
+   credentials. */
+export function debugGenerationError(err: unknown): string {
+  const e = (err ?? {}) as ApiErrorish;
+  const bits = [
+    e.status !== undefined ? `status=${e.status}` : "",
+    e.code ? `code=${e.code}` : "",
+    e.error?.type ? `type=${e.error.type}` : "",
+    e.name && e.name !== "Error" ? `name=${e.name}` : "",
+    `msg=${(e.error?.message ?? e.message ?? String(err)).slice(0, 300)}`,
+  ].filter(Boolean);
+  return bits.join(" ");
+}
+
 /** One structured line per failure, so the log says which case it was. */
 export function logGenerationError(scope: string, err: unknown): void {
   const e = (err ?? {}) as ApiErrorish;
