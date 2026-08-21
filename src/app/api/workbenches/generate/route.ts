@@ -14,6 +14,10 @@ import {
   totalInputTokens,
 } from "@/lib/billing/limits";
 import { rateLimit } from "@/lib/ratelimit";
+import {
+  describeGenerationError,
+  logGenerationError,
+} from "@/lib/ai/errors";
 import { resolveModel } from "@/lib/ai/models";
 import { LEAD, sourceText, type ItemForPrompt } from "@/lib/ai/prompts/mix";
 
@@ -215,14 +219,19 @@ export async function POST(request: NextRequest) {
 
           send(controller, { t: "done", workbench: updated });
         } catch (err) {
-          console.error("Error generating combined guide:", err);
+          logGenerationError("mix", err);
           await supabase
             .from("workbenches")
             .update({ guide_status: "error" })
             .eq("id", workbench_id);
           // close(), not error() — an errored stream reaches the client as an
-          // opaque network failure with no message to show.
-          send(controller, { t: "err", message: "Failed to generate design guide" });
+          // opaque network failure with no message to show. The frame carries
+          // the reason: "try again" and "re-scan that source" are different
+          // instructions, and only the server knows which one applies.
+          send(controller, {
+            t: "err",
+            message: describeGenerationError(err),
+          });
         } finally {
           try {
             controller.close();
@@ -241,9 +250,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error generating combined guide:", error);
+    logGenerationError("mix:setup", error);
     return NextResponse.json(
-      { error: "Failed to generate design guide" },
+      { error: describeGenerationError(error) },
       { status: 500 }
     );
   }

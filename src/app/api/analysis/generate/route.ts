@@ -9,6 +9,10 @@ import {
   totalInputTokens,
 } from "@/lib/billing/limits";
 import { rateLimit } from "@/lib/ratelimit";
+import {
+  describeGenerationError,
+  logGenerationError,
+} from "@/lib/ai/errors";
 import { resolveModel } from "@/lib/ai/models";
 import { STATIC_PROMPT, buildContext } from "@/lib/ai/prompts/guide";
 
@@ -179,9 +183,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(updatedAnalysis);
   } catch (error) {
-    console.error("Error generating design prompt:", error);
+    logGenerationError("single-site", error);
     return NextResponse.json(
-      { error: "Failed to generate design guide" },
+      { error: describeGenerationError(error) },
       { status: 500 }
     );
   }
