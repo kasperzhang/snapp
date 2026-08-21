@@ -31,7 +31,10 @@ export const maxDuration = 300; // Vercel function timeout (vision + long output
 type GuideFrame =
   | { t: "d"; v: string }
   | { t: "done"; workbench: unknown }
-  | { t: "err"; message: string };
+  /* `guide` rides along when the model finished and only the save failed —
+     the text exists, it cost a credit, and dropping it on the floor while
+     telling someone to "try again" spends a second one for nothing. */
+  | { t: "err"; message: string; guide?: string };
 
 
 export async function POST(request: NextRequest) {
@@ -208,6 +211,10 @@ export async function POST(request: NextRequest) {
             metadata: { workbench_id, sources: sources.length },
           });
 
+          /* Saving is its own failure, and a different one: the guide has
+             already been written and paid for. Reporting it as "couldn't write
+             the guide" sent people back to spend another credit reproducing
+             something that already existed. */
           const { data: updated, error: updateError } = await supabase
             .from("workbenches")
             .update({ design_guide: designGuide, guide_status: "completed" })
@@ -215,11 +222,20 @@ export async function POST(request: NextRequest) {
             .select()
             .single();
 
-          if (updateError) throw updateError;
+          if (updateError) {
+            logGenerationError("mix:save", updateError);
+            send(controller, {
+              t: "err",
+              message:
+                "Your guide was written, but saving it failed. It's here — copy it now, because a retry costs another credit.",
+              guide: designGuide,
+            });
+            return;
+          }
 
           send(controller, { t: "done", workbench: updated });
         } catch (err) {
-          logGenerationError("mix", err);
+          logGenerationError("mix:model", err);
           await supabase
             .from("workbenches")
             .update({ guide_status: "error" })
@@ -252,7 +268,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logGenerationError("mix:setup", error);
     return NextResponse.json(
-      { error: describeGenerationError(error) },
+      {
+        error: describeGenerationError(
+          error,
+          "Couldn't start the guide. Try again."
+        ),
+      },
       { status: 500 }
     );
   }

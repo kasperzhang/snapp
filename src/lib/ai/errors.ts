@@ -13,12 +13,23 @@
 interface ApiErrorish {
   status?: number;
   message?: string;
+  name?: string;
+  /** Postgres/PostgREST errors carry these instead of an HTTP status. */
+  code?: string;
+  details?: string;
+  hint?: string;
   error?: { type?: string; message?: string };
 }
 
 const GENERIC = "Couldn't write the guide. Try again.";
 
-export function describeGenerationError(err: unknown): string {
+export function describeGenerationError(
+  err: unknown,
+  /* Distinct per call site: a failure before the model is even reached reads
+     differently from one after it started writing, and telling them apart in
+     a screenshot is the difference between one guess and none. */
+  fallback: string = GENERIC
+): string {
   const e = (err ?? {}) as ApiErrorish;
   const status = typeof e.status === "number" ? e.status : undefined;
   const type = e.error?.type ?? "";
@@ -44,7 +55,13 @@ export function describeGenerationError(err: unknown): string {
   if (status === 408 || type === "timeout_error" || detail.includes("timed out"))
     return "The guide took too long to write. Try again, or drop a source.";
 
-  return GENERIC;
+  /* A database failure has no HTTP status, so it used to fall through to the
+     generic line — which reads as "the model failed" and sends people back to
+     spend another credit on something that may already exist. */
+  if (typeof e.code === "string" && /^[0-9A-Z]{5}$/.test(e.code))
+    return "The guide couldn't be saved. Try again in a moment.";
+
+  return fallback;
 }
 
 /** One structured line per failure, so the log says which case it was. */
@@ -52,7 +69,13 @@ export function logGenerationError(scope: string, err: unknown): void {
   const e = (err ?? {}) as ApiErrorish;
   console.error(`[${scope}] generation failed`, {
     status: e.status,
+    // Postgres errors report here instead; without them an unrecognised
+    // failure is invisible and every retry is a guess.
+    code: e.code,
+    name: e.name,
     type: e.error?.type,
     message: e.error?.message ?? e.message,
+    details: e.details,
+    hint: e.hint,
   });
 }

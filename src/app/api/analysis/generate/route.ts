@@ -185,7 +185,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logGenerationError("single-site", error);
     return NextResponse.json(
-      { error: describeGenerationError(error) },
+      {
+        error: describeGenerationError(
+          error,
+          "Couldn't start the guide. Try again."
+        ),
+      },
       { status: 500 }
     );
   }

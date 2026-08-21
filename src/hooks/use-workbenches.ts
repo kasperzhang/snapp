@@ -294,6 +294,7 @@ export function useWorkbench(id: string | null) {
     let guide = "";
     let updated: Workbench | null = null;
     let streamError: string | null = null;
+    let rescued: string | null = null;
 
     const handleLine = (line: string) => {
       if (!line.trim()) return;
@@ -306,6 +307,11 @@ export function useWorkbench(id: string | null) {
         notifyUsageChanged(); // a guide credit was consumed
       } else if (frame.t === "err") {
         streamError = frame.message || "Failed to generate guide";
+        // The model finished and only the save failed — hold on to the text so
+        // the panel can still show it and let someone copy it.
+        if (typeof frame.guide === "string" && frame.guide) {
+          rescued = frame.guide;
+        }
       }
     };
 
@@ -320,7 +326,16 @@ export function useWorkbench(id: string | null) {
     }
     if (buffer.trim()) handleLine(buffer);
 
-    if (streamError) throw failed(streamError);
+    if (streamError) {
+      if (rescued) {
+        // Show it anyway. It exists and it was paid for; the only thing that
+        // failed is the row it should have landed in.
+        setWorkbench((prev) =>
+          prev ? { ...prev, design_guide: rescued, guide_status: "error" } : prev
+        );
+      }
+      throw failed(streamError);
+    }
     // No terminal frame means the connection dropped or the function died —
     // don't resolve as if it succeeded.
     if (!updated) throw failed("Generation was interrupted — try again");
