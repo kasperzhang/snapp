@@ -4,8 +4,11 @@
 // eval harness and any future provider send the exact same bytes as production.
 // See docs/AI-FEATURES.md for why the interleaving and precedence rules matter.
 
-import {
-  DESIGN_ASPECTS,
+import { DESIGN_ASPECTS } from "@/types";
+/* Type-only, and marked as such: Node's type stripping runs these modules
+   directly for scripts/inspect-mix.mjs, and a type imported as a value becomes
+   a real runtime binding that doesn't exist. */
+import type {
   DesignAspect,
   ExtractedColor,
   ExtractedFont,

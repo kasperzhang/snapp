@@ -49,3 +49,6 @@ extension/_metadata/
 
 # Chrome Web Store build output
 dist/
+
+# scripts/inspect-mix.mjs output
+mix-payload.html
