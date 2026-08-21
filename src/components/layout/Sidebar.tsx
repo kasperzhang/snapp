@@ -13,12 +13,13 @@ import {
   PanelLeft,
   PanelLeftOpen,
   Zap,
+  Bug,
   CreditCard,
   Settings as SettingsIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LogoMark } from "@/components/ui";
-import { useBilling } from "@/hooks";
+import { useBilling, useSnappExtensionVersion } from "@/hooks";
 import { Tag, BookmarkWithRelations } from "@/types";
 import {
   DropdownMenu,
@@ -77,6 +78,7 @@ export function Sidebar({
   );
 
   const billing = useBilling();
+  const extensionVersion = useSnappExtensionVersion();
   // Profile display name (falls back to the email prefix while loading /
   // when unset).
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -97,6 +99,35 @@ export function Sidebar({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* A mailto rather than a form: at this stage a real inbox beats a table
+     nobody reads, and it needs no infrastructure to keep alive.
+     
+     The context is prefilled because the questions that follow "it's broken"
+     are always the same three, and none of them are things a person can
+     answer from memory — which page, which plan, which browser, extension or
+     not. It all lands in their mail client where they can read and edit it
+     before sending; nothing is collected here. */
+  const reportBug = () => {
+    const lines = [
+      "What happened?",
+      "",
+      "",
+      "What did you expect instead?",
+      "",
+      "",
+      "----- context (helps me reproduce it) -----",
+      `Page: ${pathname}`,
+      `Plan: ${billing?.plan ?? "unknown"}`,
+      `Extension: ${extensionVersion ?? "not installed"}`,
+      `Browser: ${typeof navigator === "undefined" ? "" : navigator.userAgent}`,
+      `When: ${new Date().toISOString()}`,
+    ];
+    window.location.href =
+      "mailto:kasperzhang.ai@gmail.com" +
+      `?subject=${encodeURIComponent("snapp bug report")}` +
+      `&body=${encodeURIComponent(lines.join("\n"))}`;
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -495,6 +526,10 @@ export function Sidebar({
                   See plans
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={reportBug}>
+                <Bug />
+                Report a bug
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut />
                 Sign Out
