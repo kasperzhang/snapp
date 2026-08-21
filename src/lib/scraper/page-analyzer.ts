@@ -107,10 +107,21 @@ interface FontUsageData {
   textLength: number;
 }
 
+/* One colour's measured usage. Roles are assigned afterwards from these
+   numbers, not claimed at collection time — see extractColorsFromPage. */
 interface ColorInfo {
   color: string;
-  context: string;
-  count: number;
+  /** Elements painting this as their background. */
+  bg: number;
+  /** Total px² those backgrounds cover — a page background dwarfs a swatch. */
+  bgArea: number;
+  /** Elements that render text in this colour, text-bearing ones only. */
+  text: number;
+  /** Elements with a real (non-zero-width) border in this colour. */
+  border: number;
+  /** Declared as a :root custom property, so it's part of the design system
+      even if it barely renders. */
+  isVar: boolean;
 }
 
 interface GoogleFontInfo {
@@ -445,7 +456,19 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
     const shadows: Bucket = new Map();
     const spacing = new Map<string, { count: number; property: string }>();
 
-    const classify = (el: Element): string => {
+    /* What kind of thing is this, for "8px on inputs, 16px on cards"?
+       Class names alone answered "other" for nearly everything: hashed and
+       utility class names carry no such words, so a whole site's radii came
+       back unlabelled and the guide had to guess which value belonged to what.
+       Structure is the fallback — an element painting its own background,
+       distinct from the page's, is a surface, and its size says which kind. */
+    const pageBg = window.getComputedStyle(document.body).backgroundColor;
+
+    const classify = (
+      el: Element,
+      style: CSSStyleDeclaration,
+      rect: DOMRect
+    ): string => {
       const tag = el.tagName.toLowerCase();
       const cls = (el.getAttribute("class") || "").toLowerCase();
       if (tag === "button" || el.getAttribute("role") === "button" || /\bbtn\b|button/.test(cls))
@@ -453,6 +476,16 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
       if (tag === "input" || tag === "textarea" || tag === "select") return "input";
       if (tag === "img" || tag === "picture" || tag === "video" || tag === "svg") return "image";
       if (/card|tile|panel|item/.test(cls)) return "card";
+
+      const bg = style.backgroundColor;
+      const isSurface =
+        bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== pageBg;
+      if (isSurface) {
+        // Small and wide-ish reads as a control; large reads as a panel.
+        if (rect.height <= 64 && rect.width <= 380) return "button";
+        if (rect.width >= 140 && rect.height >= 80) return "card";
+      }
+      if (tag === "a" && isSurface) return "button";
       return "other";
     };
 
@@ -475,7 +508,7 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
 
     for (const el of visible) {
       const s = window.getComputedStyle(el);
-      const kind = classify(el);
+      const kind = classify(el, s, el.getBoundingClientRect());
 
       // Radius. Rounded corners often differ per corner; take the top-left as
       // representative but skip elements whose corners disagree wildly.
@@ -540,34 +573,70 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
   }) as Promise<StyleTokens>;
 }
 
+/* What a colour is FOR, decided by how the page uses it.
+ *
+ * This used to label every :root custom property "accent" and let that label
+ * win unconditionally over anything measured — so on a site that declares
+ * `--bg: #FAF9F5`, the page background was reported as an accent, while the
+ * actual terracotta accent (rare, so it lost the top-5 cut) came through as
+ * "other". A guide built on that mislabels roles no matter how carefully the
+ * prompt asks: it was told the background was an accent.
+ *
+ * Now nothing claims a role at collection time. Elements report how they use a
+ * colour — as a background (weighted by the area it covers), as text, as a real
+ * border — and roles are assigned from those counts afterwards. */
 async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
   const colorData = await page.evaluate(() => {
-    const colors: ColorInfo[] = [];
-    const elements = document.querySelectorAll("*");
-
-    elements.forEach((el) => {
-      const computedStyle = window.getComputedStyle(el);
-
-      // Extract background colors
-      const bgColor = computedStyle.backgroundColor;
-      if (bgColor && bgColor !== "rgba(0, 0, 0, 0)" && bgColor !== "transparent") {
-        colors.push({ color: bgColor, context: "background", count: 1 });
+    const usage = new Map<string, ColorInfo>();
+    const touch = (color: string): ColorInfo => {
+      let u = usage.get(color);
+      if (!u) {
+        u = { color, bg: 0, bgArea: 0, text: 0, border: 0, isVar: false };
+        usage.set(color, u);
       }
+      return u;
+    };
 
-      // Extract text colors
-      const textColor = computedStyle.color;
-      if (textColor) {
-        colors.push({ color: textColor, context: "text", count: 1 });
-      }
-
-      // Extract border colors
-      const borderColor = computedStyle.borderColor;
-      if (borderColor && borderColor !== "rgba(0, 0, 0, 0)") {
-        colors.push({ color: borderColor, context: "border", count: 1 });
-      }
+    const visible = Array.from(document.querySelectorAll("*")).filter((el) => {
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) return false;
+      const s = window.getComputedStyle(el);
+      return s.display !== "none" && s.visibility !== "hidden" && s.opacity !== "0";
     });
 
-    // Check for CSS custom properties (CSS variables)
+    for (const el of visible) {
+      const s = window.getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+
+      const bg = s.backgroundColor;
+      if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") {
+        const u = touch(bg);
+        u.bg += 1;
+        u.bgArea += Math.max(0, r.width) * Math.max(0, r.height);
+      }
+
+      /* Only elements that actually render text. Every wrapper div inherits a
+         colour it never paints, and counting those made the body colour look
+         thousands of times more common than it is while burying real ones. */
+      const hasText = Array.from(el.childNodes).some(
+        (n) => n.nodeType === 3 && (n.textContent || "").trim().length > 0
+      );
+      if (hasText && s.color) touch(s.color).text += 1;
+
+      /* Likewise borderColor is defined even at zero width, and it defaults to
+         the text colour — so reading it unconditionally gave every element on
+         the page a phantom vote for a border it doesn't have. */
+      const bw =
+        parseFloat(s.borderTopWidth) +
+        parseFloat(s.borderRightWidth) +
+        parseFloat(s.borderBottomWidth) +
+        parseFloat(s.borderLeftWidth);
+      if (bw > 0 && s.borderTopColor && s.borderTopColor !== "rgba(0, 0, 0, 0)") {
+        touch(s.borderTopColor).border += 1;
+      }
+    }
+
+    // Design-system colours, kept as candidates even when they barely render.
     const rootStyles = getComputedStyle(document.documentElement);
     const cssVars = Array.from(document.styleSheets).flatMap((sheet) => {
       try {
@@ -576,9 +645,7 @@ async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
             const props: string[] = [];
             for (let i = 0; i < rule.style.length; i++) {
               const prop = rule.style[i];
-              if (prop.startsWith("--")) {
-                props.push(prop);
-              }
+              if (prop.startsWith("--")) props.push(prop);
             }
             return props;
           }
@@ -588,86 +655,156 @@ async function extractColorsFromPage(page: Page): Promise<ExtractedColor[]> {
         return [];
       }
     });
-
     cssVars.forEach((varName) => {
       const value = rootStyles.getPropertyValue(varName).trim();
       if (value && (value.startsWith("#") || value.startsWith("rgb") || value.startsWith("hsl"))) {
-        colors.push({ color: value, context: "accent", count: 1 });
+        touch(value).isVar = true;
       }
     });
 
-    return colors;
+    return Array.from(usage.values());
   });
 
-  // Parse and aggregate colors
-  const colorMap = new Map<string, { rgb: { r: number; g: number; b: number }; count: number; context: string }>();
+  // ── parse, merge by hex ───────────────────────────────────────────────────
+  interface Measured extends Omit<ColorInfo, "color"> {
+    hex: string;
+    rgb: { r: number; g: number; b: number };
+    saturation: number;
+    lightness: number;
+  }
+  const byHex = new Map<string, Measured>();
 
-  colorData.forEach(({ color, context, count }) => {
+  for (const u of colorData) {
     try {
-      const parsed = Color(color);
+      const parsed = Color(u.color);
+      if (parsed.alpha() < 0.5) continue; // near-transparent says nothing
       const hex = parsed.hex().toUpperCase();
       const rgb = parsed.rgb().object();
-
-      const existing = colorMap.get(hex);
-      if (existing) {
-        existing.count += count;
-        // Prefer more specific contexts
-        if (context === "accent" || (context === "background" && existing.context !== "accent")) {
-          existing.context = context;
-        }
+      const hsl = parsed.hsl().object();
+      const cur = byHex.get(hex);
+      if (cur) {
+        cur.bg += u.bg;
+        cur.bgArea += u.bgArea;
+        cur.text += u.text;
+        cur.border += u.border;
+        cur.isVar = cur.isVar || u.isVar;
       } else {
-        colorMap.set(hex, {
-          rgb: { r: Math.round(rgb.r), g: Math.round(rgb.g), b: Math.round(rgb.b) },
-          count,
-          context,
+        byHex.set(hex, {
+          hex,
+          rgb: {
+            r: Math.round(rgb.r),
+            g: Math.round(rgb.g),
+            b: Math.round(rgb.b),
+          },
+          saturation: hsl.s / 100,
+          lightness: hsl.l / 100,
+          bg: u.bg,
+          bgArea: u.bgArea,
+          text: u.text,
+          border: u.border,
+          isVar: u.isVar,
         });
       }
     } catch {
-      // Invalid color format
+      /* unparseable colour value */
     }
-  });
+  }
 
-  // Convert to array and sort by frequency
-  const result: ExtractedColor[] = [];
-  colorMap.forEach((data, hex) => {
-    result.push({
-      hex,
-      rgb: data.rgb,
-      frequency: data.count,
-      context: data.context as ExtractedColor["context"],
+  const all = Array.from(byHex.values());
+  const weight = (c: Measured) => c.bg + c.text + c.border;
+  const max = (pick: (c: Measured) => number) =>
+    Math.max(1, ...all.map(pick));
+  const maxArea = max((c) => c.bgArea);
+  /* Backgrounds are painted by a handful of elements covering most of the
+     screen, while text is painted by hundreds covering very little — so
+     comparing raw element counts hands every argument to text, and the page's
+     own paper colour comes back labelled as type. Area is converted into the
+     same currency: the colour covering the most ground gets as many votes as
+     the busiest text colour has elements. */
+  const maxCount = max((c) => Math.max(c.text, c.border));
+
+  /* Each colour is judged on its own usage, not ranked against the others for
+     a fixed number of slots. Plenty of colours are honestly two things — an ink
+     that also backs an inverted section, a paper that also sets type on one —
+     and a global top-N with exclusivity gave the whole page to whichever role
+     happened to be assigned first: text-first left the site with no background
+     at all, background-first left it with no ink. Comparing a colour's own
+     shares picks the role it mostly plays and lets every role be filled. */
+  /* A colour can honestly be two things — an ink that also backs an inverted
+     section, a paper that also sets type on one — and every single-label
+     scheme tried here lost the half that mattered: label the ink "background"
+     and the guide thinks the body text is the muted grey; label it "text" and
+     the site appears to have no dark section. So each colour reports every
+     role it materially plays, and the same hex may appear twice under
+     different roles. That is what the page actually does. */
+  const roles = (c: Measured): ExtractedColor["context"][] => {
+    const out: ExtractedColor["context"][] = [];
+    const floor = Math.max(2, maxCount * 0.04);
+    const bgVotes = (c.bgArea / maxArea) * maxCount;
+
+    /* 0.4, not 0.25: warm neutrals are less unsaturated than they look. The
+       beige card surface on a paper-coloured site measures ~0.29 and came
+       through as an accent, which is the exact confusion this function exists
+       to prevent. The terracotta it should have found sits at ~0.63. */
+    if (
+      c.saturation >= 0.4 &&
+      c.lightness > 0.12 &&
+      c.lightness < 0.92 &&
+      c.bgArea < maxArea * 0.25
+    ) {
+      out.push("accent");
+    }
+    if (bgVotes >= floor) out.push("background");
+    if (c.text >= floor) out.push("text");
+    if (c.border >= floor) out.push("border");
+    return out.length ? out : ["other"];
+  };
+
+  const LIMITS: Record<string, number> = {
+    background: 4,
+    text: 4,
+    accent: 3,
+    border: 3,
+    other: 5,
+  };
+  const kept: ExtractedColor[] = [];
+  const counts: Record<string, number> = {};
+  const rank = (c: Measured, role: string) =>
+    role === "background" ? c.bgArea : weight(c);
+
+  const entries = all
+    .flatMap((c) => roles(c).map((role) => ({ c, role })))
+    // Strongest example of each role first, so the caps keep the best ones —
+    // and backgrounds rank by the ground they cover, not by how many elements
+    // painted them, or one full-page body loses to a dozen small panels.
+    .sort((a, b) => rank(b.c, b.role) - rank(a.c, a.role));
+
+  for (const { c, role } of entries) {
+    const n = counts[role] ?? 0;
+    if (n >= (LIMITS[role] ?? 4)) continue;
+    counts[role] = n + 1;
+    kept.push({
+      hex: c.hex,
+      rgb: c.rgb,
+      frequency: weight(c),
+      context: role as ExtractedColor["context"],
     });
-  });
+  }
 
-  // Sort and organize colors
-  // Keep black and white but mark them appropriately
-  const sortedColors = result.sort((a, b) => b.frequency - a.frequency);
-
-  // Separate into categories for better organization
-  const categorized: ExtractedColor[] = [];
-  const seen = new Set<string>();
-
-  // Add most frequent colors by context
-  const contexts = ["background", "text", "accent", "border"];
-  contexts.forEach(ctx => {
-    sortedColors
-      .filter(c => c.context === ctx && !seen.has(c.hex))
-      .slice(0, 5)
-      .forEach(c => {
-        seen.add(c.hex);
-        categorized.push(c);
-      });
-  });
-
-  // Add any remaining important colors
-  sortedColors
-    .filter(c => !seen.has(c.hex))
-    .slice(0, 10)
-    .forEach(c => {
-      seen.add(c.hex);
-      categorized.push({ ...c, context: "other" });
-    });
-
-  return categorized.slice(0, 20);
+  const ROLE_ORDER: ExtractedColor["context"][] = [
+    "background",
+    "text",
+    "accent",
+    "border",
+    "other",
+  ];
+  return kept
+    .sort(
+      (a, b) =>
+        ROLE_ORDER.indexOf(a.context) - ROLE_ORDER.indexOf(b.context) ||
+        b.frequency - a.frequency
+    )
+    .slice(0, 20);
 }
 
 /**

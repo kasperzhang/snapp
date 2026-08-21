@@ -38,7 +38,7 @@ for (const f of r.fonts.slice(0, 6))
   console.log(`  ${f.family} — ${f.source}, ${f.usage}, weights ${f.weights.join("/")}`);
 
 console.log(`\nCOLORS (${r.colors.length}):`);
-for (const c of r.colors.slice(0, 8))
+for (const c of r.colors)
   console.log(`  ${c.hex}  ${c.context} (${c.frequency})`);
 
 const st = r.styleTokens;
