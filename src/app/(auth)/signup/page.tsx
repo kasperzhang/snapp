@@ -18,6 +18,15 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  /* Supabase will not tell a stranger whether an address is registered, so a
+     signup for an existing account returns success, no session, and no email.
+     Read as "mail sent", that produces a Check your email screen for a message
+     that was never sent — someone waits, checks spam, and gives up on an
+     account they already have. */
+  const [existing, setExisting] = useState(false);
+  const [resent, setResent] = useState<"idle" | "sending" | "sent" | "done">(
+    "idle"
+  );
   const supabase = createClient();
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -57,6 +66,14 @@ export default function SignupPage() {
         return;
       }
 
+      /* The tell: a real signup comes back with one identity, a duplicate comes
+         back with an empty array. It is the only difference between the two
+         responses. */
+      if (data.user && data.user.identities?.length === 0) {
+        setExisting(true);
+        return;
+      }
+
       setSuccess(true);
     } catch {
       setError("An unexpected error occurred");
@@ -64,6 +81,55 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
+
+  /* The likely reason someone lands here: they signed up once, never clicked
+     the link, and it expired an hour later. The signup form can't help them —
+     it no-ops for an address that exists — so this is the only way back in
+     short of a password reset. */
+  const resendConfirmation = async () => {
+    setResent("sending");
+    const { error } = await supabase.auth.resend({ type: "signup", email });
+    // Already confirmed is not a failure — it means they can just sign in.
+    setResent(error ? "done" : "sent");
+  };
+
+  if (existing) {
+    return (
+      <AuthCard
+        title="You already have an account"
+        subtitle={`${email} is already registered. Sign in, or reset your password if you've forgotten it.`}
+      >
+        <div className="space-y-3">
+          <Link href="/login">
+            <Button className="h-11 w-full">Sign in</Button>
+          </Link>
+          <Link href="/forgot-password">
+            <Button variant="secondary" className="h-11 w-full">
+              Reset password
+            </Button>
+          </Link>
+        </div>
+        <div className="mt-6 border-t border-[var(--border)] pt-5">
+          <p className="text-[13px] leading-relaxed text-[var(--text-muted)]">
+            {resent === "sent"
+              ? "Sent — check your inbox, and your spam folder."
+              : resent === "done"
+                ? "That address is already confirmed, so signing in is all you need."
+                : "Never confirmed your email? The first link expires after an hour."}
+          </p>
+          {resent !== "sent" && resent !== "done" && (
+            <button
+              onClick={resendConfirmation}
+              disabled={resent === "sending"}
+              className="mt-2 text-[13px] font-medium text-[var(--accent)] underline-offset-2 hover:underline disabled:opacity-60"
+            >
+              {resent === "sending" ? "Sending…" : "Send a new link"}
+            </button>
+          )}
+        </div>
+      </AuthCard>
+    );
+  }
 
   if (success) {
     return (
