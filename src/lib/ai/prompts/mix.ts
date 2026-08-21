@@ -49,6 +49,10 @@ Produce Markdown with these sections:
 
 ## Typography
 Font families (with fallbacks), scale, weights, and usage. Note the source.
+Where a type scale was measured, those sizes, weights, line heights and tracking
+are facts — use them, and do not round them into a tidier scale or move tracking
+onto a role that didn't measure it. Fill gaps by ratio from the measured steps
+rather than by habit.
 
 ## Color & Background
 Palette with hex values, and for EACH one a role (bg / surface / text / accent /
@@ -173,6 +177,18 @@ export function sourceText(item: ItemForPrompt): string {
 
   // Read off the live DOM, so they outrank anything inferred from a picture.
   const t = item.styleTokens;
+  if (t?.type?.length) {
+    lines.push(
+      `Measured type scale (facts — a screenshot cannot give you a size): ${t.type
+        .map(
+          (x) =>
+            `${x.role} ${x.size}/${x.lineHeight} ${x.weight} ${x.family}${
+              x.letterSpacing !== "normal" ? ` ${x.letterSpacing}` : ""
+            }`
+        )
+        .join("; ")}`
+    );
+  }
   if (t?.radii?.length) {
     lines.push(
       `Measured radii (facts, not estimates): ${t.radii

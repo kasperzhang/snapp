@@ -119,6 +119,28 @@ contributes its overall feel — it should still be described accurately.
 Screenshot bands scale with source count (3 each at ≤2 sources, hero only
 beyond) so an eight-source mix still fits in one request.
 
+### The type scale is measured, not read off a picture
+Font families were the only typography evidence a guide ever had — no sizes, no
+line heights, no tracking — so every "display 56–64px/1.05, body 16–18px/1.5,
+tracking -0.02em" was inferred from a screenshot. Against anthropic.com those
+guesses had the tracking on the wrong role (measured: `-0.02em` on body, headings
+normal) and the body size out by 4–6px.
+
+Sizes now come off the live DOM, from elements that actually render text, with
+two rules that matter:
+
+- **Roles by ratio, not by tag.** Modern sites set their biggest statement in a
+  div, so tag names alone reported a 58px 700-weight headline as "body" — true to
+  the markup and useless as a spec. The most-used size becomes the base and
+  everything is placed against it.
+- **Capped per role *and* family.** A site whose serif carries one paragraph and
+  whose sans carries everything else would otherwise lose the serif entirely to
+  crowded sans slots, and a second typeface is one of the most consequential
+  facts about a design.
+
+`ExtractedFont.usage` is derived from the scale too, weighted by frequency: a
+workhorse sans that also sets the one huge headline is still the body face.
+
 ### Motion is measured, not imagined
 A screenshot is one moment, so nothing about timing is visible in it — which made
 Motion & Effects the most confidently invented section in both guides. They handed

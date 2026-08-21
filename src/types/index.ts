@@ -136,6 +136,23 @@ export interface ExtractedAnimation {
   frequency: number;
 }
 
+/* The type scale, measured. Font families were the only typography evidence a
+   guide ever had — no sizes, no line heights, no tracking — so every "display
+   56px/1.05, body 16px/1.6, -0.02em" in an output was read off a picture. */
+export interface ExtractedTypeStep {
+  /** h1 / h2 / h3 / body / small / button / label / code */
+  role: string;
+  family: string;
+  /** Rounded px, e.g. "56px". */
+  size: string;
+  /** A ratio where one can be computed ("1.05"), else "normal". */
+  lineHeight: string;
+  weight: string;
+  /** Relative to the font size ("-0.02em"), or "normal". */
+  letterSpacing: string;
+  frequency: number;
+}
+
 export interface MotionTokens {
   transitions: ExtractedTransition[];
   animations: ExtractedAnimation[];
@@ -149,6 +166,8 @@ export interface StyleTokens {
   spacing: ExtractedSpacing[];
   /** Absent on analyses scanned before motion was measured. */
   motion?: MotionTokens;
+  /** Absent on analyses scanned before typography was measured. */
+  type?: ExtractedTypeStep[];
 }
 
 export interface DesignTokens {

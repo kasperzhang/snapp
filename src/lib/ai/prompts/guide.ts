@@ -116,7 +116,9 @@ success:          [hex] - [description of usage]
 - **Body**: \`"[Body Font]", [fallback], [generic]\` - [when to use]
 - **Mono/Code**: \`"[Mono Font]", monospace\` - [when to use]
 
-**Type Scale** (with specific use cases):
+**Type Scale** — build this from the Measured Type Scale above where it exists;
+those numbers are facts. Do not round them into a tidier progression, and do not
+attach tracking to a role that did not measure it. (With specific use cases):
 \`\`\`
 xs:    0.75rem   (12px)  - Fine print, metadata, timestamps
 sm:    0.875rem  (14px)  - Captions, labels, helper text
@@ -522,6 +524,20 @@ ${
         .map((s) => `- ${s.value} on ${s.context} elements (${s.frequency} occurrences)`)
         .join("\n")
     : "- None detected (this design uses no shadows)"
+}
+
+**Measured Type Scale** (real sizes off the live DOM — a screenshot cannot give you a px value):
+${
+  styleTokens.type?.length
+    ? styleTokens.type
+        .map(
+          (t) =>
+            `- ${t.role}: ${t.size} / line-height ${t.lineHeight} / weight ${t.weight} / ${t.family}${
+              t.letterSpacing !== "normal" ? ` / tracking ${t.letterSpacing}` : ""
+            } (${t.frequency} occurrences)`
+        )
+        .join("\n")
+    : "- Not measured for this scan."
 }
 
 **Measured Motion** (a screenshot cannot show motion; these came off the live page):

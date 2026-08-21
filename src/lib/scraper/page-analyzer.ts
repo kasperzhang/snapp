@@ -455,6 +455,20 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
     const radii: Bucket = new Map();
     const shadows: Bucket = new Map();
     const spacing = new Map<string, { count: number; property: string }>();
+    // key: role|family|size|weight|lineHeight|tracking
+    const typeSteps = new Map<
+      string,
+      {
+        count: number;
+        role: string;
+        family: string;
+        size: string;
+        lineHeight: string;
+        weight: string;
+        letterSpacing: string;
+      }
+    >();
+
     // key: "duration easing|property" so one row reads "150ms ease-out on
     // background-color" rather than collapsing every property into one number.
     const transitions = new Map<
@@ -531,6 +545,65 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
       // handful of genuine radius decisions under hundreds of non-decisions,
       // and tells the model the design is square-cornered when it isn't.
       // An empty radii list already means "nothing is rounded".
+
+      /* The type scale, taken only from elements that actually render text —
+         a wrapper div inherits a size it never draws, and counting those buries
+         the handful of real steps under hundreds of non-decisions, exactly as
+         0px radii once did. Sizes come as computed px, so a clamp() or a
+         viewport unit arrives already resolved at this viewport. */
+      const drawsText = Array.from(el.childNodes).some(
+        (n) => n.nodeType === 3 && (n.textContent || "").trim().length > 1
+      );
+      if (drawsText) {
+        const tag = el.tagName.toLowerCase();
+        const role =
+          tag === "h1"
+            ? "h1"
+            : tag === "h2"
+              ? "h2"
+              : /^h[3-6]$/.test(tag)
+                ? "h3"
+                : tag === "code" || tag === "pre" || tag === "kbd"
+                  ? "code"
+                  : kind === "button"
+                    ? "button"
+                    : tag === "label" || tag === "small" || tag === "figcaption"
+                      ? "label"
+                      : "body";
+
+        const fs = parseFloat(s.fontSize);
+        if (fs > 0) {
+          const lhRaw = s.lineHeight;
+          const lh =
+            lhRaw && lhRaw !== "normal"
+              ? (parseFloat(lhRaw) / fs).toFixed(2)
+              : "normal";
+          const lsRaw = s.letterSpacing;
+          const ls =
+            lsRaw && lsRaw !== "normal"
+              ? `${(parseFloat(lsRaw) / fs).toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}em`
+              : "normal";
+          // First family in the stack: the rest are fallbacks nobody sees.
+          const family = (s.fontFamily.split(",")[0] || "")
+            .replace(/["']/g, "")
+            .trim();
+          const size = `${Math.round(fs)}px`;
+          const weight = s.fontWeight;
+          const key = `${role}|${family}|${size}|${weight}|${lh}|${ls}`;
+          const cur = typeSteps.get(key);
+          if (cur) cur.count += 1;
+          else
+            typeSteps.set(key, {
+              count: 1,
+              role,
+              family,
+              size,
+              lineHeight: lh,
+              weight,
+              letterSpacing: ls,
+            });
+        }
+      }
 
       /* Transitions are the only part of motion a static page will admit to:
          the duration and curve are sitting in the computed style whether or
@@ -649,6 +722,74 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
     const rootScroll = window.getComputedStyle(document.documentElement).scrollBehavior;
     const bodyScroll = window.getComputedStyle(document.body).scrollBehavior;
 
+    /* Roles by ratio, not by tag. Modern sites set their biggest statement in
+       a div, so tag names alone reported a 58px 700-weight headline as "body"
+       — true to the markup and useless as a spec. A type scale is defined
+       against its body size, so the most-used size becomes the base and
+       everything is placed relative to it. Explicit tags still win where
+       they exist. */
+    const untagged = [...typeSteps.values()].filter((t) => t.role === "body");
+    const base =
+      untagged.sort((a, b) => b.count - a.count)[0]?.size ?? "16px";
+    const basePx = parseFloat(base) || 16;
+    for (const t of typeSteps.values()) {
+      if (t.role !== "body") continue;
+      const ratio = parseFloat(t.size) / basePx;
+      t.role =
+        ratio >= 2.4
+          ? "display"
+          : ratio >= 1.8
+            ? "h1"
+            : ratio >= 1.4
+              ? "h2"
+              : ratio >= 1.15
+                ? "h3"
+                : ratio <= 0.85
+                  ? "small"
+                  : "body";
+    }
+
+    /* Capped per role AND family: a site whose serif carries one paragraph and
+       whose sans carries everything else would otherwise lose the serif
+       entirely to two crowded sans slots — and a second typeface is one of the
+       most consequential facts about a design. */
+    const seenSteps = new Map<string, number>();
+    const ROLE_RANK = [
+      "display",
+      "h1",
+      "h2",
+      "h3",
+      "body",
+      "small",
+      "button",
+      "label",
+      "code",
+    ];
+    const topType = [...typeSteps.values()]
+      .sort((a, b) => b.count - a.count)
+      .filter((t) => {
+        const key = `${t.role}|${t.family}`;
+        const n = seenSteps.get(key) ?? 0;
+        if (n >= 2) return false;
+        seenSteps.set(key, n + 1);
+        return true;
+      })
+      .slice(0, 14)
+      .sort(
+        (a, b) =>
+          ROLE_RANK.indexOf(a.role) - ROLE_RANK.indexOf(b.role) ||
+          parseFloat(b.size) - parseFloat(a.size)
+      )
+      .map((t) => ({
+        role: t.role,
+        family: t.family,
+        size: t.size,
+        lineHeight: t.lineHeight,
+        weight: t.weight,
+        letterSpacing: t.letterSpacing,
+        frequency: t.count,
+      }));
+
     const topTransitions = [...transitions.values()]
       .sort((a, b) => b.count - a.count)
       .slice(0, 8)
@@ -668,6 +809,7 @@ async function extractStyleTokensFromPage(page: Page): Promise<StyleTokens> {
       radii: topRadii,
       shadows: topShadows,
       spacing: topSpacing,
+      type: topType,
       motion: {
         transitions: topTransitions,
         animations: topAnimations,
@@ -1154,6 +1296,36 @@ export async function analyzePage(
         }
       ),
     ]);
+    /* The usage label was scored by how much text a family carried, so a
+       display face setting one enormous headline lost to whatever fills the
+       page — anthropic.com reported its serif and its sans both as "body".
+       The measured scale knows better: it says which family holds the largest
+       roles. */
+    const scale = (styleTokens as StyleTokens).type ?? [];
+    if (scale.length) {
+      const DISPLAY = new Set(["display", "h1", "h2"]);
+      for (const font of fonts) {
+        const mine = scale.filter(
+          (t) => t.family.toLowerCase() === font.family.toLowerCase()
+        );
+        if (!mine.length) continue;
+        if (/mono/i.test(font.family) || mine.some((t) => t.role === "code")) {
+          font.usage = "code";
+          continue;
+        }
+        /* Weighted, not "appears anywhere". A workhorse sans that also sets the
+           one huge headline is still the body face, and calling it a display
+           face would hide that it carries the page. */
+        const heading = mine
+          .filter((t) => DISPLAY.has(t.role))
+          .reduce((n, t) => n + t.frequency, 0);
+        const body = mine
+          .filter((t) => !DISPLAY.has(t.role))
+          .reduce((n, t) => n + t.frequency, 0);
+        font.usage = heading > body ? "heading" : "body";
+      }
+    }
+
     phase("extract", t0);
 
     return {

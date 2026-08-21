@@ -48,6 +48,14 @@ for (const x of st.radii) console.log(`  ${x.value.padEnd(9)} ${x.context} (${x.
 console.log(`\nSHADOWS (${st.shadows.length}):`);
 for (const x of st.shadows) console.log(`  ${x.context.padEnd(8)} ${x.value.slice(0, 68)} (${x.frequency})`);
 
+if (st.type?.length) {
+  console.log(`\nTYPE SCALE (${st.type.length}):`);
+  for (const t of st.type)
+    console.log(
+      `  ${t.role.padEnd(7)} ${t.size.padEnd(6)} ${t.weight.padEnd(4)} lh ${String(t.lineHeight).padEnd(7)} ls ${t.letterSpacing.padEnd(9)} ${t.family} (${t.frequency})`
+    );
+}
+
 const m = st.motion;
 if (m) {
   console.log(`\nMOTION — transitions (${m.transitions.length}), animations (${m.animations.length}), smooth scroll: ${m.smoothScroll}`);
