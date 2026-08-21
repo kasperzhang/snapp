@@ -1,6 +1,6 @@
 /* The "## " sections the combined-guide prompt asks for, in order — see the
    <output-format> block in /api/workbenches/generate. Only the length is
-   load-bearing (it's the denominator in the panel's "N of 9" while the guide
+   load-bearing (it's the denominator in the panel's "N of 10" while the guide
    streams); the names are here so that count documents itself.
 
    Quick Reference and Paste-Ready Agent Prompt used to close the document and
@@ -19,5 +19,6 @@ export const GUIDE_SECTIONS = [
   "Motion & Effects",
   "Imagery & Iconography",
   "Your Additions",
+  "What This Design Is NOT",
   "Design Tokens",
 ] as const;

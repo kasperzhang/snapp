@@ -102,6 +102,23 @@ Mix doesn't dump 8 screenshots then 8 descriptions. It interleaves: source-1 tex
 text → … This binds each image to its metadata and per-source borrowing
 instructions ("borrow only the marked aspects; ignore the rest of that site").
 
+### Mix sees everything; the tags decide what it borrows
+The Mix used to send only the fonts and colours a designer had ticked, one
+screenshot band per source, and no measured DOM tokens at all — while the
+single-site route sent the full extracted lists, every band, and the measured
+radii/shadows/spacing marked as facts. Same site through both produced very
+different guides: the single-site one specified the site's real accent and its
+five-step neutral ramp, the Mix invented an accent and reached for Tailwind's
+default gray. It wasn't a worse prompt, it was a starved one.
+
+Now every source carries its full measured evidence, with the designer's picks
+marked `← designer picked this`. The distinction that matters: **tags decide
+what to BORROW, never what the model is allowed to KNOW.** An untagged source
+contributes its overall feel — it should still be described accurately.
+
+Screenshot bands scale with source count (3 each at ≤2 sources, hero only
+beyond) so an eight-source mix still fits in one request.
+
 ### Source attribution requirement
 Mix requires decisions be attributed ("headings follow Site A; the accent comes
 from Site B") and conflicts resolved *with stated reasoning*. This forces genuine
@@ -125,6 +142,15 @@ purpose, and re-adding either is a regression:
 - The paste-ready block was a lossy compression of a guide the reader already had
   in full, and nothing marked what it had dropped.
 - Being last, it was what truncation ate first (see `max_tokens` below).
+
+**What This Design Is NOT** is the one negative section worth its tokens, ported
+from the single-site template. A negative constraint earns its place only when it
+contradicts a prior the model would otherwise follow — decorative gradients, an
+all-purpose rounded corner, a default blue button — so the spec requires the form
+"Not X — Y instead", caps it at five lines, and rejects any line that could appear
+in any other guide ("not a generic template" says nothing). It must be derivable
+from the decisions above it: like Design Tokens, it resolves what they leave open
+and never introduces anything new.
 
 Design Tokens survives the cut because it is a *translation*, not a restatement:
 `--accent: #D4F547` is a value an agent applies without interpreting, which is

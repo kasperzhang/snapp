@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import {
   ExtractedColor,
   ExtractedFont,
+  StyleTokens,
   WorkbenchItemSelection,
 } from "@/types";
 import { MAX_GUIDE_SOURCES } from "@/lib/billing/plans";
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     const { data: workbench, error: wbError } = await supabase
       .from("workbenches")
       .select(
-        "*, items:workbench_items(*, bookmark:bookmarks(url,title), analysis:site_analyses(fonts,colors,screenshot_url,analysis_status))"
+        "*, items:workbench_items(*, bookmark:bookmarks(url,title), analysis:site_analyses(fonts,colors,style_tokens,screenshot_url,screenshot_urls,analysis_status))"
       )
       .eq("id", workbench_id)
       .eq("user_id", user.id)
@@ -77,7 +78,9 @@ export async function POST(request: NextRequest) {
       analysis?: {
         fonts: ExtractedFont[] | null;
         colors: ExtractedColor[] | null;
+        style_tokens: StyleTokens | null;
         screenshot_url: string | null;
+        screenshot_urls: string[] | null;
         analysis_status: string;
       } | null;
     }
@@ -96,7 +99,11 @@ export async function POST(request: NextRequest) {
         selection: it.selection,
         fonts: it.analysis?.fonts || [],
         colors: it.analysis?.colors || [],
+        styleTokens: it.analysis?.style_tokens ?? null,
         screenshotUrl: it.analysis!.screenshot_url!,
+        screenshotUrls: it.analysis?.screenshot_urls?.length
+          ? it.analysis.screenshot_urls
+          : [it.analysis!.screenshot_url!],
       }));
 
     if (ready.length === 0) {
@@ -138,12 +145,29 @@ export async function POST(request: NextRequest) {
       .eq("id", workbench_id);
 
     // Build an interleaved content array: lead text, then per-source text + screenshot
+    /* How much of each page to show. One band is the top of the site and
+       nothing else — enough to guess a mood, not enough to describe a system,
+       which is why a one-source mix read so much thinner than the single-site
+       guide of the same site. Small mixes get the whole scroll; large ones
+       keep the hero only, because eight sources times three bands is a
+       request that no longer fits. */
+    const bandsPerSource = sources.length <= 2 ? 3 : 1;
+
     const content: Anthropic.ContentBlockParam[] = [{ type: "text", text: LEAD }];
     for (const item of sources) {
       content.push({ type: "text", text: sourceText(item) });
-      content.push({
-        type: "image",
-        source: { type: "url", url: item.screenshotUrl },
+      const bands = item.screenshotUrls.slice(0, bandsPerSource);
+      bands.forEach((url, i) => {
+        if (bands.length > 1) {
+          content.push({
+            type: "text",
+            text:
+              i === 0
+                ? `Screenshot 1 of ${bands.length} — top of the page:`
+                : `Screenshot ${i + 1} of ${bands.length} — continuing down:`,
+          });
+        }
+        content.push({ type: "image", source: { type: "url", url } });
       });
     }
     if (workbench.own_additions?.trim()) {

@@ -814,8 +814,8 @@ function GuideDocument({ large = false }: { large?: boolean }) {
       {/* The guide keeps going — the panel scrolls in the real app. */}
       <div className="bd-more">
         {large
-          ? "+ Motion & Effects · Imagery & Iconography · Your Additions · Design Tokens"
-          : "+ 5 more sections"}
+          ? "+ Motion & Effects · Imagery & Iconography · Your Additions · What This Design Is NOT · Design Tokens"
+          : "+ 6 more sections"}
       </div>
     </div>
   );
