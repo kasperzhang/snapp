@@ -48,6 +48,14 @@ export function describeGenerationError(
   if (status === 400 && detail.includes("too long"))
     return "This mix is too large to send in one go. Remove a source and try again.";
 
+  /* An exhausted account answers 400 with "credit balance is too low" — an
+     invalid_request_error, not an auth or quota code — so it landed in the
+     generic bucket and read as a transient glitch. It is neither transient nor
+     the user's to fix, and every retry burns their credit against a call that
+     cannot succeed. */
+  if (detail.includes("credit balance") || detail.includes("insufficient"))
+    return "Generation is unavailable right now — our AI account needs topping up. Nothing was charged to you.";
+
   // Ours to fix, not theirs — say so rather than inviting a pointless retry.
   if (status === 401 || status === 403)
     return "The AI service rejected our credentials. This one's on us — we've been notified.";
