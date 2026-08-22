@@ -111,7 +111,13 @@ what is already stated, never a place for new decisions.
   sharp-cornered when a radius is listed. If a source has no component of some kind,
   omit that decision rather than inventing one — an omitted line is correct, an
   invented one is a defect.
-- Only borrow the aspects the designer marked for each source; ignore the rest of that site.
+- Sourcing is per aspect, and it is not a suggestion. Each aspect comes ONLY from
+  the sites tagged for it: if one site is tagged Typography, every typeface and every
+  size in this guide comes from that site, however good another site's type is —
+  measurements marked CONTEXT ONLY exist so you understand that site, not so you can
+  borrow from it. Two sites tagged for the same aspect get blended. An aspect no site
+  is tagged for is yours to decide. A source with no tags at all contributes its
+  overall feel, and everything measured on it is fair game.
 - When a font/color is explicitly picked, use it; otherwise infer sensible values from the
   screenshot and extracted tokens.
 - Keep it a single, opinionated, cohesive system.
@@ -139,6 +145,17 @@ export function sourceText(item: ItemForPrompt): string {
     .map((a) => ASPECT_LABEL[a] ?? a)
     .join(", ");
 
+  /* Sending every measurement for every source fixed one problem and created
+     another: the model can now see a beautiful serif scale on a site that was
+     tagged for colour only, and it uses it. Evidence has to carry its own
+     permission, next to the numbers, rather than relying on one line of
+     instruction a hundred lines away. */
+  const tagged = new Set(sel.aspects ?? []);
+  const may = (...ids: DesignAspect[]) =>
+    tagged.size === 0 || ids.some((id) => tagged.has(id));
+  const only = (allowed: boolean, what: string) =>
+    allowed ? "" : ` [CONTEXT ONLY — do not take ${what} from this site]`;
+
   const lines: string[] = [];
   lines.push(`## Source ${item.index}: ${item.title} (${item.url})`);
   lines.push(`Borrow from this site: ${aspects || "(overall feel)"}`);
@@ -150,7 +167,10 @@ export function sourceText(item: ItemForPrompt): string {
      gray for a site that has its own five-step neutral ramp. */
   if (item.fonts.length) {
     lines.push(
-      `Fonts measured on this site: ${item.fonts
+      `Fonts measured on this site${only(
+        may("typography"),
+        "typefaces or type scale"
+      )}: ${item.fonts
         .map(
           (f) =>
             `${f.family} (weights: ${f.weights.join(", ")}, ${f.usage})${
@@ -163,7 +183,10 @@ export function sourceText(item: ItemForPrompt): string {
 
   if (item.colors.length) {
     lines.push(
-      `Colors measured on this site: ${item.colors
+      `Colors measured on this site${only(
+        may("colors", "background"),
+        "colours"
+      )}: ${item.colors
         .slice(0, 16)
         .map(
           (c) =>
@@ -179,7 +202,10 @@ export function sourceText(item: ItemForPrompt): string {
   const t = item.styleTokens;
   if (t?.type?.length) {
     lines.push(
-      `Measured type scale (facts — a screenshot cannot give you a size): ${t.type
+      `Measured type scale${only(
+        may("typography"),
+        "typefaces or type scale"
+      )} (facts — a screenshot cannot give you a size): ${t.type
         .map(
           (x) =>
             `${x.role} ${x.size}/${x.lineHeight} ${x.weight} ${x.family}${
@@ -191,14 +217,14 @@ export function sourceText(item: ItemForPrompt): string {
   }
   if (t?.radii?.length) {
     lines.push(
-      `Measured radii (facts, not estimates): ${t.radii
+      `Measured radii${only(may("components", "depth"), "component shape")} (facts, not estimates): ${t.radii
         .map((r) => `${r.value} on ${r.context}`)
         .join(", ")}`
     );
   }
   if (t?.shadows?.length) {
     lines.push(
-      `Measured shadows (copy verbatim, never invent): ${t.shadows
+      `Measured shadows${only(may("components", "depth"), "elevation")} (copy verbatim, never invent): ${t.shadows
         .map((sh) => `${sh.value} on ${sh.context}`)
         .join(" | ")}`
     );
@@ -207,7 +233,7 @@ export function sourceText(item: ItemForPrompt): string {
   }
   if (t?.spacing?.length) {
     lines.push(
-      `Measured spacing: ${t.spacing
+      `Measured spacing${only(may("spacing", "layout"), "the spacing scale")}: ${t.spacing
         .map((sp) => `${sp.value} ${sp.property}`)
         .join(", ")}`
     );
@@ -220,14 +246,14 @@ export function sourceText(item: ItemForPrompt): string {
   if (mo) {
     if (mo.transitions.length) {
       lines.push(
-        `Measured transitions (real values, do not invent others): ${mo.transitions
+        `Measured transitions${only(may("animation", "motion"), "motion")} (real values, do not invent others): ${mo.transitions
           .map((x) => `${x.value} on ${x.property} (${x.context})`)
           .join("; ")}`
       );
     }
     if (mo.animations.length) {
       lines.push(
-        `Measured animations: ${mo.animations
+        `Measured animations${only(may("animation", "motion"), "motion")}: ${mo.animations
           .map((a) => `${a.value} ×${a.frequency}`)
           .join("; ")}`
       );
