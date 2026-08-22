@@ -20,7 +20,7 @@ const DropdownMenuContent = forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-[9rem] overflow-hidden rounded-[13px] border border-[var(--border)] bg-[var(--overlay-surface)] backdrop-blur-[12px] p-[5px] text-[var(--foreground)] shadow-[0_14px_36px_rgba(34,28,21,0.10)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "menu-content z-50 min-w-[9rem] overflow-hidden rounded-[13px] border border-[var(--border)] bg-[var(--overlay-surface)] backdrop-blur-[12px] p-[5px] text-[var(--foreground)] shadow-[0_14px_36px_rgba(34,28,21,0.10)]",
         className
       )}
       {...props}
@@ -111,7 +111,7 @@ const DropdownMenuSubContent = forwardRef<
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
-      "z-50 min-w-[9rem] overflow-hidden rounded-[13px] border border-[var(--border)] bg-[var(--overlay-surface)] backdrop-blur-[12px] p-[5px] text-[var(--foreground)] shadow-[0_14px_36px_rgba(34,28,21,0.10)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      "menu-content z-50 min-w-[9rem] overflow-hidden rounded-[13px] border border-[var(--border)] bg-[var(--overlay-surface)] backdrop-blur-[12px] p-[5px] text-[var(--foreground)] shadow-[0_14px_36px_rgba(34,28,21,0.10)]",
       className
     )}
     {...props}

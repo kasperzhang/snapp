@@ -225,6 +225,41 @@ input:-webkit-autofill:active {
 .guide-prose th, .guide-prose td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; }
 .guide-prose th { background: var(--brand-tint); font-weight: 600; }
 
+/* ── overlay surfaces: dialogs and menus ────────────────────────────────
+   Radix drives these off data-state, and the markup carried animate-in /
+   fade-in-0 / zoom-in-95, which look exactly like the thing they claim to do
+   and compile to nothing at all without tailwindcss-animate — a plugin this
+   project never had. Everything opened and shut instantly. Written out here
+   instead, so it exists. */
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlayOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes dialogIn {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.97); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes dialogOut {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, calc(-50% + 6px)) scale(0.985); }
+}
+/* Out is quicker than in: leaving should feel like getting out of the way,
+   arriving like being placed. */
+.dlg-overlay[data-state="open"] { animation: overlayIn 200ms ease-out; }
+.dlg-overlay[data-state="closed"] { animation: overlayOut 140ms ease-in; }
+.dlg-content[data-state="open"] {
+  animation: dialogIn 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dlg-content[data-state="closed"] { animation: dialogOut 140ms ease-in; }
+
+@keyframes menuIn {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes menuOut { from { opacity: 1; } to { opacity: 0; } }
+.menu-content[data-state="open"] {
+  animation: menuIn 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.menu-content[data-state="closed"] { animation: menuOut 90ms ease-in; }
+
 /* stream-caret: trails the guide text while the model is still writing it */
 @keyframes caretBlink {
   0%, 45% { opacity: 1; }
@@ -242,6 +277,7 @@ input:-webkit-autofill:active {
 
 @media (prefers-reduced-motion: reduce) {
   .rise-in, .rise-out, .slide-in-right, .pop-in { animation: none; }
+  .dlg-overlay, .dlg-content, .menu-content { animation: none !important; }
   .stream-caret { animation: none; }
 }
 
