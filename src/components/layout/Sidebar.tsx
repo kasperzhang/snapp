@@ -12,6 +12,9 @@ import {
   LogOut,
   PanelLeft,
   PanelLeftOpen,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
   Zap,
   Bug,
   CreditCard,
@@ -28,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
 import { SidebarMixes } from "./SidebarMixes";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils/cn";
 import { PLANS } from "@/lib/billing/plans";
 
@@ -47,6 +51,11 @@ interface SidebarProps {
   untaggedCount?: number;
   untaggedActive?: boolean;
   onToggleUntagged?: () => void;
+  /** Tag management lives here because this is where the tag list is. Absent
+      on surfaces that don't own the tags (the mix pages), where the section
+      isn't rendered at all. */
+  onRenameTag?: (id: string, name: string) => void;
+  onDeleteTag?: (id: string) => void;
   // Start the compose flow on the current page (Bookmarks). If absent, we
   // navigate home into compose mode.
   onNewWorkbench?: () => void;
@@ -65,6 +74,8 @@ export function Sidebar({
   untaggedCount = 0,
   untaggedActive = false,
   onToggleUntagged,
+  onRenameTag,
+  onDeleteTag,
   onNewWorkbench,
 }: SidebarProps) {
   const router = useRouter();
@@ -72,6 +83,8 @@ export function Sidebar({
   const supabase = createClient();
 
   const [collapsed, setCollapsed] = useState(false);
+  const [tagMenuId, setTagMenuId] = useState<string | null>(null);
+  const [deletingTag, setDeletingTag] = useState<Tag | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [wbExpanded, setWbExpanded] = useState(
     pathname.startsWith("/mix")
@@ -396,28 +409,90 @@ export function Sidebar({
                     bookmarks?.filter((b) => b.tags?.some((x) => x.id === t.id))
                       .length ??
                     0;
+                  const menuOpen = tagMenuId === t.id;
                   return (
-                    <button
+                    <div
                       key={t.id}
-                      onClick={() => onToggleTag?.(t.id)}
                       className={cn(
-                        "flex items-center gap-2.5 px-2.5 py-2 rounded-[9px] text-[13.5px] transition-colors",
+                        "group/tag flex items-center rounded-[9px] transition-colors",
                         active
-                          ? "bg-[var(--sidebar-hover)] text-[var(--foreground)] font-medium"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--foreground)]"
+                          ? "bg-[var(--sidebar-hover)]"
+                          : "hover:bg-[var(--sidebar-hover)]"
                       )}
                     >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full mx-1"
-                        style={{
-                          background: active ? "var(--foreground)" : t.color,
-                        }}
-                      />
-                      <span className="flex-1 text-left truncate">{t.name}</span>
-                      <span className="font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)]">
-                        {count}
+                      <button
+                        onClick={() => onToggleTag?.(t.id)}
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 text-left text-[13.5px] transition-colors",
+                          active
+                            ? "text-[var(--foreground)] font-medium"
+                            : "text-[var(--text-secondary)] group-hover/tag:text-[var(--foreground)]"
+                        )}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full mx-1 shrink-0"
+                          style={{
+                            background: active ? "var(--foreground)" : t.color,
+                          }}
+                        />
+                        <span className="flex-1 truncate">{t.name}</span>
+                      </button>
+
+                      {/* Count at rest, the row's menu once you point at it —
+                          the same slot, because a third column would squeeze
+                          the names that are already truncating. */}
+                      <span className="relative mr-1.5 h-6 w-6 shrink-0">
+                        <span
+                          className={cn(
+                            "absolute inset-0 flex items-center justify-center font-[family-name:var(--font-display)] text-[11px] text-[var(--text-muted)] transition-opacity",
+                            "group-hover/tag:opacity-0",
+                            menuOpen && "opacity-0"
+                          )}
+                        >
+                          {count}
+                        </span>
+                        <DropdownMenu
+                          onOpenChange={(open) =>
+                            setTagMenuId(open ? t.id : null)
+                          }
+                        >
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              title="Tag options"
+                              className={cn(
+                                "absolute inset-0 flex items-center justify-center rounded-md text-[var(--text-muted)] opacity-0 transition-opacity hover:bg-[var(--border)] hover:text-[var(--foreground)] focus-visible:opacity-100 group-hover/tag:opacity-100",
+                                menuOpen && "opacity-100"
+                              )}
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                const name = window.prompt(
+                                  "Rename tag",
+                                  t.name
+                                );
+                                const next = name?.trim();
+                                if (next && next !== t.name)
+                                  onRenameTag?.(t.id, next);
+                              }}
+                            >
+                              <Pencil />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onSelect={() => setDeletingTag(t)}
+                            >
+                              <Trash2 />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </span>
-                    </button>
+                    </div>
                   );
                 })}
                 {onToggleUntagged && untaggedCount > 0 && (
@@ -538,6 +613,20 @@ export function Sidebar({
           </DropdownMenu>
         </div>
       </div>
+      <ConfirmDialog
+        open={!!deletingTag}
+        onOpenChange={(open) => !open && setDeletingTag(null)}
+        title="Delete this tag?"
+        description={
+          deletingTag
+            ? `"${deletingTag.name}" is removed from every bookmark that carries it. The bookmarks themselves stay.`
+            : ""
+        }
+        onConfirm={async () => {
+          if (deletingTag) await onDeleteTag?.(deletingTag.id);
+          setDeletingTag(null);
+        }}
+      />
     </aside>
   );
 }

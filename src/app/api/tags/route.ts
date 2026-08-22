@@ -36,7 +36,9 @@ export async function GET() {
       .from("tags")
       .select("*, bookmark_tags(count)")
       .eq("user_id", user.id)
-      .order("name", { ascending: true });
+      // Ordered below, once the counts exist — Postgres can't sort by an
+      // aggregate pulled through an embedded select.
+      .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Error fetching tags:", error);
@@ -47,7 +49,10 @@ export async function GET() {
     }
 
     // Flatten the aggregate into a plain number for the client.
-    const withCounts = (tags ?? []).map(
+    const withCounts: (Record<string, unknown> & {
+      bookmark_count: number;
+      created_at?: string;
+    })[] = (tags ?? []).map(
       ({
         bookmark_tags,
         ...tag
@@ -55,6 +60,17 @@ export async function GET() {
         bookmark_tags?: { count: number }[];
         [key: string]: unknown;
       }) => ({ ...tag, bookmark_count: bookmark_tags?.[0]?.count ?? 0 })
+    );
+
+    /* Most-used first, oldest first among ties. Alphabetical put "aardvark"
+       above the tag on half the library, and it moved every existing row the
+       moment a new tag was made — the one you just created landing in the
+       middle of a list you were reading. A new tag has no bookmarks yet, so
+       this rule leaves it at the end where you made it. */
+    withCounts.sort(
+      (a, b) =>
+        b.bookmark_count - a.bookmark_count ||
+        String(a.created_at).localeCompare(String(b.created_at))
     );
 
     // How many bookmarks carry no tag at all. Grouped with the tag counts

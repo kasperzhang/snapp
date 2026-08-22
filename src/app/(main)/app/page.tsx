@@ -159,7 +159,14 @@ export default function HomePage() {
     return () => io.disconnect();
   }, []);
 
-  const { tags, untaggedCount, createTag, refresh: refreshTags } = useTags();
+  const {
+    tags,
+    untaggedCount,
+    createTag,
+    updateTag,
+    deleteTag,
+    refresh: refreshTags,
+  } = useTags();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -351,6 +358,12 @@ export default function HomePage() {
         }}
         selectedTagIds={selectedTagIds}
         onToggleTag={toggleTag}
+        onRenameTag={(id, name) => updateTag(id, name)}
+        onDeleteTag={async (id) => {
+          await deleteTag(id);
+          // A deleted tag may have been filtering the grid.
+          setSelectedTagIds((prev) => prev.filter((t) => t !== id));
+        }}
         onClearTags={clearTags}
         onNewWorkbench={startCompose}
       />

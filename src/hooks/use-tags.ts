@@ -35,6 +35,12 @@ export function useTags() {
     fetchTags();
   }, [fetchTags]);
 
+  /* Mirrors the order the API returns, so an optimistic insert doesn't
+     reshuffle the list and then settle somewhere else on the next fetch. */
+  const inUseOrder = (a: Tag, b: Tag) =>
+    (b.bookmark_count ?? 0) - (a.bookmark_count ?? 0) ||
+    String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
+
   const createTag = async (input: CreateTagInput) => {
     const response = await fetch("/api/tags", {
       method: "POST",
@@ -48,7 +54,7 @@ export function useTags() {
     }
 
     const newTag = await response.json();
-    setTags((prev) => [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name)));
+    setTags((prev) => [...prev, newTag].sort(inUseOrder));
     return newTag;
   };
 
@@ -66,9 +72,7 @@ export function useTags() {
 
     const updatedTag = await response.json();
     setTags((prev) =>
-      prev
-        .map((t) => (t.id === id ? updatedTag : t))
-        .sort((a, b) => a.name.localeCompare(b.name))
+      prev.map((t) => (t.id === id ? updatedTag : t)).sort(inUseOrder)
     );
     return updatedTag;
   };
