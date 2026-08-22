@@ -49,6 +49,8 @@ export function AddBookmarkDialog({
   const [metadata, setMetadata] = useState<URLMetadata | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTagName, setNewTagName] = useState("");
+  // Tags typed here that the server hasn't confirmed yet, tracked by name.
+  const [pendingNames, setPendingNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,16 +150,55 @@ export function AddBookmarkDialog({
   };
 
   const handleCreateTag = async () => {
-    if (!newTagName.trim()) return;
+    const name = newTagName.trim();
+    if (!name) return;
+    // Clear first: waiting on the network to empty the field blocks typing the
+    // next tag for as long as the round trip takes.
+    setNewTagName("");
 
+    /* Typing a tag you already have shouldn't cost a request at all. The list
+       is right here — reuse it and select it. */
+    const known = tags.find(
+      (t) => t.name.toLowerCase() === name.toLowerCase()
+    );
+    if (known) {
+      setSelectedTags((prev) =>
+        prev.includes(known.id) ? prev : [...prev, known.id]
+      );
+      return;
+    }
+
+    /* Held by name, not id: the optimistic tag carries a temporary id that the
+       server replaces, and selecting the temporary one would leave the
+       selection pointing at a row that never existed. */
+    setPendingNames((prev) => [...prev, name]);
     try {
-      const tag = await onCreateTag(newTagName.trim());
-      setSelectedTags((prev) => [...prev, tag.id]);
-      setNewTagName("");
+      await onCreateTag(name);
     } catch (err) {
       console.error("Error creating tag:", err);
+      setPendingNames((prev) => prev.filter((n) => n !== name));
     }
   };
+
+  /* Whenever the real tag arrives, adopt it and stop tracking the name. */
+  useEffect(() => {
+    if (!pendingNames.length) return;
+    const landed = tags.filter(
+      (t) =>
+        !t.id.startsWith("temp-") &&
+        pendingNames.some((n) => n.toLowerCase() === t.name.toLowerCase())
+    );
+    if (!landed.length) return;
+    setSelectedTags((prev) => [
+      ...prev,
+      ...landed.map((t) => t.id).filter((id) => !prev.includes(id)),
+    ]);
+    setPendingNames((prev) =>
+      prev.filter(
+        (n) => !landed.some((t) => t.name.toLowerCase() === n.toLowerCase())
+      )
+    );
+  }, [tags, pendingNames]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
@@ -255,7 +296,12 @@ export function AddBookmarkDialog({
                   key={tag.id}
                   name={tag.name}
                   color={tag.color}
-                  selected={selectedTags.includes(tag.id)}
+                  selected={
+                    selectedTags.includes(tag.id) ||
+                    pendingNames.some(
+                      (n) => n.toLowerCase() === tag.name.toLowerCase()
+                    )
+                  }
                   onClick={() => toggleTag(tag.id)}
                   size="xs"
                 />

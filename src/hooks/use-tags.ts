@@ -41,21 +41,43 @@ export function useTags() {
     (b.bookmark_count ?? 0) - (a.bookmark_count ?? 0) ||
     String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""));
 
+  /* Shown before it's saved. Creating a tag is three sequential round trips —
+     verify the session, check for a duplicate, insert — and the chip used to
+     appear only after all three, which is a long time to stare at a word you
+     already typed. It appears now and reconciles when the server answers; if
+     that fails, it disappears again. */
   const createTag = async (input: CreateTagInput) => {
-    const response = await fetch("/api/tags", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
+    const optimistic = {
+      id: `temp-${Math.random().toString(36).slice(2)}`,
+      user_id: "",
+      name: input.name,
+      color: input.color ?? "#B0AEA5",
+      created_at: new Date().toISOString(),
+      bookmark_count: 0,
+    } as Tag;
+    setTags((prev) => [...prev, optimistic].sort(inUseOrder));
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to create tag");
+    try {
+      const response = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create tag");
+      }
+
+      const newTag = await response.json();
+      setTags((prev) =>
+        prev.map((t) => (t.id === optimistic.id ? newTag : t)).sort(inUseOrder)
+      );
+      return newTag as Tag;
+    } catch (err) {
+      setTags((prev) => prev.filter((t) => t.id !== optimistic.id));
+      throw err;
     }
-
-    const newTag = await response.json();
-    setTags((prev) => [...prev, newTag].sort(inUseOrder));
-    return newTag;
   };
 
   const updateTag = async (id: string, name: string) => {
