@@ -10,7 +10,7 @@ interface TagChipProps {
   removable?: boolean;
   onClick?: () => void;
   onRemove?: () => void;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
 }
 
 export function TagChip({
@@ -23,15 +23,18 @@ export function TagChip({
   size = "md",
 }: TagChipProps) {
   const sizes = {
-    sm: "h-8 text-[13px] px-3",
-    md: "h-9 text-sm px-3.5",
+    /* For dense pickers where a dozen tags share a row with the field that
+       makes them — sm still reads as a control, xs as a label. */
+    xs: "h-7 gap-1.5 text-[12px] px-2.5",
+    sm: "h-8 gap-2 text-[13px] px-3",
+    md: "h-9 gap-2 text-sm px-3.5",
   };
 
   return (
     <span
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full font-medium transition-all duration-150 select-none",
+        "inline-flex items-center rounded-full font-medium transition-all duration-150 select-none",
         sizes[size],
         onClick && "cursor-pointer",
         selected
@@ -41,7 +44,10 @@ export function TagChip({
     >
       {color && (
         <span
-          className="w-1.5 h-1.5 rounded-full shrink-0"
+          className={cn(
+            "rounded-full shrink-0",
+            size === "xs" ? "w-1 h-1" : "w-1.5 h-1.5"
+          )}
           style={{ background: selected ? "var(--background)" : color }}
         />
       )}

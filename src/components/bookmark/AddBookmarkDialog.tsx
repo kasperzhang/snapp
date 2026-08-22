@@ -247,7 +247,9 @@ export function AddBookmarkDialog({
             <label className="text-sm font-medium text-[var(--foreground)]">
               Tags
             </label>
-            <div className="flex flex-wrap gap-2">
+            {/* Chips and the field share one row, so adding a tag reads as
+                continuing the list rather than operating a separate control. */}
+            <div className="flex flex-wrap items-center gap-1.5">
               {tags.map((tag) => (
                 <TagChip
                   key={tag.id}
@@ -255,15 +257,9 @@ export function AddBookmarkDialog({
                   color={tag.color}
                   selected={selectedTags.includes(tag.id)}
                   onClick={() => toggleTag(tag.id)}
-                  size="sm"
+                  size="xs"
                 />
               ))}
-            </div>
-            {/* One small field, no button. Committing only on a "+" click meant
-                typing a tag and pressing Save silently discarded it — the most
-                common way anyone uses this. Enter commits, and so does clicking
-                away, which is what people actually do. */}
-            <div className="flex items-center gap-2">
               <input
                 placeholder="Add a tag…"
                 value={newTagName}
@@ -283,13 +279,9 @@ export function AddBookmarkDialog({
                   const to = e.relatedTarget as HTMLElement | null;
                   if (to?.dataset?.noTagCommit === undefined) handleCreateTag();
                 }}
-                className="h-9 w-[190px] rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--accent)] focus:outline-none"
+                size={Math.max(newTagName.length + 2, 11)}
+                className="h-7 min-w-[7rem] rounded-full border border-dashed border-[var(--border)] bg-transparent px-2.5 text-[12px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:border-solid focus:border-[var(--accent)] focus:outline-none"
               />
-              {newTagName.trim() && (
-                <span className="text-[11.5px] text-[var(--text-muted)]">
-                  Enter to add
-                </span>
-              )}
             </div>
           </div>
 
