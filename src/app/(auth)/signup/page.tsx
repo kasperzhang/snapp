@@ -98,6 +98,30 @@ export default function SignupPage() {
       <AuthCard
         title="You already have an account"
         subtitle={`${email} is already registered. Sign in, or reset your password if you've forgotten it.`}
+        /* The tray, not a hand-rolled rule inside the body: it's where every
+           other auth screen puts the secondary path, and it comes with the
+           tint and hairline that made this read as loose text on white. */
+        footer={
+          <p className="text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            {resent === "sent" ? (
+              "New link sent — check your inbox, and your spam folder."
+            ) : resent === "done" ? (
+              "That address is already confirmed, so signing in is all you need."
+            ) : (
+              <>
+                Never confirmed your email?{" "}
+                <button
+                  onClick={resendConfirmation}
+                  disabled={resent === "sending"}
+                  className="font-medium text-[var(--accent)] underline underline-offset-2 hover:text-[var(--accent-hover)] disabled:opacity-60"
+                >
+                  {resent === "sending" ? "Sending…" : "Send a new link"}
+                </button>{" "}
+                — the first one expires after an hour.
+              </>
+            )}
+          </p>
+        }
       >
         <div className="space-y-3">
           <Link href="/login">
@@ -108,24 +132,6 @@ export default function SignupPage() {
               Reset password
             </Button>
           </Link>
-        </div>
-        <div className="mt-6 border-t border-[var(--border)] pt-5">
-          <p className="text-[13px] leading-relaxed text-[var(--text-muted)]">
-            {resent === "sent"
-              ? "Sent — check your inbox, and your spam folder."
-              : resent === "done"
-                ? "That address is already confirmed, so signing in is all you need."
-                : "Never confirmed your email? The first link expires after an hour."}
-          </p>
-          {resent !== "sent" && resent !== "done" && (
-            <button
-              onClick={resendConfirmation}
-              disabled={resent === "sending"}
-              className="mt-2 text-[13px] font-medium text-[var(--accent)] underline-offset-2 hover:underline disabled:opacity-60"
-            >
-              {resent === "sending" ? "Sending…" : "Send a new link"}
-            </button>
-          )}
         </div>
       </AuthCard>
     );
