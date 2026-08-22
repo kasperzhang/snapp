@@ -233,13 +233,18 @@ input:-webkit-autofill:active {
    instead, so it exists. */
 @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes overlayOut { from { opacity: 1; } to { opacity: 0; } }
+/* Centring is the `translate` property — that is what Tailwind v4 emits for
+   translate-x-[-50%] — and `transform` composes on top of it rather than
+   replacing it. Repeating the -50% here shifted the sheet twice, so it opened
+   in the top-left corner and snapped to the middle the moment the animation
+   ended. These touch transform only, and leave the centring alone. */
 @keyframes dialogIn {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)) scale(0.97); }
-  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
 }
 @keyframes dialogOut {
-  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  to   { opacity: 0; transform: translate(-50%, calc(-50% + 6px)) scale(0.985); }
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(6px) scale(0.985); }
 }
 /* Out is quicker than in: leaving should feel like getting out of the way,
    arriving like being placed. */
