@@ -14,10 +14,13 @@ const DialogOverlay = forwardRef<
   ElementRef<typeof DialogPrimitive.Overlay>,
   ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
+  /* Espresso at 45%, not black. A pure-black scrim over a warm page drains
+     the warmth out of everything behind it and reads as a different product's
+     modal. */
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-[rgba(34,28,21,0.45)] backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -25,10 +28,11 @@ const DialogOverlay = forwardRef<
 ));
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-/* Same surface as the dropdown menus: paper at 92% over a blur, a hairline
-   warm border and a warm shadow — rather than a flat white card with a grey
-   drop shadow, which read as a different design system sitting on top of
-   this one. */
+/* Warm paper, a hairline warm border and a warm shadow — the menus' palette,
+   but opaque. The menus can afford 92% translucency because they are small and
+   usually sit over the app's own light surfaces; a dialog this size covers
+   whatever is behind it, and 8% of a dark photograph coming through turned
+   porcelain into grey. */
 const DialogContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
   ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -38,7 +42,7 @@ const DialogContent = forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "focus:outline-none fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-[18px] bg-[var(--overlay-surface)] backdrop-blur-[12px] p-6 shadow-[0_24px_60px_-12px_rgba(34,28,21,0.22)] border border-[var(--border)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "focus:outline-none fixed left-[50%] top-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-[18px] bg-[var(--background)] p-6 shadow-[0_24px_60px_-12px_rgba(34,28,21,0.28)] border border-[var(--border)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className
       )}
       {...props}
