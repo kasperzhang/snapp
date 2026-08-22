@@ -123,11 +123,14 @@ export default function SignupPage() {
           </p>
         }
       >
-        <div className="space-y-3">
-          <Link href="/login">
+        {/* flex, not space-y: these children are <a> elements, and vertical
+            margin does nothing on an inline box — the buttons sat flush
+            against each other. Flex blockifies its items, so gap applies. */}
+        <div className="flex flex-col gap-3">
+          <Link href="/login" className="block">
             <Button className="h-11 w-full">Sign in</Button>
           </Link>
-          <Link href="/forgot-password">
+          <Link href="/forgot-password" className="block">
             <Button variant="secondary" className="h-11 w-full">
               Reset password
             </Button>
