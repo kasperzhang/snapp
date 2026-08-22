@@ -259,29 +259,37 @@ export function AddBookmarkDialog({
                 />
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input
-                placeholder="New tag"
+            {/* One small field, no button. Committing only on a "+" click meant
+                typing a tag and pressing Save silently discarded it — the most
+                common way anyone uses this. Enter commits, and so does clicking
+                away, which is what people actually do. */}
+            <div className="flex items-center gap-2">
+              <input
+                placeholder="Add a tag…"
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  // Comma too: nobody who types tags for a living expects it
+                  // to end up inside the tag.
+                  if (e.key === "Enter" || e.key === ",") {
                     e.preventDefault();
                     handleCreateTag();
                   }
                 }}
-                className="flex-1"
+                onBlur={(e) => {
+                  /* Except when leaving for Cancel — creating a tag on the way
+                     out of a dialog someone is abandoning is a side effect
+                     they didn't ask for. */
+                  const to = e.relatedTarget as HTMLElement | null;
+                  if (to?.dataset?.noTagCommit === undefined) handleCreateTag();
+                }}
+                className="h-9 w-[190px] rounded-[9px] border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--accent)] focus:outline-none"
               />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={handleCreateTag}
-                disabled={!newTagName.trim()}
-                aria-label="Add tag"
-                className="w-10 px-0 shrink-0"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+              {newTagName.trim() && (
+                <span className="text-[11.5px] text-[var(--text-muted)]">
+                  Enter to add
+                </span>
+              )}
             </div>
           </div>
 
