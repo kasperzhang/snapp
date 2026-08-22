@@ -249,7 +249,7 @@ export function AddBookmarkDialog({
             </label>
             {/* Chips and the field share one row, so adding a tag reads as
                 continuing the list rather than operating a separate control. */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
               {tags.map((tag) => (
                 <TagChip
                   key={tag.id}
@@ -279,8 +279,8 @@ export function AddBookmarkDialog({
                   const to = e.relatedTarget as HTMLElement | null;
                   if (to?.dataset?.noTagCommit === undefined) handleCreateTag();
                 }}
-                size={Math.max(newTagName.length + 2, 11)}
-                className="h-7 min-w-[7rem] rounded-full border border-dashed border-[var(--border)] bg-transparent px-2.5 text-[12px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:border-solid focus:border-[var(--accent)] focus:outline-none"
+                size={Math.max(newTagName.length + 1, 8)}
+                className="h-7 min-w-[5.5rem] rounded-full border border-dashed border-[var(--border)] bg-transparent px-2.5 text-[12px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:border-solid focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
           </div>
@@ -290,16 +290,10 @@ export function AddBookmarkDialog({
             <p className="text-sm text-red-500">{error}</p>
           )}
 
-          {/* Preview */}
-          {metadata?.og_image_url && (
-            <div className="rounded-lg overflow-hidden border border-[var(--border)]">
-              <img
-                src={metadata.og_image_url}
-                alt="Preview"
-                className="w-full h-32 object-cover"
-              />
-            </div>
-          )}
+          {/* No og:image preview here. It's the site's share banner, not what
+              gets saved, and at 128px tall it pushed the actions below the
+              fold to confirm something the "Found aihero.dev" line already
+              confirms. The card in the grid shows the real thing. */}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">

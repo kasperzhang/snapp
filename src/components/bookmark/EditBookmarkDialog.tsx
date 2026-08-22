@@ -160,7 +160,7 @@ export function EditBookmarkDialog({
             </label>
             {/* Chips and the field share one row, so adding a tag reads as
                 continuing the list rather than operating a separate control. */}
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2.5">
               {tags.map((tag) => (
                 <TagChip
                   key={tag.id}
@@ -190,8 +190,8 @@ export function EditBookmarkDialog({
                   const to = e.relatedTarget as HTMLElement | null;
                   if (to?.dataset?.noTagCommit === undefined) handleCreateTag();
                 }}
-                size={Math.max(newTagName.length + 2, 11)}
-                className="h-7 min-w-[7rem] rounded-full border border-dashed border-[var(--border)] bg-transparent px-2.5 text-[12px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:border-solid focus:border-[var(--accent)] focus:outline-none"
+                size={Math.max(newTagName.length + 1, 8)}
+                className="h-7 min-w-[5.5rem] rounded-full border border-dashed border-[var(--border)] bg-transparent px-2.5 text-[12px] text-[var(--foreground)] placeholder:text-[var(--text-muted)] transition-colors focus:border-solid focus:border-[var(--accent)] focus:outline-none"
               />
             </div>
           </div>
