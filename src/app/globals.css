@@ -94,7 +94,16 @@ input:-webkit-autofill:active {
   transition: background-color 600000s 0s;
 }
 
-/* Custom scrollbar */
+/* Scrollbars: present, but only when you're in the region they belong to.
+   A permanent grey bar down the side of every panel is visual noise, and on
+   macOS — where the system already hides them at rest — it reads as something
+   the app drew by mistake. Deleting them outright is the other extreme: the
+   bar is the only thing telling you a bounded box has more inside it, and the
+   guide pane holds ten sections in one. This keeps the affordance and drops
+   the noise, which is what the platform does by default anyway.
+
+   The track keeps its width whether or not the thumb is painted, so nothing
+   reflows when it appears. */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -105,12 +114,28 @@ input:-webkit-autofill:active {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: transparent;
   border-radius: 4px;
+  transition: background 0.2s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+:hover::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
+
+:hover::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Firefox has no pseudo-elements for this; these two properties are the whole
+   API, so the same reveal is done with colour alone. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: var(--border) transparent;
 }
 
 /* Dialog overlay animation */
