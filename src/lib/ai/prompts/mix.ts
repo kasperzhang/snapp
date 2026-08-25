@@ -100,11 +100,19 @@ being this design. State each as a rule, not a preference.
 ## Design Tokens
 The decisions above as machine-usable values: design tokens as CSS variables, plus a
 couple of key component snippets (Tailwind or plain CSS). This is a translation of
-what is already stated, never a place for new decisions.
+what is already stated, never a place for new decisions. No source names here — this
+half is read by a machine that has never heard of them.
 </output-format>
 
 <instructions>
 - Be specific and buildable: real hex values, real pixel/rem numbers, real font names.
+- Attribute decisions to the site they came from — "Inter (Mermaid)", "accent from
+  Granola" — so the designer can check the result against what they asked for. That is
+  provenance, and it is useful. What is NOT useful is explaining how this guide was
+  commissioned: never write that a site "is tagged for" something, never mention
+  tags, aspects, sources being selected, or any other part of the process. The
+  reader is an agent building a site; it has no idea what a tag is, and a spec that
+  describes its own instructions is spending words on nobody.
 - Be GROUNDED. Document only what you can see in the screenshots or what appears in
   the measured values above. Measured radii, shadows and spacing are FACTS: use them
   exactly, never round them to a tidier number, and never call a design

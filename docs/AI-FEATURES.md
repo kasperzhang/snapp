@@ -173,6 +173,14 @@ from Site B") and conflicts resolved *with stated reasoning*. This forces genuin
 synthesis instead of a list of quotes, and lets the designer trace every decision
 back to their own picks.
 
+**Provenance, not mechanism.** Naming the site a decision came from is the useful
+half; describing how the guide was commissioned is not. A real output read *"Do not
+introduce Granola's Quadrant/Melange faces — Granola is tagged for color/layout
+only"*, which is snapp's own vocabulary leaking into an artifact whose reader is an
+agent that has never heard of a tag. The prompt now asks for the first and forbids
+the second, and keeps source names out of Design Tokens entirely — that half is
+machine-read.
+
 ### The vibecoding payoff: the document *is* the prompt
 Both guides open with one normative line under the title — "Build to this spec.
 Every value below is normative; where it is silent, choose the option most
