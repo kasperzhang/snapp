@@ -43,6 +43,14 @@ Produce Markdown with these sections:
 
 > Build to this spec. Every value below is normative; where it is silent,
 > choose the option most consistent with the Design Philosophy.
+>
+> This is a style specification, not a feature list. What gets built is decided by
+> the product's own requirements; this document decides only how those things look.
+> A component documented below is never a reason to introduce it — if what you are
+> building needs no button, it has no button, and the section describing one simply
+> goes unused. Where the product needs something this guide does not cover, design
+> it from the principles, tokens and patterns above so it reads as though it had
+> always been part of the system.
 
 ## Design Philosophy
 2-4 sentences on the unified direction and how the borrowed pieces cohere.
@@ -136,6 +144,12 @@ half is read by a machine that has never heard of them.
 - When a font/color is explicitly picked, use it; otherwise infer sensible values from the
   screenshot and extracted tokens.
 - Keep it a single, opinionated, cohesive system.
+- Reproduce the block quote under the title verbatim. It is not a placeholder: it
+  tells the agent reading this guide how to apply it, and dropping or paraphrasing
+  it is a defect.
+- Every rule you write constrains how a thing looks WHEN the product calls for it,
+  never that it must exist. Write Components and the Non-negotiable lines that way —
+  "buttons are square-cornered and uppercase", not "every page needs a primary CTA".
 - Output ONLY the Markdown document: begin directly with the "# Combined Design Guide:" heading and end after the last section. No preamble, no closing remarks, no questions.
 </instructions>`;
 

@@ -196,12 +196,26 @@ the second, and keeps source names out of Design Tokens entirely — that half i
 machine-read.
 
 ### The vibecoding payoff: the document *is* the prompt
-Both guides open with one normative line under the title — "Build to this spec.
-Every value below is normative; where it is silent, choose the option most
+Both guides open with the same normative preamble under the title — "Build to this
+spec. Every value below is normative; where it is silent, choose the option most
 consistent with the Design Philosophy." — and end with **Design Tokens**, the
 decisions rendered as CSS variables plus a couple of component snippets. Paste the
 whole thing into Claude Code / Cursor / v0 and it's the first prompt of a
 vibecoding session.
+
+**The preamble also has to scope the document, because pasting it inverts the
+usual priority.** A guide documents buttons, cards and inputs whether or not the
+thing being built has any, and an agent handed a spec reads every section as work
+to do: real sessions produced a button on a site that needed no button, because
+the guide described one. So the preamble says the two things a reader has to know
+before the first section — that this is a style specification and not a feature
+list, so a documented component is never a reason to introduce it; and that where
+the product needs something the guide does not cover, the agent designs it from the
+principles and tokens rather than falling back on its own defaults. Both halves are
+answers to the same question — what is normative here is *how things look*, not
+*what exists* — and both prompts require the block reproduced verbatim, since it is
+the only part of the document addressed to the reader rather than describing the
+design.
 
 This replaced a closing **"Paste-Ready Agent Prompt"** block (~200 words, written
 as direct commands) and a **Quick Reference** cheat-sheet. Both were removed on

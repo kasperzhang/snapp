@@ -47,6 +47,14 @@ Generate a COMPLETE design system specification based on the extracted data. Thi
 
 > Build to this spec. Every value below is normative; where it is silent,
 > choose the option most consistent with the Design Philosophy.
+>
+> This is a style specification, not a feature list. What gets built is decided by
+> the product's own requirements; this document decides only how those things look.
+> A component documented below is never a reason to introduce it — if what you are
+> building needs no button, it has no button, and the section describing one simply
+> goes unused. Where the product needs something this guide does not cover, design
+> it from the principles, tokens and patterns above so it reads as though it had
+> always been part of the system.
 
 ## Design Philosophy
 
@@ -484,6 +492,8 @@ Remember:
 - The output will be used by both AI tools and human developers
 - Capture what makes THIS website's design unique, not generic best practices
 - When a screenshot is attached, treat it as the primary source of truth for layout, spacing, imagery, and overall feel; the extracted tokens are supporting evidence. Where they conflict, trust the screenshot.
+- Reproduce the block quote under the title verbatim. It is not a placeholder: it tells the agent reading this guide how to apply it, and dropping or paraphrasing it is a defect
+- Every rule you write constrains how a thing looks WHEN the product calls for it, never that it must exist. Write Bold Choices and every component block that way — "buttons are square-cornered and uppercase", not "every page needs a primary CTA"
 </instructions>`;
 
 export function buildContext(
