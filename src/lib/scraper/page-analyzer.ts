@@ -70,13 +70,16 @@ async function getBrowser(): Promise<Browser> {
   const isLocal = process.env.NODE_ENV === "development";
 
   if (isLocal) {
-    // For local development, use puppeteer's bundled Chromium
+    // For local development, use puppeteer's bundled Chromium. Software WebGL,
+    // as production has: with --disable-gpu, WebGL-built sites crash to their
+    // own error screen and a local scan "passes" on a picture of it.
     return puppeteerFull.launch({
       headless: true,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
-        "--disable-gpu",
+        "--use-angle=swiftshader",
+        "--enable-unsafe-swiftshader",
         "--disable-dev-shm-usage",
       ],
     }) as Promise<Browser>;
@@ -1254,11 +1257,29 @@ export async function analyzePage(
       // so settle once more before the shutter.
       await new Promise((resolve) => setTimeout(resolve, 250));
       await finishAnimations(page);
-      const shot = await bound(
-        page.screenshot({ type: "webp", quality: 80, fullPage: false }),
-        12_000,
-        `screenshot band ${i}`
-      );
+      /* captureBeyondViewport defaults to true, which resizes the page for
+         every shot — on a WebGL-heavy build that re-fires resize handlers and
+         the capture can wait on a frame that never comes. A viewport band
+         doesn't need it. */
+      let shot: Uint8Array;
+      try {
+        shot = await bound(
+          page.screenshot({
+            type: "webp",
+            quality: 80,
+            fullPage: false,
+            captureBeyondViewport: false,
+          }),
+          12_000,
+          `screenshot band ${i}`
+        );
+      } catch (e) {
+        // Only the hero is essential. A later band that hangs ends the capture
+        // rather than throwing away the bands and extraction already earned.
+        if (i === 0) throw e;
+        console.warn("[scan] capture stopped early:", (e as Error).message);
+        break;
+      }
       sections.push(Buffer.from(shot));
     }
 
