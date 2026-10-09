@@ -1,21 +1,57 @@
 import ogs from "open-graph-scraper";
-import { URLMetadata } from "@/types";
+import type { URLMetadata } from "@/types";
+import { safeFetch } from "@/lib/security/ssrf";
+
+// The head is all the scraper reads; a page larger than this is not worth
+// holding in memory for it.
+const MAX_HTML_BYTES = 1024 * 1024;
+
+/* The page is fetched here and handed to ogs as a string, rather than letting
+   ogs fetch it: ogs follows redirects without asking, so a public URL could
+   bounce it to an internal address and the title would read that page back.
+   safeFetch checks every hop. */
+async function fetchHtml(url: string): Promise<string> {
+  const res = await safeFetch(url, {
+    signal: AbortSignal.timeout(10_000),
+    headers: {
+      "user-agent": "Mozilla/5.0 (compatible; Snapp/1.0; +https://snapp.app)",
+      accept: "text/html,application/xhtml+xml",
+    },
+  });
+  if (!res.ok || !res.body) {
+    await res.body?.cancel();
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = res.body.getReader();
+  while (size < MAX_HTML_BYTES) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.byteLength;
+  }
+  await reader.cancel().catch(() => {});
+
+  const charset =
+    res.headers.get("content-type")?.match(/charset=([^;]+)/i)?.[1]?.trim() ??
+    "utf-8";
+  let decoder: TextDecoder;
+  try {
+    decoder = new TextDecoder(charset);
+  } catch {
+    decoder = new TextDecoder("utf-8");
+  }
+  return decoder.decode(Buffer.concat(chunks));
+}
 
 export async function scrapeMetadata(url: string): Promise<URLMetadata> {
   const parsedUrl = new URL(url);
   const domain = parsedUrl.hostname.replace(/^www\./, "");
 
   try {
-    const { result } = await ogs({
-      url,
-      timeout: 10000,
-      fetchOptions: {
-        headers: {
-          "user-agent":
-            "Mozilla/5.0 (compatible; Snapp/1.0; +https://snapp.app)",
-        },
-      },
-    });
+    const { result } = await ogs({ html: await fetchHtml(url) });
 
     const title = result.ogTitle || result.twitterTitle || domain;
     const description =

@@ -3,6 +3,7 @@ import puppeteerFull from "puppeteer";
 import chromium from "@sparticuz/chromium-min";
 import Color from "color";
 import namer from "color-namer";
+import { assertPublicHttpUrl } from "@/lib/security/ssrf";
 // `import type` matters beyond style here: these are all interfaces, so they
 // vanish at runtime. A value import leaves Node looking for exports that the
 // compiled module never had, which breaks scripts/scan-preview.mjs.
@@ -1097,6 +1098,49 @@ function phase(label: string, startedAt: number) {
   console.log(`[scan] ${label}: ${Date.now() - startedAt}ms`);
 }
 
+/* The scan route checks the URL the user typed, but that is one request of
+   hundreds. The page can redirect, frame, or load a subresource from
+   localhost or the metadata service, and whatever comes back lands in a
+   public screenshot. So every request Chromium makes — the navigation, each
+   redirect hop, every iframe and asset — goes through the same guard.
+   Verdicts are cached per host: a page asks for the same CDN fifty times.
+   Service workers are bypassed because their fetches would skip this hook. */
+async function guardRequests(page: Page): Promise<void> {
+  const verdicts = new Map<string, Promise<boolean>>();
+  await page.setBypassServiceWorker(true);
+  await page.setRequestInterception(true);
+  page.on("request", (req) => {
+    if (req.isInterceptResolutionHandled()) return;
+    let url: URL;
+    try {
+      url = new URL(req.url());
+    } catch {
+      req.abort("blockedbyclient").catch(() => {});
+      return;
+    }
+    if (url.protocol === "data:" || url.protocol === "blob:") {
+      req.continue().catch(() => {});
+      return;
+    }
+    let verdict = verdicts.get(url.hostname);
+    if (!verdict) {
+      verdict = assertPublicHttpUrl(url.href).then(
+        () => true,
+        (e) => {
+          console.warn(`[scan] blocked request to ${url.host}:`, (e as Error).message);
+          return false;
+        }
+      );
+      verdicts.set(url.hostname, verdict);
+    }
+    verdict
+      .then((ok) => (ok ? req.continue() : req.abort("blockedbyclient")))
+      .catch(() => {
+        /* page closed or the request already went away */
+      });
+  });
+}
+
 async function finishAnimations(page: Page): Promise<void> {
   try {
     await withTimeout(
@@ -1173,6 +1217,7 @@ export async function analyzePage(
     const page = await browser.newPage();
     // Bounds waitForNetworkIdle and friends without repeating a number.
     page.setDefaultTimeout(15_000);
+    await guardRequests(page);
 
     // Set viewport for consistent screenshots
     await page.setViewport({ width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT });

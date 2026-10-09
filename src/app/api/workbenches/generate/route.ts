@@ -9,11 +9,13 @@ import {
 } from "@/types";
 import { MAX_GUIDE_SOURCES } from "@/lib/billing/plans";
 import {
-  checkUsageLimit,
-  recordUsage,
+  commitUsage,
+  releaseUsage,
+  reserveUsage,
   estimateCostCents,
   totalInputTokens,
 } from "@/lib/billing/limits";
+import { isOwnScreenshotUrl } from "@/lib/storage/screenshots";
 import { rateLimit } from "@/lib/ratelimit";
 import {
   debugGenerationError,
@@ -94,9 +96,15 @@ export async function POST(request: NextRequest) {
       ? [...workbench.items].sort((a, b) => a.position - b.position)
       : [];
 
-    // Only sources that have been scanned (need a screenshot for vision)
+    // Only sources that have been scanned (need a screenshot for vision).
+    // Screenshot URLs must sit in this user's own folder of the bucket: the
+    // columns are user-writable, and the model fetches whatever is here.
+    const ownShots = (it: RawItem) =>
+      (it.analysis?.screenshot_urls ?? []).filter((u) =>
+        isOwnScreenshotUrl(u, user.id)
+      );
     const ready: ItemForPrompt[] = rawItems
-      .filter((it) => it.analysis?.screenshot_url)
+      .filter((it) => isOwnScreenshotUrl(it.analysis?.screenshot_url, user.id))
       .map((it, i) => ({
         index: i + 1,
         title: it.bookmark?.title || "Untitled",
@@ -106,8 +114,8 @@ export async function POST(request: NextRequest) {
         colors: it.analysis?.colors || [],
         styleTokens: it.analysis?.style_tokens ?? null,
         screenshotUrl: it.analysis!.screenshot_url!,
-        screenshotUrls: it.analysis?.screenshot_urls?.length
-          ? it.analysis.screenshot_urls
+        screenshotUrls: ownShots(it).length
+          ? ownShots(it)
           : [it.analysis!.screenshot_url!],
       }));
 
@@ -126,28 +134,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Monthly plan cap.
-    const limit = await checkUsageLimit(supabase, user.id, "guide");
-    if (!limit.allowed) {
-      return NextResponse.json(
-        {
-          error: `You've reached your monthly design-guide limit (${limit.used}/${limit.limit}). Upgrade to keep going.`,
-          code: "limit_reached",
-        },
-        { status: 402 }
-      );
-    }
-
     // Cap the number of screenshots sent to the model to bound per-call cost.
     const sources = ready.slice(0, MAX_GUIDE_SOURCES);
-
-    // `checkUsageLimit` already resolved the plan, so routing is free here.
-    const model = resolveModel("mix", limit.plan);
-
-    await supabase
-      .from("workbenches")
-      .update({ guide_status: "generating" })
-      .eq("id", workbench_id);
 
     // Build an interleaved content array: lead text, then per-source text + screenshot
     /* How much of each page to show. One band is the top of the site and
@@ -188,6 +176,29 @@ export async function POST(request: NextRequest) {
       text: "Now write the combined design guide following the output format exactly.",
     });
 
+    // Monthly plan cap. Reserved right before the model call, so guides fired
+    // in parallel can't all pass the same count; refunded if the call fails.
+    const limit = await reserveUsage(supabase, user.id, "guide", {
+      workbench_id,
+    });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: `You've reached your monthly design-guide limit (${limit.used}/${limit.limit}). Upgrade to keep going.`,
+          code: "limit_reached",
+        },
+        { status: 402 }
+      );
+    }
+
+    // Reserving already resolved the plan, so routing is free here.
+    const model = resolveModel("mix", limit.plan);
+
+    await supabase
+      .from("workbenches")
+      .update({ guide_status: "generating" })
+      .eq("id", workbench_id);
+
     // From here on the response is a stream, so failures can no longer be an
     // HTTP status — they ride in-band as an "err" frame. Every check that can
     // reject the request (auth, limits, plan cap) already ran above.
@@ -205,6 +216,10 @@ export async function POST(request: NextRequest) {
         /* client gone — keep generating */
       }
     };
+
+    // Set once the model has finished: from then on the guide exists and has
+    // cost what it cost, so a later failure doesn't refund the credit.
+    let committed = false;
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -234,9 +249,8 @@ export async function POST(request: NextRequest) {
 
           // Usage is only final once the stream ends.
           const final = await message.finalMessage();
-          await recordUsage(supabase, {
-            userId: user.id,
-            kind: "guide",
+          committed = true;
+          await commitUsage(supabase, limit, {
             tokensIn: totalInputTokens(final.usage),
             tokensOut: final.usage?.output_tokens ?? 0,
             costCents: estimateCostCents(model.id, final.usage),
@@ -269,6 +283,7 @@ export async function POST(request: NextRequest) {
           send(controller, { t: "done", workbench: updated });
         } catch (err) {
           logGenerationError("mix:model", err);
+          if (!committed) await releaseUsage(limit);
           await supabase
             .from("workbenches")
             .update({ guide_status: "error" })

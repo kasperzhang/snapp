@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertPublicHttpUrl } from "@/lib/security/ssrf";
+import { assertPublicHttpUrl, safeFetch } from "@/lib/security/ssrf";
 
 /* Which sites will a browser actually let us put in an <iframe>?
    This can't be answered in the browser: a site that refuses framing still
@@ -57,9 +57,10 @@ function readHeaders(headers: Headers): Verdict {
 
 async function probe(origin: string): Promise<Verdict> {
   try {
-    const res = await fetch(origin, {
+    // safeFetch, not fetch: the origin passed the guard, but where it
+    // redirects to hasn't, and every hop has to.
+    const res = await safeFetch(origin, {
       method: "GET",
-      redirect: "follow",
       signal: AbortSignal.timeout(6000),
       headers: {
         /* Deliberately a real browser UA. We are predicting what the visitor's

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { analyzePage, generateDesignTokens } from "@/lib/scraper/page-analyzer";
 import { assertPublicHttpUrl, SsrfError } from "@/lib/security/ssrf";
 import { rateLimit } from "@/lib/ratelimit";
-import { checkUsageLimit, recordUsage } from "@/lib/billing/limits";
+import { commitUsage, releaseUsage, reserveUsage } from "@/lib/billing/limits";
 import {
   MAX_SECTIONS,
   SCREENSHOT_BUCKET,
@@ -78,8 +78,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Monthly plan cap.
-    const limit = await checkUsageLimit(supabase, user.id, "scan");
+    // SSRF guard: only allow scanning public http(s) URLs. Before the plan
+    // cap, so a URL we'd refuse never takes a credit.
+    try {
+      await assertPublicHttpUrl(url);
+    } catch (e) {
+      if (e instanceof SsrfError) {
+        return NextResponse.json({ error: e.message }, { status: 400 });
+      }
+      throw e;
+    }
+
+    // Monthly plan cap. Reserved up front, so scans fired in parallel can't
+    // all pass the same count; refunded below if the scan fails.
+    const limit = await reserveUsage(supabase, user.id, "scan", { url });
     if (!limit.allowed) {
       return NextResponse.json(
         {
@@ -88,16 +100,6 @@ export async function POST(request: NextRequest) {
         },
         { status: 402 }
       );
-    }
-
-    // SSRF guard: only allow scanning public http(s) URLs.
-    try {
-      await assertPublicHttpUrl(url);
-    } catch (e) {
-      if (e instanceof SsrfError) {
-        return NextResponse.json({ error: e.message }, { status: 400 });
-      }
-      throw e;
     }
 
     // Update status to scanning
@@ -183,15 +185,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Meter the successful scan (infra cost, no tokens).
-      await recordUsage(supabase, {
-        userId: user.id,
-        kind: "scan",
-        metadata: { url },
-      });
+      await commitUsage(supabase, limit, { metadata: { url } });
 
       return NextResponse.json(updatedAnalysis);
     } catch (scanError) {
       console.error("Scan error:", scanError);
+      await releaseUsage(limit);
 
       // Update with error status
       await supabase

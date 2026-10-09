@@ -1,4 +1,4 @@
-import { marked } from "marked";
+import { Marked } from "marked";
 
 /* Design guides come back from the model as markdown and were being printed
    into a <pre>, so people read "## Typography" and "**bold**" as literal
@@ -19,9 +19,41 @@ export function slugify(text: string) {
     .replace(/^-|-$/g, "");
 }
 
+/* Escaping stops raw HTML, but markdown's own syntax can still carry a
+   payload: marked writes [x](javascript:...) out as a live link, and the
+   guide's text is partly shaped by whatever the scanned site said. So links
+   keep only schemes a guide could mean, and images aren't rendered at all —
+   a remote image would tell its owner the guide was opened. Browsers ignore
+   whitespace and control characters inside a scheme ("java\tscript:"), so
+   those are stripped before it's read. Entities need no handling here:
+   escapeHtml already turned every & into &amp;. */
+const SAFE_SCHEMES = new Set(["http:", "https:", "mailto:"]);
+
+function isSafeHref(href: string): boolean {
+  const scheme = href
+    .replace(/[\u0000-\u0020\u007f-\u009f]/g, "")
+    .match(/^([a-z][a-z0-9+.-]*:)/i)?.[1]
+    ?.toLowerCase();
+  return !scheme || SAFE_SCHEMES.has(scheme);
+}
+
+// Its own instance, so the blog (trusted, author-written) keeps marked's
+// defaults.
+const guideMarked = new Marked({
+  renderer: {
+    link(token) {
+      if (isSafeHref(token.href)) return false; // marked's default rendering
+      return this.parser.parseInline(token.tokens);
+    },
+    image(token) {
+      return token.text;
+    },
+  },
+});
+
 /** Markdown as HTML, safe to hand to dangerouslySetInnerHTML. */
 export function renderMarkdown(md: string): string {
-  return marked.parse(escapeHtml(md), { async: false }) as string;
+  return guideMarked.parse(escapeHtml(md), { async: false }) as string;
 }
 
 export interface GuideSection {

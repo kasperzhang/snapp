@@ -1,14 +1,20 @@
 // Usage metering + monthly plan-limit enforcement.
 //
-// - `checkUsageLimit` counts this calendar month's `usage_events` for a user and
-//   compares against their plan cap. Call it BEFORE doing expensive work.
-// - `recordUsage` writes one ledger row AFTER the work succeeds (best-effort;
-//   never throws, so metering can't break the user-facing action).
+// - `reserveUsage` takes a credit BEFORE expensive work: it counts this month's
+//   `usage_events` and inserts a row under one lock, so concurrent requests
+//   can't all pass the same count. Then exactly one of:
+//   - `commitUsage` once the work succeeded, filling in the real token counts;
+//   - `releaseUsage` if it failed, handing the credit back.
+// - `checkUsageLimit` is the read-only count, for showing usage — it is not a
+//   gate, because nothing stops two requests passing it at once.
+// - `recordUsage` writes one ledger row after the fact (best-effort; never
+//   throws, so metering can't break the user-facing action).
 // - `estimateCostCents` turns an Anthropic `usage` object into an estimated cost.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PLANS, PlanId, UsageKind } from "./plans";
 import { MODEL_PRICING } from "@/lib/ai/models";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Which plan a user is on, from the `subscriptions` table. A user counts as Pro
@@ -139,5 +145,111 @@ export async function recordUsage(
     if (error) console.error("recordUsage insert failed:", error);
   } catch (e) {
     console.error("recordUsage threw:", e);
+  }
+}
+
+export interface Reservation extends LimitResult {
+  userId: string;
+  kind: UsageKind;
+  /** The reserved `usage_events` row, or null when reserving fell back to a
+   *  plain count (see below) and nothing has been written yet. */
+  reservationId: string | null;
+}
+
+/**
+ * Take one credit before doing the work. `allowed: false` means the cap is
+ * reached and nothing was reserved.
+ *
+ * Runs through the service role because `reserve_usage` takes a user id and
+ * must not be callable by users, and because refunds delete rows — something
+ * RLS deliberately doesn't let users do to their own ledger.
+ */
+export async function reserveUsage(
+  supabase: SupabaseClient,
+  userId: string,
+  kind: UsageKind,
+  metadata: Record<string, unknown> = {}
+): Promise<Reservation> {
+  const plan = await getUserPlan(supabase, userId);
+  const limit = PLANS[plan].limits[kind];
+
+  const { data, error } = await createAdminClient().rpc("reserve_usage", {
+    p_user_id: userId,
+    p_kind: kind,
+    p_limit: limit,
+    p_since: monthStartISO(),
+    p_metadata: metadata,
+  });
+  const row = Array.isArray(data) ? data[0] : data;
+
+  if (error || !row) {
+    // Same fail-open stance as checkUsageLimit: a metering hiccup (or the
+    // migration not being applied yet) must not lock everyone out. This path
+    // has the old race, so it's logged loudly.
+    console.error("reserveUsage: reserve_usage RPC failed, using a plain count:", error);
+    const fallback = await checkUsageLimit(supabase, userId, kind);
+    return { ...fallback, userId, kind, reservationId: null };
+  }
+
+  const used = Number(row.used) || 0;
+  return {
+    allowed: row.reservation_id != null,
+    used,
+    limit,
+    plan,
+    userId,
+    kind,
+    reservationId: row.reservation_id ?? null,
+  };
+}
+
+/** The work succeeded: fill the reserved row in with what it actually cost. */
+export async function commitUsage(
+  supabase: SupabaseClient,
+  reservation: Reservation,
+  args: {
+    tokensIn?: number;
+    tokensOut?: number;
+    costCents?: number;
+    metadata?: Record<string, unknown>;
+  } = {}
+): Promise<void> {
+  if (!reservation.reservationId) {
+    await recordUsage(supabase, {
+      userId: reservation.userId,
+      kind: reservation.kind,
+      ...args,
+    });
+    return;
+  }
+  try {
+    const { error } = await createAdminClient()
+      .from("usage_events")
+      .update({
+        tokens_in: args.tokensIn ?? 0,
+        tokens_out: args.tokensOut ?? 0,
+        cost_cents: args.costCents ?? 0,
+        metadata: args.metadata ?? {},
+      })
+      .eq("id", reservation.reservationId)
+      .eq("user_id", reservation.userId);
+    if (error) console.error("commitUsage update failed:", error);
+  } catch (e) {
+    console.error("commitUsage threw:", e);
+  }
+}
+
+/** The work failed before it cost anything worth charging for: refund it. */
+export async function releaseUsage(reservation: Reservation): Promise<void> {
+  if (!reservation.reservationId) return;
+  try {
+    const { error } = await createAdminClient()
+      .from("usage_events")
+      .delete()
+      .eq("id", reservation.reservationId)
+      .eq("user_id", reservation.userId);
+    if (error) console.error("releaseUsage delete failed:", error);
+  } catch (e) {
+    console.error("releaseUsage threw:", e);
   }
 }

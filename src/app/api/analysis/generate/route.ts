@@ -3,11 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { ExtractedFont, ExtractedColor, StyleTokens } from "@/types";
 import {
-  checkUsageLimit,
-  recordUsage,
+  commitUsage,
+  releaseUsage,
+  reserveUsage,
   estimateCostCents,
   totalInputTokens,
 } from "@/lib/billing/limits";
+import { MAX_SECTIONS, isOwnScreenshotUrl } from "@/lib/storage/screenshots";
 import { rateLimit } from "@/lib/ratelimit";
 import {
   debugGenerationError,
@@ -75,18 +77,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Monthly plan cap.
-    const limit = await checkUsageLimit(supabase, user.id, "guide");
-    if (!limit.allowed) {
-      return NextResponse.json(
-        {
-          error: `You've reached your monthly design-guide limit (${limit.used}/${limit.limit}). Upgrade to keep going.`,
-          code: "limit_reached",
-        },
-        { status: 402 }
-      );
-    }
-
     const url = (analysis.bookmark as { url: string })?.url || "the website";
 
     // Static instructions first with the cache breakpoint (a byte-identical
@@ -110,13 +100,16 @@ export async function POST(request: NextRequest) {
     ];
 
     // Send every captured band, labelled by position. Analyses scanned before
-    // sectioning fall back to the single hero shot.
-    const bands: string[] =
-      (analysis.screenshot_urls as string[] | null)?.length
-        ? (analysis.screenshot_urls as string[])
-        : analysis.screenshot_url
-          ? [analysis.screenshot_url]
-          : [];
+    // sectioning fall back to the single hero shot. Only URLs in this user's
+    // own folder of the bucket, and no more than a scan produces: the row is
+    // user-writable, and each URL here is an image the model is billed for.
+    const stored: unknown[] =
+      Array.isArray(analysis.screenshot_urls) && analysis.screenshot_urls.length
+        ? analysis.screenshot_urls
+        : [analysis.screenshot_url];
+    const bands = stored
+      .filter((u): u is string => isOwnScreenshotUrl(u, user.id))
+      .slice(0, MAX_SECTIONS);
 
     bands.forEach((bandUrl, i) => {
       content.push({
@@ -131,7 +124,20 @@ export async function POST(request: NextRequest) {
       content.push({ type: "image", source: { type: "url", url: bandUrl } });
     });
 
-    // `checkUsageLimit` already resolved the plan, so routing is free here.
+    // Monthly plan cap. Reserved right before the model call, so guides fired in
+    // parallel can't all pass the same count; refunded if the call fails.
+    const limit = await reserveUsage(supabase, user.id, "guide", { analysis_id });
+    if (!limit.allowed) {
+      return NextResponse.json(
+        {
+          error: `You've reached your monthly design-guide limit (${limit.used}/${limit.limit}). Upgrade to keep going.`,
+          code: "limit_reached",
+        },
+        { status: 402 }
+      );
+    }
+
+    // Reserving already resolved the plan, so routing is free here.
     const model = resolveModel("guide", limit.plan);
 
     // 12000, not 8000. Sonnet's natural length for this template was 7,700-8,500
@@ -141,12 +147,18 @@ export async function POST(request: NextRequest) {
     // length is shorter now; the cap stays because an unspent cap costs nothing
     // and truncation is the expensive failure. At ~85s per 8,000 tokens, 12000
     // lands near 120s, comfortably inside the 300s ceiling.
-    const message = await anthropic.messages.create({
-      model: model.id,
-      max_tokens: 12000,
-      thinking: { type: "disabled" }, // keep latency low (Sonnet 5 runs adaptive thinking by default)
-      messages: [{ role: "user", content }],
-    });
+    let message: Anthropic.Message;
+    try {
+      message = await anthropic.messages.create({
+        model: model.id,
+        max_tokens: 12000,
+        thinking: { type: "disabled" }, // keep latency low (Sonnet 5 runs adaptive thinking by default)
+        messages: [{ role: "user", content }],
+      });
+    } catch (err) {
+      await releaseUsage(limit);
+      throw err;
+    }
 
     // Extract text from response
     const designPrompt = message.content
@@ -155,9 +167,7 @@ export async function POST(request: NextRequest) {
       .join("\n");
 
     // Meter the successful generation with real token counts + est. cost.
-    await recordUsage(supabase, {
-      userId: user.id,
-      kind: "guide",
+    await commitUsage(supabase, limit, {
       tokensIn: totalInputTokens(message.usage),
       tokensOut: message.usage?.output_tokens ?? 0,
       costCents: estimateCostCents(model.id, message.usage),

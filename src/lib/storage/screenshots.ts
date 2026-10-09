@@ -36,6 +36,26 @@ export function screenshotPath(
 export const MAX_SECTIONS = 3;
 
 /**
+ * Whether `url` points at one of this user's own files in the screenshots
+ * bucket. Guide routes hand screenshot URLs to the model to fetch, and the
+ * screenshot columns are writable by the row's owner straight through the anon
+ * key — so a URL is only trusted if it sits where a scan would have put it.
+ * `new URL` resolves `..` and `%2e%2e` segments before the prefix is compared.
+ */
+export function isOwnScreenshotUrl(url: unknown, userId: string): url is string {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (typeof url !== "string" || !base) return false;
+  try {
+    const prefix = new URL(
+      `${base.replace(/\/+$/, "")}/storage/v1/object/public/${SCREENSHOT_BUCKET}/${userId}/`
+    ).href;
+    return new URL(url).href.startsWith(prefix);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Delete the stored screenshots for the given analyses. Best-effort: storage
  * cleanup must never block or fail the database delete the caller is doing, so
  * errors are logged and swallowed. Removing a path that doesn't exist is not an

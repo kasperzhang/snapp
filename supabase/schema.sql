@@ -435,6 +435,50 @@ CREATE POLICY "Users can view their own usage"
 CREATE POLICY "Users can record their own usage"
   ON usage_events FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+-- Plan caps reserve a row before the work starts (see migration 0007), so
+-- concurrent requests can't all pass the same count. Service role only.
+CREATE OR REPLACE FUNCTION public.reserve_usage(
+  p_user_id UUID,
+  p_kind TEXT,
+  p_limit INT,
+  p_since TIMESTAMPTZ,
+  p_metadata JSONB DEFAULT '{}'::jsonb
+)
+RETURNS TABLE (reservation_id UUID, used INT)
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  v_used INT;
+  v_id UUID;
+BEGIN
+  -- Held until the calling transaction (this RPC) commits.
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_user_id::text || ':' || p_kind, 0));
+
+  SELECT count(*) INTO v_used
+    FROM usage_events
+   WHERE user_id = p_user_id
+     AND kind = p_kind
+     AND created_at >= p_since;
+
+  IF v_used >= p_limit THEN
+    RETURN QUERY SELECT NULL::UUID, v_used;
+    RETURN;
+  END IF;
+
+  INSERT INTO usage_events (user_id, kind, metadata)
+  VALUES (p_user_id, p_kind, COALESCE(p_metadata, '{}'::jsonb))
+  RETURNING id INTO v_id;
+
+  RETURN QUERY SELECT v_id, v_used;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.reserve_usage(UUID, TEXT, INT, TIMESTAMPTZ, JSONB)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_usage(UUID, TEXT, INT, TIMESTAMPTZ, JSONB)
+  TO service_role;
+
 -- ============================================================================
 -- BILLING (Phase 1) — one subscription row per user.
 -- Written ONLY by the Stripe webhook (service role), never by the client, so
